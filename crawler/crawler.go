@@ -90,7 +90,9 @@ func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection) {
 
 		fmt.Printf("%+v\n", event)
 
-		//todo store event
+		if err := c.EventStore.Upsert(event); err != nil {
+			log.Printf("Failed to create event: %s", err.Error())
+		}
 	})
 }
 
