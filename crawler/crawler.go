@@ -4,22 +4,21 @@ import (
 	"time"
 	"github.com/PuerkitoBio/goquery"
 	"log"
-	"fmt"
 	"regexp"
 	"strings"
 	"errors"
 	"bytes"
 	"net/http"
 	"github.com/djimenez/iconv-go"
-	"github.com/warmans/stressfaktor-api/store"
 	"github.com/warmans/stressfaktor-api/entity"
+	"html"
 )
 
 var validDate = regexp.MustCompile(`^[A-Za-z]+, [0-9]{2}\.[0-9]{2}\.[0-9]{4}$`)
 var validTime = regexp.MustCompile(`^[0-9]{2}\.[0-9]{2}$`)
 
 type Crawler struct {
-	EventStore *store.EventStore
+	EventStore *entity.EventStore
 	TermineURI string
 }
 
@@ -88,8 +87,6 @@ func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection) {
 			return
 		}
 
-		fmt.Printf("%+v\n", event)
-
 		if err := c.EventStore.Upsert(event); err != nil {
 			log.Printf("Failed to create event: %s", err.Error())
 		}
@@ -121,13 +118,18 @@ func (c *Crawler) CreateEvent(time time.Time, body *goquery.Selection) (*entity.
 		return nil, errors.New("invalid title line")
 	}
 
-	return &entity.Event{
+	e := &entity.Event{
 		Date: time,
 		Venue: &entity.Venue{
-			Name: venueEl.Text(),
-			Address: venueAddress,
+			Name: html.UnescapeString(venueEl.Text()),
+			Address: html.UnescapeString(venueAddress),
 		},
-		Type: strings.TrimSpace(strings.Split(titleLineEl.Text(), ":")[1]),
-		Description: strings.Join(bodySections[1:], "\n"),
-	}, nil
+		Type: html.UnescapeString(strings.TrimSpace(strings.Split(titleLineEl.Text(), ":")[1])),
+		Description: html.UnescapeString(strings.Join(bodySections[1:], "\n")),
+	}
+
+	//populate performers from description
+	e.GuessPerformers()
+
+	return e, nil
 }

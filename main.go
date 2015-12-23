@@ -8,7 +8,8 @@ import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
 	"time"
-	"github.com/warmans/stressfaktor-api/store"
+	"github.com/warmans/stressfaktor-api/entity"
+	"encoding/json"
 )
 
 func main() {
@@ -26,13 +27,31 @@ func main() {
 	}
 	defer db.Close()
 
-	eventStore := &store.EventStore{DB: db}
+	eventStore := &entity.EventStore{DB: db}
 	if err := eventStore.Initialize(); err != nil {
 		log.Fatalf("Failed to initialize local DB: %s", err.Error())
 	}
 
 	scraper := &crawler.Crawler{EventStore: eventStore, TermineURI: *terminURI}
 	scraper.Run(time.Duration(1) * time.Hour)
+
+	http.HandleFunc("/api/v1/event", func(rw http.ResponseWriter, r *http.Request) {
+
+		defer r.Body.Close()
+		r.ParseForm()
+
+		events, err := eventStore.Find(&entity.EventFilter{})
+		if err != nil {
+			log.Print(err.Error())
+			http.Error(rw, "Failed", http.StatusInternalServerError)
+		}
+
+		rw.Header().Add("Content-type", "application/json")
+		rw.WriteHeader(200)
+
+		jsonEncoder := json.NewEncoder(rw)
+		jsonEncoder.Encode(events)
+	})
 
 	log.Fatal(http.ListenAndServe(*bind, nil))
 }
