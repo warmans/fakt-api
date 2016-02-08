@@ -14,7 +14,7 @@ import (
 	"fmt"
 )
 
-const VERSION = "0.0.3"
+const VERSION = "0.0.4"
 
 type Response struct {
 	Status  int         `json:"status"`
@@ -76,8 +76,10 @@ func main() {
 	})
 
 	http.HandleFunc("/api/v1/version", func(rw http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
 		SendResponse(rw, &Response{Status: 200, Payload: map[string]string{"version": VERSION}})
 	})
 
+	log.Printf("API listening on %s", *bind)
 	log.Fatal(http.ListenAndServe(*bind, nil))
 }
