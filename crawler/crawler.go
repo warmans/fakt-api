@@ -24,6 +24,8 @@ type Crawler struct {
 
 func (c *Crawler) Run(scrapeFrequency time.Duration) {
 
+	log.Print("Starting crawler...")
+
 	res, err := http.Get(c.TermineURI)
 	if err != nil {
 		log.Fatal(err)
@@ -121,11 +123,11 @@ func (c *Crawler) CreateEvent(time time.Time, body *goquery.Selection) (*entity.
 	e := &entity.Event{
 		Date: time,
 		Venue: &entity.Venue{
-			Name: html.UnescapeString(venueEl.Text()),
-			Address: html.UnescapeString(venueAddress),
+			Name: StripHTML(html.UnescapeString(venueEl.Text())),
+			Address: StripHTML(html.UnescapeString(venueAddress)),
 		},
-		Type: html.UnescapeString(strings.TrimSpace(strings.Split(titleLineEl.Text(), ":")[1])),
-		Description: html.UnescapeString(strings.Join(bodySections[1:], "\n")),
+		Type: StripHTML(html.UnescapeString(strings.TrimSpace(strings.Split(titleLineEl.Text(), ":")[1]))),
+		Description: StripHTML(html.UnescapeString(strings.Join(bodySections[1:], "\n"))),
 	}
 
 	//populate performers from description

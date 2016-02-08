@@ -42,7 +42,6 @@ func (e *Event) GuessPerformers() {
 		}
 		e.Performers = append(e.Performers, perf)
 	}
-	log.Printf("%v", e.Performers)
 }
 
 type Venue struct {

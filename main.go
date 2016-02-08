@@ -10,18 +10,43 @@ import (
 	"time"
 	"github.com/warmans/stressfaktor-api/entity"
 	"encoding/json"
+	"os"
+	"fmt"
 )
+
+const VERSION = "0.0.3"
+
+type Response struct {
+	Status  int         `json:"status"`
+	Payload interface{} `json:"payload"`
+}
+
+func SendResponse(rw http.ResponseWriter, response *Response) {
+	rw.Header().Add("Content-Type", "application/json; charset=utf-8")
+	rw.WriteHeader(response.Status)
+
+	jsonEncoder := json.NewEncoder(rw)
+	jsonEncoder.Encode(response)
+}
 
 func main() {
 
-	bind := flag.String("bind", "localhost:8080", "Web server bind address")
+	bind := flag.String("bind", ":8080", "Web server bind address")
 	terminURI := flag.String("termin", "https://stressfaktor.squat.net/termine.php?display=90", "Address of termine page")
 	location := flag.String("location", "Europe/Berlin", "Time localization")
+	dbPath := flag.String("dbpath", "./db.sqlite3", "Location of DB file")
+	ver := flag.Bool("v", false, "Print version and exit")
+	flag.Parse()
+
+	if *ver {
+		fmt.Printf("%s", VERSION)
+		os.Exit(0)
+	}
 
 	//localize time
 	time.LoadLocation(*location)
 
-	db, err := sql.Open("sqlite3", "./db.sqlite3")
+	db, err := sql.Open("sqlite3", *dbPath)
 	if err != nil {
 		log.Fatalf("Failed to open DB: %s", err.Error())
 	}
@@ -44,13 +69,14 @@ func main() {
 		if err != nil {
 			log.Print(err.Error())
 			http.Error(rw, "Failed", http.StatusInternalServerError)
+			return
 		}
 
-		rw.Header().Add("Content-type", "application/json")
-		rw.WriteHeader(200)
+		SendResponse(rw, &Response{Status: 200, Payload: events})
+	})
 
-		jsonEncoder := json.NewEncoder(rw)
-		jsonEncoder.Encode(events)
+	http.HandleFunc("/api/v1/version", func(rw http.ResponseWriter, r *http.Request) {
+		SendResponse(rw, &Response{Status: 200, Payload: map[string]string{"version": VERSION}})
 	})
 
 	log.Fatal(http.ListenAndServe(*bind, nil))
