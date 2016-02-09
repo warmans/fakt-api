@@ -38,6 +38,7 @@ func (h *EventHandler) filterFromRequest(r *http.Request) *entity.EventFilter {
 		EventIDs: make([]int, 0),
 		VenueIDs: make([]int, 0),
 		PerformerIDs: make([]int, 0),
+		Types: make([]string, 0),
 	}
 
 	if event := r.Form.Get("event"); event != "" {
@@ -69,6 +70,11 @@ func (h *EventHandler) filterFromRequest(r *http.Request) *entity.EventFilter {
 			if idInt, err := strconv.Atoi(idStr); err == nil {
 				filter.PerformerIDs = append(filter.PerformerIDs, idInt)
 			}
+		}
+	}
+	if tpe := r.Form.Get("type"); tpe != "" {
+		for _, typeStr := range strings.Split(tpe, ",") {
+			filter.Types = append(filter.Types, typeStr)
 		}
 	}
 

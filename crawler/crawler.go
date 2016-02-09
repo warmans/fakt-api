@@ -23,28 +23,30 @@ type Crawler struct {
 }
 
 func (c *Crawler) Run(scrapeFrequency time.Duration) {
+	for {
+		log.Print("re-scraping...")
+		res, err := http.Get(c.TermineURI)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer res.Body.Close()
 
-	log.Print("Starting crawler...")
+		//must convert to utf-8 or the special chars will be broken
+		utfBody, err := iconv.NewReader(res.Body, "ISO-8859-1", "utf-8")
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	res, err := http.Get(c.TermineURI)
-	if err != nil {
-		log.Fatal(err)
+		doc, err := goquery.NewDocumentFromReader(utfBody)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		//select the main data column and handle all the sub-tables
+		doc.Find("body > table:nth-child(4) > tbody > tr > td:nth-child(2) > table").Each(c.HandleDateTable)
+
+		time.Sleep(scrapeFrequency)
 	}
-	defer res.Body.Close()
-
-	//must convert to utf-8 or the special chars will be broken
-	utfBody, err := iconv.NewReader(res.Body, "ISO-8859-1", "utf-8")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	doc, err := goquery.NewDocumentFromReader(utfBody)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	//select the main data column and handle all the sub-tables
-	doc.Find("body > table:nth-child(4) > tbody > tr > td:nth-child(2) > table").Each(c.HandleDateTable)
 }
 
 func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection) {

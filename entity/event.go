@@ -63,6 +63,7 @@ type EventFilter struct {
 	DateTo       time.Time `json:"to_date"`
 	VenueIDs     []int     `json:"venues"`
 	PerformerIDs []int     `json:"performers"`
+	Types        []string  `json:"types"`
 }
 
 type EventStore struct {
@@ -137,7 +138,7 @@ func (s *EventStore) Find(filter *EventFilter) ([]*Event, error) {
 		LEFT JOIN venue v ON e.venue_id = v.id
 		LEFT JOIN event_performer ep ON e.id = ep.event_id
 		LEFT JOIN performer p ON ep.performer_id = p.id ` +
-		filterSql + `
+	filterSql + `
 		ORDER BY e.id, v.id, p.id ASC`
 
 	result, err := s.DB.Query(fullSql, filterValues...)
@@ -227,7 +228,7 @@ func getFilterSql(ef *EventFilter) (string, []interface{}) {
 
 	//event IDs
 	if len(ef.EventIDs) > 0 {
-		sql = append(sql, "e.id IN ("+(strings.TrimRight(strings.Repeat("?,", len(ef.EventIDs)), ","))+")")
+		sql = append(sql, "e.id IN (" + (strings.TrimRight(strings.Repeat("?,", len(ef.EventIDs)), ",")) + ")")
 		for _, val := range ef.EventIDs {
 			values = append(values, val)
 		}
@@ -245,7 +246,7 @@ func getFilterSql(ef *EventFilter) (string, []interface{}) {
 
 	//venue
 	if len(ef.VenueIDs) > 0 {
-		sql = append(sql, "v.id IN ("+(strings.TrimRight(strings.Repeat("?,", len(ef.VenueIDs)), ","))+")")
+		sql = append(sql, "v.id IN (" + (strings.TrimRight(strings.Repeat("?,", len(ef.VenueIDs)), ",")) + ")")
 		for _, val := range ef.VenueIDs {
 			values = append(values, val)
 		}
@@ -253,12 +254,20 @@ func getFilterSql(ef *EventFilter) (string, []interface{}) {
 
 	//performer
 	if len(ef.PerformerIDs) > 0 {
-		sql = append(sql, "p.id IN ("+(strings.TrimRight(strings.Repeat("?,", len(ef.PerformerIDs)), ","))+")")
+		sql = append(sql, "p.id IN (" + (strings.TrimRight(strings.Repeat("?,", len(ef.PerformerIDs)), ",")) + ")")
 		for _, val := range ef.PerformerIDs {
 			values = append(values, val)
 		}
 	}
-	return "WHERE "+strings.Join(sql, " AND "), values
+
+	if len(ef.Types) > 0 {
+		sql = append(sql, "e.type IN (" + (strings.TrimRight(strings.Repeat("?,", len(ef.Types)), ",")) + ")")
+		for _, val := range ef.Types {
+			values = append(values, val)
+		}
+	}
+
+	return "WHERE " + strings.Join(sql, " AND "), values
 }
 
 func (s *EventStore) Upsert(event *Event) error {
