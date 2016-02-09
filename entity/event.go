@@ -27,18 +27,31 @@ func (e *Event) GuessPerformers() {
 	e.Performers = make([]*Performer, 0)
 
 	re := regexp.MustCompile(`"[^"]+"[\s]+?\([^(]+\)`)
-	space := regexp.MustCompile(`\"[\s]+\(`)
+	spaceRe := regexp.MustCompile(`\"[\s]+\(`)
+	fromRe := regexp.MustCompile(`(aus|from)\s+([^,\.\;]+)`)
 
 	result := re.FindAllString(e.Description, -1)
 	for _, raw := range result {
-		parts := space.Split(raw, -1)
+		parts := spaceRe.Split(raw, -1)
 		if len(parts) != 2 {
 			log.Printf("%s did not have enough parts", raw)
 			continue
 		}
+
+		name := strings.Trim(parts[0], `" `)
+		genre := strings.Trim(parts[1], "() ")
+
+		//try and find a location in the genre
+		home := ""
+		if fromMatch := fromRe.FindStringSubmatch(genre); len(fromMatch) == 3 {
+			//e.g. from Berlin, from, Berlin
+			home = fromMatch[2]
+		}
+
 		perf := &Performer{
-			Name:  strings.Trim(parts[0], `" `),
-			Genre: strings.Trim(parts[1], "() "),
+			Name:  name,
+			Genre: genre,
+			Home: home,
 		}
 		e.Performers = append(e.Performers, perf)
 	}
@@ -54,7 +67,7 @@ type Performer struct {
 	ID    int64  `json:"id"`
 	Name  string `json:"name"`
 	Genre string `json:"genre"`
-	URI   string `json:"uri"`
+	Home  string `json:"home"`
 }
 
 type EventFilter struct {
@@ -100,7 +113,7 @@ func (s *EventStore) Initialize() error {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT,
 			genre TEXT,
-			uri TEXT
+			home TEXT
 		);
 	`)
 	if err != nil {
@@ -146,7 +159,7 @@ func (s *EventStore) Find(filter *EventFilter) ([]*Event, error) {
 			p.id,
 			p.name,
 			p.genre,
-			p.uri
+			p.home
 		FROM event e
 		LEFT JOIN venue v ON e.venue_id = v.id
 		LEFT JOIN event_performer ep ON e.id = ep.event_id
@@ -179,7 +192,7 @@ func (s *EventStore) Find(filter *EventFilter) ([]*Event, error) {
 		pID := 0
 		pName := ""
 		pGenre := ""
-		pURI := ""
+		pHome := ""
 
 		result.Scan(
 			&eID,
@@ -192,7 +205,7 @@ func (s *EventStore) Find(filter *EventFilter) ([]*Event, error) {
 			&pID,
 			&pName,
 			&pGenre,
-			&pURI,
+			&pHome,
 		)
 
 		if curEvent.ID != int64(eID) {
@@ -221,7 +234,7 @@ func (s *EventStore) Find(filter *EventFilter) ([]*Event, error) {
 			ID:    int64(pID),
 			Name:  pName,
 			Genre: pGenre,
-			URI:   pURI,
+			Home:  pHome,
 		}
 		if curPerformer.ID != 0 {
 			curEvent.Performers = append(curEvent.Performers, curPerformer)
@@ -343,10 +356,10 @@ func (s *EventStore) performerMustExist(tr *sql.Tx, performer *Performer) error 
 	}
 	if performer.ID == 0 {
 		res, err := tr.Exec(
-			"INSERT INTO performer (name, genre, uri) VALUES (?, ?, ?)",
+			"INSERT INTO performer (name, genre, home) VALUES (?, ?, ?)",
 			performer.Name,
 			performer.Genre,
-			performer.URI,
+			performer.Home,
 		)
 		if err != nil {
 			return err
