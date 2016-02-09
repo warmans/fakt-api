@@ -30,7 +30,7 @@ func StripHTML(s string) string {
 		output = s
 	} else {
 
-		s = strings.Replace(s, "\n", "", -1)
+		s = strings.Replace(s, "\n", " ", -1)
 
 		// Walk through the string removing all tags
 		b := bytes.NewBufferString("")
