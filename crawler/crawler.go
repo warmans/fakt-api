@@ -45,6 +45,9 @@ func (c *Crawler) Run(scrapeFrequency time.Duration) {
 		//select the main data column and handle all the sub-tables
 		doc.Find("body > table:nth-child(4) > tbody > tr > td:nth-child(2) > table").Each(c.HandleDateTable)
 
+		//mark old events as deleted
+		c.EventStore.Cleanup()
+
 		time.Sleep(scrapeFrequency)
 	}
 }

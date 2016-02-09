@@ -39,6 +39,7 @@ func (h *EventHandler) filterFromRequest(r *http.Request) *entity.EventFilter {
 		VenueIDs: make([]int, 0),
 		PerformerIDs: make([]int, 0),
 		Types: make([]string, 0),
+		ShowDeleted: false,
 	}
 
 	if event := r.Form.Get("event"); event != "" {
@@ -76,6 +77,10 @@ func (h *EventHandler) filterFromRequest(r *http.Request) *entity.EventFilter {
 		for _, typeStr := range strings.Split(tpe, ",") {
 			filter.Types = append(filter.Types, typeStr)
 		}
+	}
+
+	if deleted := r.Form.Get("deleted"); (deleted == "1" || deleted == "true") {
+		filter.ShowDeleted = true
 	}
 
 	return filter
