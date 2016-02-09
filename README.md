@@ -12,7 +12,6 @@ Parses stressfaktor termine pages and provides data in a structured format.
 | __from__      | event date     | 2012-11-10      | Y-m-d                              |
 | __to__        | event date     | 2012-11-10      | Y-m-d                              |
 | __venue__     | venue ID(s)    | 123             |                                    |
-| __performer__ | performer ID(s)| 151             |                                    |
 | __type__      | event type     | Konzert         |                                    |
 | __deleted__   | show deleted   | 1               | show events in the past            |
 
@@ -22,8 +21,6 @@ Parses stressfaktor termine pages and provides data in a structured format.
 `/api/v1/event?event=1,2,3` - show events with IDs 1, 2 or 3
 
 `/api/v1/event?from=2016-01-01&to=2017-01-01` - show events in 2016
-
-`/api/v1/event?performer=1` - show events with performer ID 1
 
 
 ## Installing
