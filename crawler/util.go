@@ -1,11 +1,11 @@
 package crawler
 
 import (
-	"time"
-	"strings"
-	"github.com/vektra/errors"
-	"fmt"
 	"bytes"
+	"errors"
+	"fmt"
+	"strings"
+	"time"
 )
 
 //ParseTime parses times in the format e.g. "Montag, 21.12.2015", "21:00 Uhr"

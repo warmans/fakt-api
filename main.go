@@ -1,33 +1,21 @@
 package main
 
 import (
-	"flag"
-	"net/http"
-	"log"
-	"github.com/warmans/stressfaktor-api/crawler"
 	"database/sql"
-	_ "github.com/mattn/go-sqlite3"
-	"time"
-	"github.com/warmans/stressfaktor-api/entity"
-	"encoding/json"
-	"os"
+	"flag"
 	"fmt"
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/warmans/stressfaktor-api/crawler"
+	"github.com/warmans/stressfaktor-api/entity"
+	"log"
+	"net/http"
+	"os"
+	"time"
+	"github.com/warmans/stressfaktor-api/api"
 )
 
+// VERSION is used in packaging
 const VERSION = "0.0.4"
-
-type Response struct {
-	Status  int         `json:"status"`
-	Payload interface{} `json:"payload"`
-}
-
-func SendResponse(rw http.ResponseWriter, response *Response) {
-	rw.Header().Add("Content-Type", "application/json; charset=utf-8")
-	rw.WriteHeader(response.Status)
-
-	jsonEncoder := json.NewEncoder(rw)
-	jsonEncoder.Encode(response)
-}
 
 func main() {
 
@@ -58,27 +46,10 @@ func main() {
 	}
 
 	scraper := &crawler.Crawler{EventStore: eventStore, TermineURI: *terminURI}
-	scraper.Run(time.Duration(1) * time.Hour)
+	go scraper.Run(time.Duration(1) * time.Hour)
 
-	http.HandleFunc("/api/v1/event", func(rw http.ResponseWriter, r *http.Request) {
-
-		defer r.Body.Close()
-		r.ParseForm()
-
-		events, err := eventStore.Find(&entity.EventFilter{})
-		if err != nil {
-			log.Print(err.Error())
-			http.Error(rw, "Failed", http.StatusInternalServerError)
-			return
-		}
-
-		SendResponse(rw, &Response{Status: 200, Payload: events})
-	})
-
-	http.HandleFunc("/api/v1/version", func(rw http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
-		SendResponse(rw, &Response{Status: 200, Payload: map[string]string{"version": VERSION}})
-	})
+	API := api.API{AppVersion: VERSION, EventStore: eventStore}
+	http.Handle("/api/v1/", http.StripPrefix("/api/v1", API.NewServeMux()))
 
 	log.Printf("API listening on %s", *bind)
 	log.Fatal(http.ListenAndServe(*bind, nil))

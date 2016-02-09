@@ -1,13 +1,13 @@
 package entity
 
 import (
-	"time"
 	"database/sql"
-	"regexp"
-	"log"
-	"strings"
 	"errors"
 	"fmt"
+	"log"
+	"regexp"
+	"strings"
+	"time"
 )
 
 const DATE_FORMAT_SQL = "2006-01-02 15:04:05.999999999-07:00"
@@ -34,10 +34,10 @@ func (e *Event) GuessPerformers() {
 		parts := space.Split(raw, -1)
 		if len(parts) != 2 {
 			log.Printf("%s did not have enough parts", raw)
-			continue;
+			continue
 		}
 		perf := &Performer{
-			Name: strings.Trim(parts[0], `" `),
+			Name:  strings.Trim(parts[0], `" `),
 			Genre: strings.Trim(parts[1], "() "),
 		}
 		e.Performers = append(e.Performers, perf)
@@ -45,9 +45,9 @@ func (e *Event) GuessPerformers() {
 }
 
 type Venue struct {
-	ID      int64     `json:"id"`
-	Name    string    `json:"name"`
-	Address string    `json:"address"`
+	ID      int64  `json:"id"`
+	Name    string `json:"name"`
+	Address string `json:"address"`
 }
 
 type Performer struct {
@@ -58,11 +58,11 @@ type Performer struct {
 }
 
 type EventFilter struct {
-	EventIDs	 []int		`json:"events"`
-	DateFrom     time.Time  `json:"from_date"`
-	DateTo       time.Time  `json:"to_date"`
-	VenueIDs     []int      `json:"venues"`
-	PerformerIDs []int      `json:"performers"`
+	EventIDs     []int     `json:"events"`
+	DateFrom     time.Time `json:"from_date"`
+	DateTo       time.Time `json:"to_date"`
+	VenueIDs     []int     `json:"venues"`
+	PerformerIDs []int     `json:"performers"`
 }
 
 type EventStore struct {
@@ -136,11 +136,11 @@ func (s *EventStore) Find(filter *EventFilter) ([]*Event, error) {
 		FROM event e
 		LEFT JOIN venue v ON e.venue_id = v.id
 		LEFT JOIN event_performer ep ON e.id = ep.event_id
-		LEFT JOIN performer p ON ep.performer_id = p.id`+
+		LEFT JOIN performer p ON ep.performer_id = p.id ` +
 		filterSql + `
 		ORDER BY e.id, v.id, p.id ASC`
 
-	result, err :=  s.DB.Query(fullSql, filterValues...)
+	result, err := s.DB.Query(fullSql, filterValues...)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, err
 	}
@@ -165,7 +165,7 @@ func (s *EventStore) Find(filter *EventFilter) ([]*Event, error) {
 		p_id := 0
 		p_name := ""
 		p_genre := ""
-		p_uri :=  ""
+		p_uri := ""
 
 		result.Scan(
 			&e_id,
@@ -190,13 +190,13 @@ func (s *EventStore) Find(filter *EventFilter) ([]*Event, error) {
 
 			//new current event
 			curEvent = &Event{
-				ID: int64(e_id),
-				Date: e_date,
-				Type: e_type,
+				ID:          int64(e_id),
+				Date:        e_date,
+				Type:        e_type,
 				Description: e_description,
 				Venue: &Venue{
-					ID: int64(v_id),
-					Name: v_name,
+					ID:      int64(v_id),
+					Name:    v_name,
 					Address: v_address,
 				},
 				Performers: make([]*Performer, 0),
@@ -204,10 +204,10 @@ func (s *EventStore) Find(filter *EventFilter) ([]*Event, error) {
 		}
 
 		curPerformer := &Performer{
-			ID: int64(p_id),
-			Name: p_name,
+			ID:    int64(p_id),
+			Name:  p_name,
 			Genre: p_genre,
-			URI: p_uri,
+			URI:   p_uri,
 		}
 		if curPerformer.ID != 0 {
 			curEvent.Performers = append(curEvent.Performers, curPerformer)
@@ -223,11 +223,11 @@ func (s *EventStore) Find(filter *EventFilter) ([]*Event, error) {
 
 func getFilterSql(ef *EventFilter) (string, []interface{}) {
 	values := make([]interface{}, 0)
-	sql := make([]string, 0)
+	sql := []string{"1=1"}
 
 	//event IDs
 	if len(ef.EventIDs) > 0 {
-		sql = append(sql, "e.id IN ("+(strings.TrimRight(strings.Repeat("?,", len(ef.VenueIDs)), ","))+")")
+		sql = append(sql, "e.id IN ("+(strings.TrimRight(strings.Repeat("?,", len(ef.EventIDs)), ","))+")")
 		for _, val := range ef.EventIDs {
 			values = append(values, val)
 		}
@@ -253,13 +253,12 @@ func getFilterSql(ef *EventFilter) (string, []interface{}) {
 
 	//performer
 	if len(ef.PerformerIDs) > 0 {
-		sql = append(sql, "p.id IN ("+(strings.TrimRight(strings.Repeat("?,", len(ef.VenueIDs)), ","))+")")
+		sql = append(sql, "p.id IN ("+(strings.TrimRight(strings.Repeat("?,", len(ef.PerformerIDs)), ","))+")")
 		for _, val := range ef.PerformerIDs {
 			values = append(values, val)
 		}
 	}
-
-	return strings.Join(sql, " AND "), values
+	return "WHERE "+strings.Join(sql, " AND "), values
 }
 
 func (s *EventStore) Upsert(event *Event) error {

@@ -1,17 +1,17 @@
 package crawler
 
 import (
-	"time"
-	"github.com/PuerkitoBio/goquery"
-	"log"
-	"regexp"
-	"strings"
-	"errors"
 	"bytes"
-	"net/http"
+	"errors"
+	"github.com/PuerkitoBio/goquery"
 	"github.com/djimenez/iconv-go"
 	"github.com/warmans/stressfaktor-api/entity"
 	"html"
+	"log"
+	"net/http"
+	"regexp"
+	"strings"
+	"time"
 )
 
 var validDate = regexp.MustCompile(`^[A-Za-z]+, [0-9]{2}\.[0-9]{2}\.[0-9]{4}$`)
@@ -123,10 +123,10 @@ func (c *Crawler) CreateEvent(time time.Time, body *goquery.Selection) (*entity.
 	e := &entity.Event{
 		Date: time,
 		Venue: &entity.Venue{
-			Name: StripHTML(html.UnescapeString(venueEl.Text())),
+			Name:    StripHTML(html.UnescapeString(venueEl.Text())),
 			Address: StripHTML(html.UnescapeString(venueAddress)),
 		},
-		Type: StripHTML(html.UnescapeString(strings.TrimSpace(strings.Split(titleLineEl.Text(), ":")[1]))),
+		Type:        StripHTML(html.UnescapeString(strings.TrimSpace(strings.Split(titleLineEl.Text(), ":")[1]))),
 		Description: StripHTML(html.UnescapeString(strings.Join(bodySections[1:], "\n"))),
 	}
 
