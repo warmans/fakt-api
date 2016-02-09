@@ -106,9 +106,9 @@ func (s *EventStore) Initialize() error {
 	_, err = s.DB.Exec(`
 		CREATE TABLE IF NOT EXISTS event_performer (
 			event_id INTEGER,
-			performer_id INTEGER
+			performer_id INTEGER,
+			PRIMARY KEY (event_id, performer_id)
 		);
-		CREATE INDEX IF NOT EXISTS unique_assoc ON event_performer (event_id, performer_id)
 	`)
 	if err != nil {
 		return err
