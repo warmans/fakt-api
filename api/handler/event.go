@@ -21,14 +21,14 @@ type EventHandler struct {
 func (h *EventHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
-	events, err := h.eventStore.Find(h.filterFromRequest(r))
+	events, err := h.eventStore.FindEvents(h.filterFromRequest(r))
 	if err != nil {
 		log.Print(err.Error())
-		http.Error(rw, "Failed", http.StatusInternalServerError)
+		common.SendResponse(rw, &common.Response{Status: http.StatusInternalServerError, Payload: nil})
 		return
 	}
 
-	common.SendResponse(rw, &common.Response{Status: 200, Payload: events})
+	common.SendResponse(rw, &common.Response{Status: http.StatusOK, Payload: events})
 }
 
 func (h *EventHandler) filterFromRequest(r *http.Request) *entity.EventFilter {
@@ -37,7 +37,6 @@ func (h *EventHandler) filterFromRequest(r *http.Request) *entity.EventFilter {
 	filter := &entity.EventFilter{
 		EventIDs: make([]int, 0),
 		VenueIDs: make([]int, 0),
-		PerformerIDs: make([]int, 0),
 		Types: make([]string, 0),
 		ShowDeleted: false,
 	}
@@ -63,13 +62,6 @@ func (h *EventHandler) filterFromRequest(r *http.Request) *entity.EventFilter {
 		for _, idStr := range strings.Split(venue, ",") {
 			if idInt, err := strconv.Atoi(idStr); err == nil {
 				filter.VenueIDs = append(filter.VenueIDs, idInt)
-			}
-		}
-	}
-	if performer := r.Form.Get("performer"); performer != "" {
-		for _, idStr := range strings.Split(performer, ",") {
-			if idInt, err := strconv.Atoi(idStr); err == nil {
-				filter.PerformerIDs = append(filter.PerformerIDs, idInt)
 			}
 		}
 	}

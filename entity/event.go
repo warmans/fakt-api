@@ -15,10 +15,10 @@ const DATE_FORMAT_SQL = "2006-01-02 15:04:05.999999999-07:00"
 type Event struct {
 	ID          int64        `json:"id"`
 	Date        time.Time    `json:"date"`
-	Venue       *Venue       `json:"venue"`
+	Venue       *Venue       `json:"venue,omitempty"`
 	Type        string       `json:"type"`
 	Description string       `json:"description"`
-	Performers  []*Performer `json:"performer"`
+	Performers  []*Performer `json:"performer,omitempty"`
 }
 
 func (e *Event) GuessPerformers() {
@@ -61,6 +61,11 @@ type Venue struct {
 	ID      int64  `json:"id"`
 	Name    string `json:"name"`
 	Address string `json:"address"`
+	Events []*Event `json:"event,omitempty"`
+}
+
+type VenueFilter struct {
+	VenueIDs     []int     `json:"venues"`
 }
 
 type Performer struct {
@@ -68,6 +73,7 @@ type Performer struct {
 	Name  string `json:"name"`
 	Genre string `json:"genre"`
 	Home  string `json:"home"`
+	Events []*Event `json:"event,omitempty"`
 }
 
 type EventFilter struct {
@@ -75,7 +81,6 @@ type EventFilter struct {
 	DateFrom     time.Time `json:"from_date"`
 	DateTo       time.Time `json:"to_date"`
 	VenueIDs     []int     `json:"venues"`
-	PerformerIDs []int     `json:"performers"`
 	Types        []string  `json:"types"`
 	ShowDeleted  bool  	   `json:"show_deleted"`
 }
@@ -144,30 +149,23 @@ func (s *EventStore) Cleanup() {
 	log.Printf("Cleaned up %d rows", affected)
 }
 
-func (s *EventStore) Find(filter *EventFilter) ([]*Event, error) {
+func (s *EventStore) FindEvents(filter *EventFilter) ([]*Event, error) {
 
-	filterSql, filterValues := getFilterSql(filter)
-	fullSql := `
-		SELECT
-			e.id,
-			e.date,
-			e.type,
-			e.description,
-			v.id,
-			v.name,
-			v.address,
-			p.id,
-			p.name,
-			p.genre,
-			p.home
-		FROM event e
-		LEFT JOIN venue v ON e.venue_id = v.id
-		LEFT JOIN event_performer ep ON e.id = ep.event_id
-		LEFT JOIN performer p ON ep.performer_id = p.id ` +
-		filterSql + `
-		ORDER BY e.date, e.id, p.id ASC`
+	q := Sql{}
+	q.Select("e.id", "e.date", "e.type", "e.description", "v.id", "v.name", "v.address", "p.id", "p.name", "p.genre", "p.home")
+	q.From("event e")
+	q.LeftJoin("venue v ON e.venue_id = v.id")
+	q.LeftJoin("event_performer ep ON e.id = ep.event_id")
+	q.LeftJoin("performer p ON ep.performer_id = p.id")
+	q.WhereIntIn("e.id", filter.EventIDs...)
+	q.WhereIntIn("v.id", filter.VenueIDs...)
+	q.WhereStringIn("e.type", filter.Types...)
+	q.WhereTime("e.date", ">=", filter.DateFrom)
+	q.WhereTime("e.date", "<", filter.DateTo)
+	q.WhereInt("e.deleted", "<=", IfOrInt(filter.ShowDeleted, 1, 0))
+	q.SetOrder("v.name ASC")
 
-	result, err := s.DB.Query(fullSql, filterValues...)
+	result, err := s.DB.Query(q.GetSQL(), q.GetValues()...)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, err
 	}
@@ -182,31 +180,11 @@ func (s *EventStore) Find(filter *EventFilter) ([]*Event, error) {
 			return nil, err
 		}
 
-		eID := 0
-		eDate := time.Time{}
-		eType := ""
-		eDescription := ""
-		vID := 0
-		vName := ""
-		vAddress := ""
-		pID := 0
-		pName := ""
-		pGenre := ""
-		pHome := ""
+		var eID, vID, pID int
+		var eType, eDescription, vName,  vAddress, pName, pGenre, pHome string
+		var eDate time.Time
 
-		result.Scan(
-			&eID,
-			&eDate,
-			&eType,
-			&eDescription,
-			&vID,
-			&vName,
-			&vAddress,
-			&pID,
-			&pName,
-			&pGenre,
-			&pHome,
-		)
+		result.Scan(&eID, &eDate, &eType, &eDescription, &vID, &vName, &vAddress, &pID, &pName, &pGenre, &pHome)
 
 		if curEvent.ID != int64(eID) {
 
@@ -244,11 +222,55 @@ func (s *EventStore) Find(filter *EventFilter) ([]*Event, error) {
 	if curEvent.ID != 0 {
 		events = append(events, curEvent)
 	}
-
 	return events, nil
 }
 
-func (s *EventStore) Upsert(event *Event) error {
+func (s *EventStore) FindVenues(filter *VenueFilter) ([]*Venue, error) {
+
+	q := Sql{}
+	q.Select("v.id", "v.name", "v.address")
+	q.From("venue v")
+	q.WhereIntIn("v.id", filter.VenueIDs...)
+	q.SetOrder("v.name ASC")
+
+	result, err := s.DB.Query(q.GetSQL(), q.GetValues()...)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, err
+	}
+	defer result.Close()
+
+	venues := make([]*Venue, 0)
+
+	for result.Next() {
+		if err := result.Err(); err != nil {
+			return nil, err
+		}
+
+		//get venue data
+		venue := &Venue{Events: make([]*Event, 0)}
+		if err := result.Scan(&venue.ID, &venue.Name, &venue.Address); err != nil {
+			return venues, err
+		}
+
+		//get event data for each venue
+		events, err := s.FindEvents(&EventFilter{VenueIDs: []int{int(venue.ID)}})
+		if err != nil {
+			events = []*Event{}
+		}
+
+		//append event sans venue data
+		for _, event := range events {
+			event.Venue = nil
+		}
+		venue.Events = events
+
+		venues = append(venues, venue)
+	}
+
+	return venues, nil
+}
+
+func (s *EventStore) UpsertEvent(event *Event) error {
 
 	tx, err := s.DB.Begin()
 	if err != nil {
@@ -372,58 +394,4 @@ func (s *EventStore) performerMustExist(tr *sql.Tx, performer *Performer) error 
 	}
 
 	return nil
-}
-
-func getFilterSql(ef *EventFilter) (string, []interface{}) {
-	values := make([]interface{}, 0)
-
-	//show or hide deleted rows
-	deletedIn := "0"
-	if ef.ShowDeleted == true {
-		deletedIn = deletedIn +", 1"
-	}
-	sql := []string{"e.deleted IN ("+deletedIn+")"}
-
-	//event IDs
-	if len(ef.EventIDs) > 0 {
-		sql = append(sql, "e.id IN (" + (strings.TrimRight(strings.Repeat("?,", len(ef.EventIDs)), ",")) + ")")
-		for _, val := range ef.EventIDs {
-			values = append(values, val)
-		}
-	}
-
-	//date range
-	if !ef.DateFrom.IsZero() {
-		sql = append(sql, "e.date >= ?")
-		values = append(values, ef.DateFrom.Format(DATE_FORMAT_SQL))
-	}
-	if !ef.DateTo.IsZero() {
-		sql = append(sql, "e.date < ?")
-		values = append(values, ef.DateTo.Format(DATE_FORMAT_SQL))
-	}
-
-	//venue
-	if len(ef.VenueIDs) > 0 {
-		sql = append(sql, "v.id IN (" + (strings.TrimRight(strings.Repeat("?,", len(ef.VenueIDs)), ",")) + ")")
-		for _, val := range ef.VenueIDs {
-			values = append(values, val)
-		}
-	}
-
-	//performer
-	if len(ef.PerformerIDs) > 0 {
-		sql = append(sql, "p.id IN (" + (strings.TrimRight(strings.Repeat("?,", len(ef.PerformerIDs)), ",")) + ")")
-		for _, val := range ef.PerformerIDs {
-			values = append(values, val)
-		}
-	}
-
-	if len(ef.Types) > 0 {
-		sql = append(sql, "e.type IN (" + (strings.TrimRight(strings.Repeat("?,", len(ef.Types)), ",")) + ")")
-		for _, val := range ef.Types {
-			values = append(values, val)
-		}
-	}
-
-	return "WHERE " + strings.Join(sql, " AND "), values
 }
