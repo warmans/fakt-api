@@ -163,7 +163,7 @@ func (s *EventStore) FindEvents(filter *EventFilter) ([]*Event, error) {
 	q.WhereTime("e.date", ">=", filter.DateFrom)
 	q.WhereTime("e.date", "<", filter.DateTo)
 	q.WhereInt("e.deleted", "<=", IfOrInt(filter.ShowDeleted, 1, 0))
-	q.SetOrder("v.name ASC")
+	q.SetOrder("e.date", "e.id", "v.id", "p.id")
 
 	result, err := s.DB.Query(q.GetSQL(), q.GetValues()...)
 	if err != nil && err != sql.ErrNoRows {
