@@ -12,6 +12,7 @@ import (
 	"os"
 	"time"
 	"github.com/warmans/stressfaktor-api/api"
+	"github.com/warmans/stressfaktor-api/data/bcamp"
 )
 
 // VERSION is used in packaging
@@ -45,7 +46,11 @@ func main() {
 		log.Fatalf("Failed to initialize local DB: %s", err.Error())
 	}
 
-	scraper := &crawler.Crawler{EventStore: eventStore, TermineURI: *terminURI}
+	scraper := &crawler.Crawler{
+		EventStore: eventStore,
+		TermineURI: *terminURI,
+		Bandcamp: &bcamp.Bandcamp{HTTP: http.DefaultClient},
+	}
 	go scraper.Run(time.Duration(1) * time.Hour)
 
 	API := api.API{AppVersion: VERSION, EventStore: eventStore}

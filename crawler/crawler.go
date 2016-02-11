@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"github.com/warmans/stressfaktor-api/data/bcamp"
 )
 
 var validDate = regexp.MustCompile(`^[A-Za-z]+, [0-9]{2}\.[0-9]{2}\.[0-9]{4}$`)
@@ -20,6 +21,7 @@ var validTime = regexp.MustCompile(`^[0-9]{2}\.[0-9]{2}$`)
 type Crawler struct {
 	EventStore *entity.EventStore
 	TermineURI string
+	Bandcamp   *bcamp.Bandcamp
 }
 
 func (c *Crawler) Run(scrapeFrequency time.Duration) {
@@ -138,5 +140,18 @@ func (c *Crawler) CreateEvent(time time.Time, body *goquery.Selection) (*entity.
 	//populate performers from description
 	e.GuessPerformers()
 
+	//update listen URLs with bandcamp
+	for k, perf := range e.Performers {
+		results, err := c.Bandcamp.Search(perf.Name, perf.Home)
+		if err != nil {
+			log.Print("Failed to query bandcamp: %s", err.Error())
+		}
+		if err == nil && len(results) > 0 {
+			log.Printf("%s is probably %s (%d)", perf.Name, results[0].Name, results[0].Score)
+			if results[0].Score < 5 {
+				e.Performers[k].ListenURL = results[0].URL
+			}
+		}
+	}
 	return e, nil
 }

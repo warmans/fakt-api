@@ -61,28 +61,29 @@ type Venue struct {
 	ID      int64  `json:"id"`
 	Name    string `json:"name"`
 	Address string `json:"address"`
-	Events []*Event `json:"event,omitempty"`
+	Events  []*Event `json:"event,omitempty"`
 }
 
 type VenueFilter struct {
-	VenueIDs     []int     `json:"venues"`
+	VenueIDs []int     `json:"venues"`
 }
 
 type Performer struct {
-	ID    int64  `json:"id"`
-	Name  string `json:"name"`
-	Genre string `json:"genre"`
-	Home  string `json:"home"`
-	Events []*Event `json:"event,omitempty"`
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	Genre     string `json:"genre"`
+	Home      string `json:"home"`
+	ListenURL string `json:"listen_url"`
+	Events    []*Event `json:"event,omitempty"`
 }
 
 type EventFilter struct {
-	EventIDs     []int     `json:"events"`
-	DateFrom     time.Time `json:"from_date"`
-	DateTo       time.Time `json:"to_date"`
-	VenueIDs     []int     `json:"venues"`
-	Types        []string  `json:"types"`
-	ShowDeleted  bool  	   `json:"show_deleted"`
+	EventIDs    []int     `json:"events"`
+	DateFrom    time.Time `json:"from_date"`
+	DateTo      time.Time `json:"to_date"`
+	VenueIDs    []int     `json:"venues"`
+	Types       []string  `json:"types"`
+	ShowDeleted bool       `json:"show_deleted"`
 }
 
 type EventStore struct {
@@ -118,7 +119,8 @@ func (s *EventStore) Initialize() error {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT,
 			genre TEXT,
-			home TEXT
+			home TEXT,
+			listen_url TEXT
 		);
 	`)
 	if err != nil {
@@ -152,7 +154,7 @@ func (s *EventStore) Cleanup() {
 func (s *EventStore) FindEvents(filter *EventFilter) ([]*Event, error) {
 
 	q := Sql{}
-	q.Select("e.id", "e.date", "e.type", "e.description", "v.id", "v.name", "v.address", "p.id", "p.name", "p.genre", "p.home")
+	q.Select("e.id", "e.date", "e.type", "e.description", "v.id", "v.name", "v.address", "p.id", "p.name", "p.genre", "p.home", "p.listen_url")
 	q.From("event e")
 	q.LeftJoin("venue v ON e.venue_id = v.id")
 	q.LeftJoin("event_performer ep ON e.id = ep.event_id")
@@ -181,10 +183,10 @@ func (s *EventStore) FindEvents(filter *EventFilter) ([]*Event, error) {
 		}
 
 		var eID, vID, pID int
-		var eType, eDescription, vName,  vAddress, pName, pGenre, pHome string
+		var eType, eDescription, vName, vAddress, pName, pGenre, pHome, pListen string
 		var eDate time.Time
 
-		result.Scan(&eID, &eDate, &eType, &eDescription, &vID, &vName, &vAddress, &pID, &pName, &pGenre, &pHome)
+		result.Scan(&eID, &eDate, &eType, &eDescription, &vID, &vName, &vAddress, &pID, &pName, &pGenre, &pHome, &pListen)
 
 		if curEvent.ID != int64(eID) {
 
@@ -213,6 +215,7 @@ func (s *EventStore) FindEvents(filter *EventFilter) ([]*Event, error) {
 			Name:  pName,
 			Genre: pGenre,
 			Home:  pHome,
+			ListenURL: pListen,
 		}
 		if curPerformer.ID != 0 {
 			curEvent.Performers = append(curEvent.Performers, curPerformer)
@@ -321,9 +324,7 @@ func (s *EventStore) UpsertEvent(event *Event) error {
 				return err
 			}
 		}
-
 		return nil
-
 	}(tx)
 
 	if err == nil {
@@ -378,10 +379,11 @@ func (s *EventStore) performerMustExist(tr *sql.Tx, performer *Performer) error 
 	}
 	if performer.ID == 0 {
 		res, err := tr.Exec(
-			"INSERT INTO performer (name, genre, home) VALUES (?, ?, ?)",
+			"INSERT INTO performer (name, genre, home, listen_url) VALUES (?, ?, ?, ?)",
 			performer.Name,
 			performer.Genre,
 			performer.Home,
+			performer.ListenURL,
 		)
 		if err != nil {
 			return err
