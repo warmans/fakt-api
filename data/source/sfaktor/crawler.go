@@ -1,64 +1,60 @@
-package crawler
+package sfaktor
 
 import (
 	"bytes"
 	"errors"
-	"github.com/PuerkitoBio/goquery"
-	"github.com/djimenez/iconv-go"
-	"github.com/warmans/stressfaktor-api/entity"
 	"html"
 	"log"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
-	"github.com/warmans/stressfaktor-api/data/bcamp"
+	"github.com/PuerkitoBio/goquery"
+	"github.com/djimenez/iconv-go"
+	"github.com/warmans/stressfaktor-api/entity"
 )
 
 var validDate = regexp.MustCompile(`^[A-Za-z]+, [0-9]{2}\.[0-9]{2}\.[0-9]{4}$`)
 var validTime = regexp.MustCompile(`^[0-9]{2}\.[0-9]{2}$`)
 
 type Crawler struct {
-	EventStore *entity.EventStore
 	TermineURI string
-	Bandcamp   *bcamp.Bandcamp
 }
 
-func (c *Crawler) Run(scrapeFrequency time.Duration) {
-	for {
-		log.Print("re-scraping...")
-		res, err := http.Get(c.TermineURI)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer res.Body.Close()
-
-		//must convert to utf-8 or the special chars will be broken
-		utfBody, err := iconv.NewReader(res.Body, "ISO-8859-1", "utf-8")
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		doc, err := goquery.NewDocumentFromReader(utfBody)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		//select the main data column and handle all the sub-tables
-		doc.Find("body > table:nth-child(4) > tbody > tr > td:nth-child(2) > table").Each(c.HandleDateTable)
-
-		//mark old events as deleted
-		c.EventStore.Cleanup()
-
-		time.Sleep(scrapeFrequency)
+func (c *Crawler) Crawl() []*entity.Event {
+	log.Print("re-scraping...")
+	res, err := http.Get(c.TermineURI)
+	if err != nil {
+		log.Fatal(err)
 	}
+	defer res.Body.Close()
+
+	//must convert to utf-8 or the special chars will be broken
+	utfBody, err := iconv.NewReader(res.Body, "ISO-8859-1", "utf-8")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	doc, err := goquery.NewDocumentFromReader(utfBody)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//select the main data column and handle all the sub-tables
+	events := make([]*entity.Event, 0)
+	doc.Find("body > table:nth-child(4) > tbody > tr > td:nth-child(2) > table").Each(func(i int, sel *goquery.Selection) {
+		events = append(events, c.HandleDateTable(i, sel)...)
+	})
+
+	return events
 }
 
-func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection) {
+func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection) []*entity.Event {
 
 	var dateStr string
 	var time time.Time
 	var failed bool
+	var events []*entity.Event
 
 	sel.Find("tr").Each(func(i int, tr *goquery.Selection) {
 
@@ -96,10 +92,10 @@ func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection) {
 			return
 		}
 
-		if err := c.EventStore.UpsertEvent(event); err != nil {
-			log.Printf("Failed to create event: %s", err.Error())
-		}
+		events = append(events, event)
 	})
+
+	return events
 }
 
 func (c *Crawler) CreateEvent(time time.Time, body *goquery.Selection) (*entity.Event, error) {
@@ -140,18 +136,5 @@ func (c *Crawler) CreateEvent(time time.Time, body *goquery.Selection) (*entity.
 	//populate performers from description
 	e.GuessPerformers()
 
-	//update listen URLs with bandcamp
-	for k, perf := range e.Performers {
-		results, err := c.Bandcamp.Search(perf.Name, perf.Home)
-		if err != nil {
-			log.Print("Failed to query bandcamp: %s", err.Error())
-		}
-		if err == nil && len(results) > 0 {
-			log.Printf("%s is probably %s (%d)", perf.Name, results[0].Name, results[0].Score)
-			if results[0].Score < 5 {
-				e.Performers[k].ListenURL = results[0].URL
-			}
-		}
-	}
 	return e, nil
 }

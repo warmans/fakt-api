@@ -1,15 +1,15 @@
 package bcamp
 
 import (
-"net/http"
-"testing"
+	"net/http"
+	"testing"
 	"fmt"
 )
 
 func TestSearch(t *testing.T) {
 	bcamp := Bandcamp{HTTP: http.DefaultClient}
 	result, err := bcamp.Search("Is Dodelijk", "Nürnberg")
-	if err !=nil {
+	if err != nil {
 		fmt.Print(err.Error())
 		return
 	}

@@ -5,14 +5,15 @@ import (
 	"flag"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/warmans/stressfaktor-api/crawler"
 	"github.com/warmans/stressfaktor-api/entity"
 	"log"
 	"net/http"
 	"os"
 	"time"
 	"github.com/warmans/stressfaktor-api/api"
-	"github.com/warmans/stressfaktor-api/data/bcamp"
+	"github.com/warmans/stressfaktor-api/data"
+	"github.com/warmans/stressfaktor-api/data/source/bcamp"
+	"github.com/warmans/stressfaktor-api/data/source/sfaktor"
 )
 
 // VERSION is used in packaging
@@ -41,17 +42,23 @@ func main() {
 	}
 	defer db.Close()
 
-	eventStore := &entity.EventStore{DB: db}
-	if err := eventStore.Initialize(); err != nil {
+	//setup database (if required)
+	if err := data.InitializeSchema(db); err != nil {
 		log.Fatalf("Failed to initialize local DB: %s", err.Error())
 	}
 
-	scraper := &crawler.Crawler{
-		EventStore: eventStore,
-		TermineURI: *terminURI,
-		Bandcamp: &bcamp.Bandcamp{HTTP: http.DefaultClient},
+	eventStore := &entity.EventStore{DB: db}
+
+	dataIngest := data.Ingest{
+		DB: db,
+		UpdateFrequency: time.Duration(1) * time.Hour,
+		Stressfaktor:  &sfaktor.Crawler{TermineURI: *terminURI},
+		EventVisitors: []entity.EventVisitor{
+			&entity.EventStoreVisitor{Store: eventStore},
+			&entity.BandcampVisitor{Bandcamp: &bcamp.Bandcamp{HTTP: http.DefaultClient}},
+		},
 	}
-	go scraper.Run(time.Duration(1) * time.Hour)
+	go dataIngest.Run()
 
 	API := api.API{AppVersion: VERSION, EventStore: eventStore}
 	http.Handle("/api/v1/", http.StripPrefix("/api/v1", API.NewServeMux()))
