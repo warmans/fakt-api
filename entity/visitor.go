@@ -17,6 +17,9 @@ type BandcampVisitor struct {
 func (v *BandcampVisitor) Visit(e *Event) {
 
 	for k, performer := range e.Performers {
+		if performer.ID > 0 || performer.ListenURL != "" {
+			continue //don't re-fetch data for existing performer or performer with existing listen URL
+		}
 		//update listen URLs with bandcamp
 		results, err := v.Bandcamp.Search(performer.Name, performer.Home)
 		if err != nil {
@@ -40,5 +43,16 @@ type EventStoreVisitor struct {
 }
 
 func (v *EventStoreVisitor) Visit(e *Event) {
-	//todo
+	//just replace whole performer if an existing one is found
+	for k, performer := range e.Performers {
+		existing, err := v.Store.FindPerformers(&PerformerFilter{Name: performer.Name, Genre: performer.Genre})
+		if err != nil {
+			log.Print("failed to find perfomer visiting event: %s", err.Error())
+			return
+		}
+		if len(existing) > 0 {
+			e.Performers[k] = existing[0]
+			log.Printf("Found: %+v", existing[0])
+		}
+	}
 }

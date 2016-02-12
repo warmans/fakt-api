@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"flag"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
@@ -14,6 +13,7 @@ import (
 	"github.com/warmans/stressfaktor-api/data"
 	"github.com/warmans/stressfaktor-api/data/source/bcamp"
 	"github.com/warmans/stressfaktor-api/data/source/sfaktor"
+	"github.com/warmans/dbr"
 )
 
 // VERSION is used in packaging
@@ -36,21 +36,21 @@ func main() {
 	//localize time
 	time.LoadLocation(*location)
 
-	db, err := sql.Open("sqlite3", *dbPath)
+	db, err := dbr.Open("sqlite3", *dbPath, nil)
 	if err != nil {
 		log.Fatalf("Failed to open DB: %s", err.Error())
 	}
 	defer db.Close()
 
 	//setup database (if required)
-	if err := data.InitializeSchema(db); err != nil {
+	if err := data.InitializeSchema(db.NewSession(nil)); err != nil {
 		log.Fatalf("Failed to initialize local DB: %s", err.Error())
 	}
 
-	eventStore := &entity.EventStore{DB: db}
+	eventStore := &entity.EventStore{DB: db.NewSession(nil)}
 
 	dataIngest := data.Ingest{
-		DB: db,
+		DB: db.NewSession(nil),
 		UpdateFrequency: time.Duration(1) * time.Hour,
 		Stressfaktor:  &sfaktor.Crawler{TermineURI: *terminURI},
 		EventVisitors: []entity.EventVisitor{

@@ -15,6 +15,7 @@ func (a *API) NewServeMux() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.Handle("/event", handler.NewEventHandler(a.EventStore))
 	mux.Handle("/venue", handler.NewVenueHandler(a.EventStore))
+	mux.Handle("/performer", handler.NewPerformerHandler(a.EventStore))
 	mux.Handle("/version", handler.NewVersionHandler(a.AppVersion))
 	return mux
 }

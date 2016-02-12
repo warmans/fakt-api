@@ -36,7 +36,7 @@ func (h *EventHandler) filterFromRequest(r *http.Request) *entity.EventFilter {
 
 	filter := &entity.EventFilter{
 		EventIDs: make([]int, 0),
-		VenueIDs: make([]int, 0),
+		VenueIDs: make([]int64, 0),
 		Types: make([]string, 0),
 		ShowDeleted: false,
 	}
@@ -61,7 +61,7 @@ func (h *EventHandler) filterFromRequest(r *http.Request) *entity.EventFilter {
 	if venue := r.Form.Get("venue"); venue != "" {
 		for _, idStr := range strings.Split(venue, ",") {
 			if idInt, err := strconv.Atoi(idStr); err == nil {
-				filter.VenueIDs = append(filter.VenueIDs, idInt)
+				filter.VenueIDs = append(filter.VenueIDs, int64(idInt))
 			}
 		}
 	}
