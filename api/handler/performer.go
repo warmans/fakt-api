@@ -8,31 +8,32 @@ import (
 	"strconv"
 )
 
-func NewVenueHandler(eventStore *entity.EventStore) http.Handler {
-	return &VenueHandler{eventStore: eventStore}
+func NewPerformerHandler(eventStore *entity.EventStore) http.Handler {
+	return &PerformerHandler{eventStore: eventStore}
 }
 
-type VenueHandler struct {
+type PerformerHandler struct {
 	eventStore *entity.EventStore
 }
 
-func (h *VenueHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (h *PerformerHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	r.ParseForm()
 
 	//query to filter
-	filter := &entity.VenueFilter{VenueIDs: make([]int, 0)}
-	if venue := r.Form.Get("venue"); venue != "" {
+	filter := &entity.PerformerFilter{PerformerID: make([]int, 0)}
+	if venue := r.Form.Get("performer"); venue != "" {
 		for _, idStr := range strings.Split(venue, ",") {
 			if idInt, err := strconv.Atoi(idStr); err == nil {
-				filter.VenueIDs = append(filter.VenueIDs, idInt)
+				filter.PerformerID = append(filter.PerformerID, idInt)
 			}
 		}
 	}
-
 	filter.Name = r.Form.Get("name")
+	filter.Genre = r.Form.Get("genre")
+	filter.Home = r.Form.Get("home")
 
-	venues, err := h.eventStore.FindVenues(filter)
+	venues, err := h.eventStore.FindPerformers(filter)
 	if err != nil {
 		log.Print(err.Error())
 		common.SendResponse(rw, &common.Response{Status: http.StatusInternalServerError, Payload: nil})

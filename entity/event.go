@@ -1,11 +1,12 @@
 package entity
 
 import (
-	"database/sql"
 	"log"
 	"regexp"
 	"strings"
 	"time"
+	"github.com/warmans/dbr"
+	"github.com/warmans/dbr/dialect"
 )
 
 const DATE_FORMAT_SQL = "2006-01-02 15:04:05.999999999-07:00"
@@ -59,6 +60,15 @@ func (e *Event) Accept(visitor EventVisitor) {
 	visitor.Visit(e)
 }
 
+type EventFilter struct {
+	EventIDs    []int     `json:"events"`
+	DateFrom    time.Time `json:"from_date"`
+	DateTo      time.Time `json:"to_date"`
+	VenueIDs    []int64     `json:"venues"`
+	Types       []string  `json:"types"`
+	ShowDeleted bool      `json:"show_deleted"`
+}
+
 type Venue struct {
 	ID      int64  `json:"id"`
 	Name    string `json:"name"`
@@ -68,6 +78,7 @@ type Venue struct {
 
 type VenueFilter struct {
 	VenueIDs []int     `json:"venues"`
+	Name     string    `json:"name"`
 }
 
 type Performer struct {
@@ -79,37 +90,52 @@ type Performer struct {
 	Events    []*Event `json:"event,omitempty"`
 }
 
-type EventFilter struct {
-	EventIDs    []int     `json:"events"`
-	DateFrom    time.Time `json:"from_date"`
-	DateTo      time.Time `json:"to_date"`
-	VenueIDs    []int     `json:"venues"`
-	Types       []string  `json:"types"`
-	ShowDeleted bool       `json:"show_deleted"`
+type PerformerFilter struct {
+	PerformerID []int `json:"performers"`
+	Name     string    `json:"name"`
+	Genre    string    `json:"name"`
+	Home     string    `json:"name"`
 }
 
 type EventStore struct {
-	DB *sql.DB
+	DB *dbr.Session
 }
 
 func (s *EventStore) FindEvents(filter *EventFilter) ([]*Event, error) {
 
-	q := Sql{}
-	q.Select("e.id", "e.date", "e.type", "e.description", "v.id", "v.name", "v.address", "p.id", "p.name", "p.genre", "p.home", "p.listen_url")
-	q.From("event e")
-	q.LeftJoin("venue v ON e.venue_id = v.id")
-	q.LeftJoin("event_performer ep ON e.id = ep.event_id")
-	q.LeftJoin("performer p ON ep.performer_id = p.id")
-	q.WhereIntIn("e.id", filter.EventIDs...)
-	q.WhereIntIn("v.id", filter.VenueIDs...)
-	q.WhereStringIn("e.type", filter.Types...)
-	q.WhereTime("e.date", ">=", filter.DateFrom)
-	q.WhereTime("e.date", "<", filter.DateTo)
-	q.WhereInt("e.deleted", "<=", IfOrInt(filter.ShowDeleted, 1, 0))
-	q.SetOrder("e.date", "e.id", "v.id", "p.id")
+	q := s.DB.Select("event.id", "event.date", "event.type", "event.description", "venue.id", "venue.name", "venue.address", "performer.id", "performer.name", "performer.genre", "performer.home", "performer.listen_url")
+	q.From("event")
+	q.LeftJoin("venue", "event.venue_id = venue.id")
+	q.LeftJoin("event_performer", "event.id = event_performer.event_id")
+	q.LeftJoin("performer", "event_performer.performer_id = performer.id")
+	q.OrderBy("event.date").OrderBy("event.id").OrderBy("venue.id").OrderBy("performer.id")
 
-	result, err := s.DB.Query(q.GetSQL(), q.GetValues()...)
-	if err != nil && err != sql.ErrNoRows {
+	if len(filter.EventIDs) > 0 {
+		q.Where("event.id IN ?", filter.EventIDs)
+	}
+	if len(filter.Types) > 0 {
+		q.Where("event.type IN ?", filter.Types)
+	}
+	if len(filter.VenueIDs) > 0 {
+		q.Where("venue.id IN ?", filter.VenueIDs)
+	}
+	if !filter.DateFrom.IsZero() {
+		q.Where("event.date >= ?", filter.DateFrom)
+	}
+	if !filter.DateTo.IsZero() {
+		q.Where("event.date < ?", filter.DateTo)
+	}
+	q.Where("event.deleted <= ?", IfOrInt(filter.ShowDeleted, 1, 0))
+
+	// :/
+	sql, vals := q.ToSql()
+	interpolated, err := dbr.InterpolateForDialect(sql, vals, dialect.SQLite3)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := s.DB.Query(interpolated)
+	if err != nil && err != dbr.ErrNotFound {
 		return nil, err
 	}
 	defer result.Close()
@@ -171,33 +197,26 @@ func (s *EventStore) FindEvents(filter *EventFilter) ([]*Event, error) {
 
 func (s *EventStore) FindVenues(filter *VenueFilter) ([]*Venue, error) {
 
-	q := Sql{}
-	q.Select("v.id", "v.name", "v.address")
-	q.From("venue v")
-	q.WhereIntIn("v.id", filter.VenueIDs...)
-	q.SetOrder("v.name ASC")
+	q := s.DB.Select("v.id", "v.name", "v.address").
+		 From("venue v").
+		 OrderBy("v.name")
 
-	result, err := s.DB.Query(q.GetSQL(), q.GetValues()...)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, err
+	if len(filter.VenueIDs) > 0 {
+		q.Where("v.id IN ?", filter.VenueIDs)
 	}
-	defer result.Close()
+	if filter.Name != "" {
+		q.Where("v.name = ?", filter.Name)
+	}
 
 	venues := make([]*Venue, 0)
+	if _, err := q.Load(&venues); err != nil && err != dbr.ErrNotFound {
+		return nil, err
+	}
 
-	for result.Next() {
-		if err := result.Err(); err != nil {
-			return nil, err
-		}
-
-		//get venue data
-		venue := &Venue{Events: make([]*Event, 0)}
-		if err := result.Scan(&venue.ID, &venue.Name, &venue.Address); err != nil {
-			return venues, err
-		}
+	for k, venue := range venues {
 
 		//get event data for each venue
-		events, err := s.FindEvents(&EventFilter{VenueIDs: []int{int(venue.ID)}})
+		events, err := s.FindEvents(&EventFilter{VenueIDs: []int64{venue.ID}})
 		if err != nil {
 			events = []*Event{}
 		}
@@ -206,10 +225,33 @@ func (s *EventStore) FindVenues(filter *VenueFilter) ([]*Venue, error) {
 		for _, event := range events {
 			event.Venue = nil
 		}
-		venue.Events = events
-
-		venues = append(venues, venue)
+		venues[k].Events = events
 	}
 
 	return venues, nil
+}
+
+func (s *EventStore) FindPerformers(filter *PerformerFilter) ([]*Performer, error) {
+
+	q := s.DB.Select("id", "name", "genre", "home", "listen_url").
+	From("performer p").
+	OrderBy("p.name")
+
+	if len(filter.PerformerID) > 0 {
+		q.Where("p.id IN ?", filter.PerformerID)
+	}
+	if filter.Name != "" {
+		q.Where("p.name = ?", filter.Name)
+	}
+	if filter.Home != "" {
+		q.Where("p.home = ?", filter.Home)
+	}
+	if filter.Genre != "" {
+		q.Where("p.genre = ?", filter.Genre)
+	}
+	performers := make([]*Performer, 0)
+	if _, err := q.Load(&performers); err != nil && err != dbr.ErrNotFound {
+		return nil, err
+	}
+	return performers, nil
 }

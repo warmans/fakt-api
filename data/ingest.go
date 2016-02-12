@@ -1,17 +1,18 @@
 package data
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"time"
 	"log"
 	"github.com/warmans/stressfaktor-api/entity"
 	"github.com/warmans/stressfaktor-api/data/source/sfaktor"
+	"github.com/warmans/dbr"
+	"database/sql"
 )
 
 type Ingest struct {
-	DB              *sql.DB
+	DB              *dbr.Session
 	UpdateFrequency time.Duration
 	Stressfaktor    *sfaktor.Crawler
 	EventVisitors  []entity.EventVisitor
@@ -31,22 +32,31 @@ func (i *Ingest) Run() {
 //todo: update records as well as inserting new ones
 func (i *Ingest) Ingest(event *entity.Event) error {
 
-	//process record
-	for _, v := range i.EventVisitors {
-		v.Visit(event)
-	}
-
 	//update DB
 	tx, err := i.DB.Begin()
 	if err != nil {
 		return err
 	}
 
-	err = func(tr *sql.Tx) error {
+	//pre-process record
+	for _, v := range i.EventVisitors {
+		v.Visit(event)
+	}
+
+	err = func(tr *dbr.Tx) error {
+
 		//ensure venue exists and has an ID
 		err = i.venueMustExist(tr, event.Venue)
 		if err != nil {
 			return err
+		}
+
+		//ensure all performers exist
+		for _, performer := range event.Performers {
+			err = i.performerMustExist(tr, performer)
+			if err != nil {
+				return err
+			}
 		}
 
 		//get/create the main event record
@@ -102,7 +112,7 @@ func (i *Ingest) Ingest(event *entity.Event) error {
 	return nil
 }
 
-func (i *Ingest) venueMustExist(tr *sql.Tx, venue *entity.Venue) error {
+func (i *Ingest) venueMustExist(tr *dbr.Tx, venue *entity.Venue) error {
 	//get the venue ID if it exists
 	if venue.ID == 0 {
 		err := tr.QueryRow("SELECT id FROM venue WHERE name=? AND address=?", venue.Name, venue.Address).Scan(&venue.ID)
@@ -128,7 +138,7 @@ func (i *Ingest) venueMustExist(tr *sql.Tx, venue *entity.Venue) error {
 	return nil
 }
 
-func (i *Ingest) performerMustExist(tr *sql.Tx, performer *entity.Performer) error {
+func (i *Ingest) performerMustExist(tr *dbr.Tx, performer *entity.Performer) error {
 
 	if performer.ID != 0 {
 		return nil
