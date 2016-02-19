@@ -103,7 +103,20 @@ type EventStore struct {
 
 func (s *EventStore) FindEvents(filter *EventFilter) ([]*Event, error) {
 
-	q := s.DB.Select("event.id", "event.date", "event.type", "event.description", "venue.id", "venue.name", "venue.address", "performer.id", "performer.name", "performer.genre", "performer.home", "performer.listen_url")
+	q := s.DB.Select(
+		"event.id",
+		"event.date",
+		"event.type",
+		"event.description",
+		"venue.id",
+		"venue.name",
+		"venue.address",
+		"performer.id",
+		"performer.name",
+		"performer.genre",
+		"performer.home",
+		"performer.listen_url",
+	)
 	q.From("event")
 	q.LeftJoin("venue", "event.venue_id = venue.id")
 	q.LeftJoin("event_performer", "event.id = event_performer.event_id")

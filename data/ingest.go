@@ -25,6 +25,7 @@ func (i *Ingest) Run() {
 				log.Printf("Failed to ingest event: %s", err.Error())
 			}
 		}
+		i.Cleanup()
 		time.Sleep(i.UpdateFrequency)
 	}
 }
