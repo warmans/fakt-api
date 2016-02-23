@@ -268,3 +268,18 @@ func (s *EventStore) FindPerformers(filter *PerformerFilter) ([]*Performer, erro
 	}
 	return performers, nil
 }
+
+func (s *EventStore) FindEventTypes() ([]string, error) {
+	q := s.DB.
+	Select("event.type").
+	From("event").
+	Where("event.deleted = 0").
+	GroupBy("event.type").
+	OrderDir("SUM(1)", false)
+
+	types := make([]string, 0)
+	if _, err := q.Load(&types); err != nil && err != dbr.ErrNotFound {
+		return nil, err
+	}
+	return types, nil
+}

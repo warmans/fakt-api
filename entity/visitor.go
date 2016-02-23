@@ -26,7 +26,6 @@ func (v *BandcampVisitor) Visit(e *Event) {
 			log.Print("Failed to query bandcamp: %s", err.Error())
 		}
 		if err == nil && len(results) > 0 {
-			log.Printf("%s is probably %s (%d)", performer.Name, results[0].Name, results[0].Score)
 			if results[0].Score <= 1 {
 				e.Performers[k].ListenURL = results[0].URL
 			}
@@ -52,7 +51,6 @@ func (v *EventStoreVisitor) Visit(e *Event) {
 		}
 		if len(existing) > 0 {
 			e.Performers[k] = existing[0]
-			log.Printf("Found: %+v", existing[0])
 		}
 	}
 }
