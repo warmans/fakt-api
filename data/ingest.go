@@ -81,6 +81,23 @@ func (i *Ingest) Ingest(event *entity.Event) error {
 			if err != nil {
 				return err
 			}
+		} else {
+			//always update the description
+			_, err := tr.Exec(
+				"UPDATE event SET type=?, description=? WHERE id=?",
+				event.Type,
+				event.Description,
+				event.ID,
+			)
+			if err != nil {
+				return err
+			}
+		}
+
+		//clear existing relationships (i.e. always use the most up-to-date listing)
+		_, err := tr.Exec("DELETE FROM event_performer WHERE event_id=?", event.ID)
+		if err != nil {
+			return err
 		}
 
 		//finally append the performers

@@ -283,3 +283,10 @@ func (s *EventStore) FindEventTypes() ([]string, error) {
 	}
 	return types, nil
 }
+
+func IfOrInt(val bool, trueVal, falseVal int) int {
+	if val {
+		return trueVal
+	}
+	return falseVal
+}

@@ -30,6 +30,18 @@ func InitializeSchema(sess *dbr.Session) error {
 		return err
 	}
 	_, err = sess.Exec(`
+		CREATE TABLE IF NOT EXISTS venue_extra (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			venue_id INTEGER,
+			link TEXT,
+			link_type TEXT NULL,
+			link_description TEXT NULL
+		);
+	`)
+	if err != nil {
+		return err
+	}
+	_, err = sess.Exec(`
 		CREATE TABLE IF NOT EXISTS performer (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT,
