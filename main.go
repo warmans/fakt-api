@@ -17,7 +17,7 @@ import (
 )
 
 // VERSION is used in packaging
-const VERSION = "0.4.0"
+const VERSION = "0.5.0"
 
 func main() {
 
