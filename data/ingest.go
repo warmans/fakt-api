@@ -169,19 +169,33 @@ func (i *Ingest) performerMustExist(tr *dbr.Tx, performer *entity.Performer) err
 	}
 	if performer.ID == 0 {
 		res, err := tr.Exec(
-			"INSERT INTO performer (name, genre, home, listen_url) VALUES (?, ?, ?, ?)",
+			"INSERT INTO performer (name, info, genre, home, img, listen_url) VALUES (?, ?, ?, ?, ?, ?)",
 			performer.Name,
+			performer.Info,
 			performer.Genre,
 			performer.Home,
+			performer.Img,
 			performer.ListenURL,
 		)
 		if err != nil {
 			return err
 		}
-
 		performer.ID, err = res.LastInsertId()
 		if err != nil {
 			return err
+		}
+		for _, link := range performer.Links {
+			_, err := tr.Exec(
+				"INSERT INTO performer_extra (performer_id, link, link_type, link_description) VALUES (?, ?, ?, ?)",
+				performer.ID,
+				link.URI,
+				link.Type,
+				link.Text,
+			)
+			if err != nil {
+				log.Print("Failed to insert performer_extra: %s", err.Error())
+				continue
+			}
 		}
 	}
 	return nil

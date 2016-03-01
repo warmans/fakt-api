@@ -1,4 +1,4 @@
-package data
+package entity
 
 import (
 	"github.com/warmans/dbr"
@@ -45,9 +45,23 @@ func InitializeSchema(sess *dbr.Session) error {
 		CREATE TABLE IF NOT EXISTS performer (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT,
+			info TEXT,
 			genre TEXT,
 			home TEXT,
+			img TEXT,
 			listen_url TEXT
+		);
+	`)
+	if err != nil {
+		return err
+	}
+	_, err = sess.Exec(`
+		CREATE TABLE IF NOT EXISTS performer_extra (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			performer_id INTEGER,
+			link TEXT,
+			link_type TEXT NULL,
+			link_description TEXT NULL
 		);
 	`)
 	if err != nil {
@@ -63,6 +77,5 @@ func InitializeSchema(sess *dbr.Session) error {
 	if err != nil {
 		return err
 	}
-
 	return err
 }

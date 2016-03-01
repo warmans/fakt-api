@@ -11,6 +11,20 @@ import (
 
 const DATE_FORMAT_SQL = "2006-01-02 15:04:05.999999999-07:00"
 
+const (
+	LINK_TYPE_FACEBOOK = "facebook"
+	LINK_TYPE_MYSPACE = "myspace"
+	LINK_TYPE_YOUTUBE = "youtube"
+	LINK_TYPE_TWITTER = "twitter"
+	LINK_TYPE_OTHER = "other"
+)
+
+type Link struct {
+	URI  string
+	Type string
+	Text string
+}
+
 type Event struct {
 	ID          int64        `json:"id"`
 	Date        time.Time    `json:"date"`
@@ -84,17 +98,20 @@ type VenueFilter struct {
 type Performer struct {
 	ID        int64  `json:"id"`
 	Name      string `json:"name"`
+	Info      string `json:"info"`
 	Genre     string `json:"genre"`
 	Home      string `json:"home"`
+	Img       string `json:"img"`
 	ListenURL string `json:"listen_url"`
 	Events    []*Event `json:"event,omitempty"`
+	Links     []*Link `json"link,omitempty"`
 }
 
 type PerformerFilter struct {
 	PerformerID []int `json:"performers"`
-	Name     string    `json:"name"`
-	Genre    string    `json:"name"`
-	Home     string    `json:"name"`
+	Name        string    `json:"name"`
+	Genre       string    `json:"name"`
+	Home        string    `json:"name"`
 }
 
 type EventStore struct {
@@ -113,6 +130,7 @@ func (s *EventStore) FindEvents(filter *EventFilter) ([]*Event, error) {
 		"venue.address",
 		"performer.id",
 		"performer.name",
+		"performer.info",
 		"performer.genre",
 		"performer.home",
 		"performer.listen_url",
@@ -163,10 +181,10 @@ func (s *EventStore) FindEvents(filter *EventFilter) ([]*Event, error) {
 		}
 
 		var eID, vID, pID int
-		var eType, eDescription, vName, vAddress, pName, pGenre, pHome, pListen string
+		var eType, eDescription, vName, vAddress, pName, pInfo, pGenre, pHome, pImg, pListen string
 		var eDate time.Time
 
-		result.Scan(&eID, &eDate, &eType, &eDescription, &vID, &vName, &vAddress, &pID, &pName, &pGenre, &pHome, &pListen)
+		result.Scan(&eID, &eDate, &eType, &eDescription, &vID, &vName, &pInfo, &vAddress, &pID, &pName, &pGenre, &pHome, &pImg, &pListen)
 
 		if curEvent.ID != int64(eID) {
 
@@ -193,8 +211,10 @@ func (s *EventStore) FindEvents(filter *EventFilter) ([]*Event, error) {
 		curPerformer := &Performer{
 			ID:    int64(pID),
 			Name:  pName,
+			Info: pInfo,
 			Genre: pGenre,
 			Home:  pHome,
+			Img: pImg,
 			ListenURL: pListen,
 		}
 		if curPerformer.ID != 0 {
@@ -211,8 +231,8 @@ func (s *EventStore) FindEvents(filter *EventFilter) ([]*Event, error) {
 func (s *EventStore) FindVenues(filter *VenueFilter) ([]*Venue, error) {
 
 	q := s.DB.Select("v.id", "v.name", "v.address").
-		 From("venue v").
-		 OrderBy("v.name")
+	From("venue v").
+	OrderBy("v.name")
 
 	if len(filter.VenueIDs) > 0 {
 		q.Where("v.id IN ?", filter.VenueIDs)
@@ -246,7 +266,7 @@ func (s *EventStore) FindVenues(filter *VenueFilter) ([]*Venue, error) {
 
 func (s *EventStore) FindPerformers(filter *PerformerFilter) ([]*Performer, error) {
 
-	q := s.DB.Select("id", "name", "genre", "home", "listen_url").
+	q := s.DB.Select("id", "name", "info", "genre", "home", "img", "listen_url").
 	From("performer p").
 	OrderBy("p.name")
 
@@ -266,6 +286,9 @@ func (s *EventStore) FindPerformers(filter *PerformerFilter) ([]*Performer, erro
 	if _, err := q.Load(&performers); err != nil && err != dbr.ErrNotFound {
 		return nil, err
 	}
+
+	//todo: populate links (+events?!)
+
 	return performers, nil
 }
 

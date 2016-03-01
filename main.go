@@ -22,10 +22,11 @@ const VERSION = "0.5.0"
 func main() {
 
 	bind := flag.String("bind", ":8080", "Web server bind address")
-	terminURI := flag.String("termin", "https://stressfaktor.squat.net/termine.php?display=90", "Address of termine page")
+	terminURI := flag.String("termin", "https://stressfaktor.squat.net/termine.php?display=30", "Address of termine page")
 	location := flag.String("location", "Europe/Berlin", "Time localization")
 	dbPath := flag.String("dbpath", "./db.sqlite3", "Location of DB file")
 	ver := flag.Bool("v", false, "Print version and exit")
+	verbose := flag.Bool("verbose", false, "Verbose logging")
 	flag.Parse()
 
 	if *ver {
@@ -43,7 +44,7 @@ func main() {
 	defer db.Close()
 
 	//setup database (if required)
-	if err := data.InitializeSchema(db.NewSession(nil)); err != nil {
+	if err := entity.InitializeSchema(db.NewSession(nil)); err != nil {
 		log.Fatalf("Failed to initialize local DB: %s", err.Error())
 	}
 
@@ -55,7 +56,7 @@ func main() {
 		Stressfaktor:  &sfaktor.Crawler{TermineURI: *terminURI},
 		EventVisitors: []entity.EventVisitor{
 			&entity.EventStoreVisitor{Store: eventStore},
-			&entity.BandcampVisitor{Bandcamp: &bcamp.Bandcamp{HTTP: http.DefaultClient}},
+			&entity.BandcampVisitor{Bandcamp: &bcamp.Bandcamp{HTTP: http.DefaultClient}, VerboseLogging: *verbose},
 		},
 	}
 	go dataIngest.Run()
