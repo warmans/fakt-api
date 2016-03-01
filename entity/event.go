@@ -104,7 +104,7 @@ type Performer struct {
 	Img       string `json:"img"`
 	ListenURL string `json:"listen_url"`
 	Events    []*Event `json:"event,omitempty"`
-	Links     []*Link `json"link,omitempty"`
+	Links     []*Link `json:"link,omitempty"`
 }
 
 type PerformerFilter struct {
@@ -125,15 +125,16 @@ func (s *EventStore) FindEvents(filter *EventFilter) ([]*Event, error) {
 		"event.date",
 		"event.type",
 		"event.description",
-		"venue.id",
+		"coalesce(venue.id, 0)",
 		"venue.name",
 		"venue.address",
-		"performer.id",
-		"performer.name",
-		"performer.info",
-		"performer.genre",
-		"performer.home",
-		"performer.listen_url",
+		"coalesce(performer.id, 0)",
+		"coalesce(performer.name, '')",
+		"coalesce(performer.info, '')",
+		"coalesce(performer.genre, '')",
+		"coalesce(performer.home, '')",
+		"coalesce(performer.img, '')",
+		"coalesce(performer.listen_url, '')",
 	)
 	q.From("event")
 	q.LeftJoin("venue", "event.venue_id = venue.id")
@@ -184,7 +185,10 @@ func (s *EventStore) FindEvents(filter *EventFilter) ([]*Event, error) {
 		var eType, eDescription, vName, vAddress, pName, pInfo, pGenre, pHome, pImg, pListen string
 		var eDate time.Time
 
-		result.Scan(&eID, &eDate, &eType, &eDescription, &vID, &vName, &pInfo, &vAddress, &pID, &pName, &pGenre, &pHome, &pImg, &pListen)
+		err := result.Scan(&eID, &eDate, &eType, &eDescription, &vID, &vName, &vAddress, &pID, &pName, &pInfo, &pGenre, &pHome, &pImg, &pListen)
+		if err != nil {
+			return nil, err
+		}
 
 		if curEvent.ID != int64(eID) {
 

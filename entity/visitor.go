@@ -30,19 +30,21 @@ func (v *BandcampVisitor) Visit(e *Event) {
 			if results[0].Score <= 1 {
 
 				//todo: IMPORTANT mirror images locally rather than hotlinking
-				log.Printf("Search Result: %+v", results[0])
 				e.Performers[k].ListenURL = results[0].URL
 				e.Performers[k].Img = results[0].Art
 
 				//get some more data
 				artistInfo := v.Bandcamp.GetArtistPageInfo(results[0].URL)
-				log.Printf("Arist Info: %+v", artistInfo)
 				e.Performers[k].Info = artistInfo.Bio
 				for _, link := range artistInfo.Links {
 					if e.Performers[k].Links == nil {
 						e.Performers[k].Links = make([]*Link, 0)
 					}
 					e.Performers[k].Links = append(e.Performers[k].Links, &Link{URI: link.URI, Text: link.Text})
+				}
+				if v.VerboseLogging {
+					log.Printf("Search Result: %+v", results[0])
+					log.Printf("Arist Info: %+v", artistInfo)
 				}
 			}
 		}
