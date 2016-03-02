@@ -11,7 +11,7 @@ import (
 	"time"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/djimenez/iconv-go"
-	"github.com/warmans/stressfaktor-api/entity"
+	"github.com/warmans/stressfaktor-api/data/store"
 )
 
 var validDate = regexp.MustCompile(`^[A-Za-z]+, [0-9]{2}\.[0-9]{2}\.[0-9]{4}$`)
@@ -21,7 +21,7 @@ type Crawler struct {
 	TermineURI string
 }
 
-func (c *Crawler) Crawl() []*entity.Event {
+func (c *Crawler) Crawl() []*store.Event {
 	log.Print("re-scraping...")
 	res, err := http.Get(c.TermineURI)
 	if err != nil {
@@ -41,7 +41,7 @@ func (c *Crawler) Crawl() []*entity.Event {
 	}
 
 	//select the main data column and handle all the sub-tables
-	events := make([]*entity.Event, 0)
+	events := make([]*store.Event, 0)
 	doc.Find("body > table:nth-child(4) > tbody > tr > td:nth-child(2) > table").Each(func(i int, sel *goquery.Selection) {
 		events = append(events, c.HandleDateTable(i, sel)...)
 	})
@@ -49,12 +49,12 @@ func (c *Crawler) Crawl() []*entity.Event {
 	return events
 }
 
-func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection) []*entity.Event {
+func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection) []*store.Event {
 
 	var dateStr string
 	var time time.Time
 	var failed bool
-	var events []*entity.Event
+	var events []*store.Event
 
 	sel.Find("tr").Each(func(i int, tr *goquery.Selection) {
 
@@ -98,7 +98,7 @@ func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection) []*entity.Event
 	return events
 }
 
-func (c *Crawler) CreateEvent(time time.Time, body *goquery.Selection) (*entity.Event, error) {
+func (c *Crawler) CreateEvent(time time.Time, body *goquery.Selection) (*store.Event, error) {
 
 	//attempt to parse venue address (not always set)
 	venueEl := body.Find("b").First()
@@ -123,9 +123,9 @@ func (c *Crawler) CreateEvent(time time.Time, body *goquery.Selection) (*entity.
 		return nil, errors.New("invalid title line")
 	}
 
-	e := &entity.Event{
+	e := &store.Event{
 		Date: time,
-		Venue: &entity.Venue{
+		Venue: &store.Venue{
 			Name:    StripHTML(html.UnescapeString(venueEl.Text())),
 			Address: StripHTML(html.UnescapeString(venueAddress)),
 		},

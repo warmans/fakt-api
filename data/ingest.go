@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"time"
 	"log"
-	"github.com/warmans/stressfaktor-api/entity"
 	"github.com/warmans/stressfaktor-api/data/source/sfaktor"
 	"github.com/warmans/dbr"
 	"database/sql"
+	"github.com/warmans/stressfaktor-api/data/store"
 )
 
 type Ingest struct {
 	DB              *dbr.Session
 	UpdateFrequency time.Duration
 	Stressfaktor    *sfaktor.Crawler
-	EventVisitors  []entity.EventVisitor
+	EventVisitors  []store.EventVisitor
 }
 
 func (i *Ingest) Run() {
@@ -31,7 +31,7 @@ func (i *Ingest) Run() {
 }
 
 //todo: update records as well as inserting new ones
-func (i *Ingest) Ingest(event *entity.Event) error {
+func (i *Ingest) Ingest(event *store.Event) error {
 
 	//update DB
 	tx, err := i.DB.Begin()
@@ -61,7 +61,7 @@ func (i *Ingest) Ingest(event *entity.Event) error {
 		}
 
 		//get/create the main event record
-		err = tr.QueryRow("SELECT id FROM event WHERE venue_id=? AND date=?", event.Venue.ID, event.Date.Format(entity.DATE_FORMAT_SQL)).Scan(&event.ID)
+		err = tr.QueryRow("SELECT id FROM event WHERE venue_id=? AND date=?", event.Venue.ID, event.Date.Format(store.DATE_FORMAT_SQL)).Scan(&event.ID)
 		if err != nil && err != sql.ErrNoRows {
 			return err
 		}
@@ -70,7 +70,7 @@ func (i *Ingest) Ingest(event *entity.Event) error {
 			res, err := tr.Exec(
 				"INSERT INTO event (venue_id, date, type, description) VALUES (?, ?, ?, ?)",
 				event.Venue.ID,
-				event.Date.Format(entity.DATE_FORMAT_SQL),
+				event.Date.Format(store.DATE_FORMAT_SQL),
 				event.Type,
 				event.Description,
 			)
@@ -130,7 +130,7 @@ func (i *Ingest) Ingest(event *entity.Event) error {
 	return nil
 }
 
-func (i *Ingest) venueMustExist(tr *dbr.Tx, venue *entity.Venue) error {
+func (i *Ingest) venueMustExist(tr *dbr.Tx, venue *store.Venue) error {
 	//get the venue ID if it exists
 	if venue.ID == 0 {
 		err := tr.QueryRow("SELECT id FROM venue WHERE name=? AND address=?", venue.Name, venue.Address).Scan(&venue.ID)
@@ -156,7 +156,7 @@ func (i *Ingest) venueMustExist(tr *dbr.Tx, venue *entity.Venue) error {
 	return nil
 }
 
-func (i *Ingest) performerMustExist(tr *dbr.Tx, performer *entity.Performer) error {
+func (i *Ingest) performerMustExist(tr *dbr.Tx, performer *store.Performer) error {
 
 	if performer.ID != 0 {
 		return nil
@@ -202,7 +202,7 @@ func (i *Ingest) performerMustExist(tr *dbr.Tx, performer *entity.Performer) err
 }
 
 func (s *Ingest) Cleanup() {
-	res, err := s.DB.Exec(`UPDATE event SET deleted=1 WHERE date < $1 AND deleted=0`, time.Now().Format(entity.DATE_FORMAT_SQL))
+	res, err := s.DB.Exec(`UPDATE event SET deleted=1 WHERE date < $1 AND deleted=0`, time.Now().Format(store.DATE_FORMAT_SQL))
 	if err != nil {
 		log.Printf("Cleaned failed: %s", err.Error())
 		return

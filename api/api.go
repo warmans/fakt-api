@@ -1,14 +1,14 @@
 package api
 
 import (
-	"github.com/warmans/stressfaktor-api/entity"
 	"net/http"
 	"github.com/warmans/stressfaktor-api/api/handler"
+	"github.com/warmans/stressfaktor-api/data/store"
 )
 
 type API struct {
 	AppVersion    string
-	EventStore *entity.EventStore
+	EventStore *store.Store
 }
 
 func (a *API) NewServeMux() *http.ServeMux {

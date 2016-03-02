@@ -1,4 +1,4 @@
-package entity
+package store
 
 import (
 	"github.com/warmans/stressfaktor-api/data/source/bcamp"
@@ -55,7 +55,7 @@ func (v *BandcampVisitor) Visit(e *Event) {
 // this essentially just adds data we have already found in a previous
 // update to the incoming record so we can avoid re-fetching stuff.
 type EventStoreVisitor struct {
-	Store *EventStore
+	Store *Store
 }
 
 func (v *EventStoreVisitor) Visit(e *Event) {

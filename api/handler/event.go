@@ -2,20 +2,20 @@ package handler
 
 import (
 	"net/http"
-	"github.com/warmans/stressfaktor-api/entity"
 	"log"
 	"github.com/warmans/stressfaktor-api/api/common"
 	"strings"
 	"strconv"
 	"time"
+	"github.com/warmans/stressfaktor-api/data/store"
 )
 
-func NewEventHandler(eventStore *entity.EventStore) http.Handler {
+func NewEventHandler(eventStore *store.Store) http.Handler {
 	return &EventHandler{eventStore: eventStore}
 }
 
 type EventHandler struct {
-	eventStore *entity.EventStore
+	eventStore *store.Store
 }
 
 func (h *EventHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
@@ -31,10 +31,10 @@ func (h *EventHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	common.SendResponse(rw, &common.Response{Status: http.StatusOK, Payload: events})
 }
 
-func (h *EventHandler) filterFromRequest(r *http.Request) *entity.EventFilter {
+func (h *EventHandler) filterFromRequest(r *http.Request) *store.EventFilter {
 	r.ParseForm()
 
-	filter := &entity.EventFilter{
+	filter := &store.EventFilter{
 		EventIDs: make([]int, 0),
 		VenueIDs: make([]int64, 0),
 		Types: make([]string, 0),

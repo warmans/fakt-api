@@ -4,16 +4,17 @@ import (
 	"flag"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/warmans/stressfaktor-api/entity"
 	"log"
 	"net/http"
 	"os"
 	"time"
 	"github.com/warmans/stressfaktor-api/api"
 	"github.com/warmans/stressfaktor-api/data"
+	"github.com/warmans/stressfaktor-api/data/store"
 	"github.com/warmans/stressfaktor-api/data/source/bcamp"
 	"github.com/warmans/stressfaktor-api/data/source/sfaktor"
 	"github.com/warmans/dbr"
+
 )
 
 // VERSION is used in packaging
@@ -44,19 +45,19 @@ func main() {
 	defer db.Close()
 
 	//setup database (if required)
-	if err := entity.InitializeSchema(db.NewSession(nil)); err != nil {
+	if err := store.InitializeSchema(db.NewSession(nil)); err != nil {
 		log.Fatalf("Failed to initialize local DB: %s", err.Error())
 	}
 
-	eventStore := &entity.EventStore{DB: db.NewSession(nil)}
+	eventStore := &store.Store{DB: db.NewSession(nil)}
 
 	dataIngest := data.Ingest{
 		DB: db.NewSession(nil),
 		UpdateFrequency: time.Duration(1) * time.Hour,
 		Stressfaktor:  &sfaktor.Crawler{TermineURI: *terminURI},
-		EventVisitors: []entity.EventVisitor{
-			&entity.EventStoreVisitor{Store: eventStore},
-			&entity.BandcampVisitor{Bandcamp: &bcamp.Bandcamp{HTTP: http.DefaultClient}, VerboseLogging: *verbose},
+		EventVisitors: []store.EventVisitor{
+			&store.EventStoreVisitor{Store: eventStore},
+			&store.BandcampVisitor{Bandcamp: &bcamp.Bandcamp{HTTP: http.DefaultClient}, VerboseLogging: *verbose},
 		},
 	}
 	go dataIngest.Run()

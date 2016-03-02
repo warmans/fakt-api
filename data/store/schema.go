@@ -1,4 +1,4 @@
-package entity
+package store
 
 import (
 	"github.com/warmans/dbr"

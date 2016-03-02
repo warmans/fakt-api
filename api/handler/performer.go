@@ -1,19 +1,20 @@
 package handler
+
 import (
 	"net/http"
 	"github.com/warmans/stressfaktor-api/api/common"
-	"github.com/warmans/stressfaktor-api/entity"
 	"log"
 	"strings"
 	"strconv"
+	"github.com/warmans/stressfaktor-api/data/store"
 )
 
-func NewPerformerHandler(eventStore *entity.EventStore) http.Handler {
+func NewPerformerHandler(eventStore *store.Store) http.Handler {
 	return &PerformerHandler{eventStore: eventStore}
 }
 
 type PerformerHandler struct {
-	eventStore *entity.EventStore
+	eventStore *store.Store
 }
 
 func (h *PerformerHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
@@ -21,7 +22,7 @@ func (h *PerformerHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
 	//query to filter
-	filter := &entity.PerformerFilter{PerformerID: make([]int, 0)}
+	filter := &store.PerformerFilter{PerformerID: make([]int, 0)}
 	if venue := r.Form.Get("performer"); venue != "" {
 		for _, idStr := range strings.Split(venue, ",") {
 			if idInt, err := strconv.Atoi(idStr); err == nil {

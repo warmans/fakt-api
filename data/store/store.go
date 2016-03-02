@@ -1,4 +1,4 @@
-package entity
+package store
 
 import (
 	"log"
@@ -20,9 +20,9 @@ const (
 )
 
 type Link struct {
-	URI  string
-	Type string
-	Text string
+	URI  string `json:"uri" db:"link"`
+	Type string `json:"type" db:"link_type"`
+	Text string `json:"text" db:"link_description"`
 }
 
 type Event struct {
@@ -114,11 +114,11 @@ type PerformerFilter struct {
 	Home        string    `json:"name"`
 }
 
-type EventStore struct {
+type Store struct {
 	DB *dbr.Session
 }
 
-func (s *EventStore) FindEvents(filter *EventFilter) ([]*Event, error) {
+func (s *Store) FindEvents(filter *EventFilter) ([]*Event, error) {
 
 	q := s.DB.Select(
 		"event.id",
@@ -232,7 +232,7 @@ func (s *EventStore) FindEvents(filter *EventFilter) ([]*Event, error) {
 	return events, nil
 }
 
-func (s *EventStore) FindVenues(filter *VenueFilter) ([]*Venue, error) {
+func (s *Store) FindVenues(filter *VenueFilter) ([]*Venue, error) {
 
 	q := s.DB.Select("v.id", "v.name", "v.address").
 	From("venue v").
@@ -268,7 +268,7 @@ func (s *EventStore) FindVenues(filter *VenueFilter) ([]*Venue, error) {
 	return venues, nil
 }
 
-func (s *EventStore) FindPerformers(filter *PerformerFilter) ([]*Performer, error) {
+func (s *Store) FindPerformers(filter *PerformerFilter) ([]*Performer, error) {
 
 	q := s.DB.Select("id", "name", "info", "genre", "home", "img", "listen_url").
 	From("performer p").
@@ -291,12 +291,31 @@ func (s *EventStore) FindPerformers(filter *PerformerFilter) ([]*Performer, erro
 		return nil, err
 	}
 
-	//todo: populate links (+events?!)
+	for k, performer := range performers {
+		links, err := s.FindPerformerLinks(performer.ID)
+		if err != nil {
+			return nil, err
+		}
+		performers[k].Links = links
+	}
 
 	return performers, nil
 }
 
-func (s *EventStore) FindEventTypes() ([]string, error) {
+func (s *Store) FindPerformerLinks(performerId int64) ([]*Link, error) {
+	q := s.DB.
+	Select("link", "link_type", "link_description").
+	From("performer_extra").
+	Where("performer_id = ?", performerId)
+
+	links := make([]*Link, 0)
+	if _, err := q.Load(&links); err != nil && err != dbr.ErrNotFound {
+		return nil, err
+	}
+	return links, nil
+}
+
+func (s *Store) FindEventTypes() ([]string, error) {
 	q := s.DB.
 	Select("event.type").
 	From("event").

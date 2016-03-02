@@ -2,17 +2,17 @@ package handler
 
 import (
 	"net/http"
-	"github.com/warmans/stressfaktor-api/entity"
 	"log"
 	"github.com/warmans/stressfaktor-api/api/common"
+	"github.com/warmans/stressfaktor-api/data/store"
 )
 
-func NewEventTypeHandler(eventStore *entity.EventStore) http.Handler {
+func NewEventTypeHandler(eventStore *store.Store) http.Handler {
 	return &EventTypeHandler{eventStore: eventStore}
 }
 
 type EventTypeHandler struct {
-	eventStore *entity.EventStore
+	eventStore *store.Store
 }
 
 func (h *EventTypeHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
