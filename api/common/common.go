@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"log"
 	"fmt"
+	"github.com/gorilla/sessions"
+	"errors"
 )
 
 type Response struct {
 	Status  int         `json:"status"`
 	Payload interface{} `json:"payload"`
-	Message string 		`json:"message"`
+	Message string        `json:"message"`
 }
 
 func SendResponse(rw http.ResponseWriter, response *Response) {
@@ -42,9 +44,35 @@ func SendError(rw http.ResponseWriter, err error, writeToLog bool) {
 	switch err.(type){
 	case HTTPError:
 		//assume HTTP error messages are safe to show to the user
-		message = fmt.Sprintf("%s (%s)", err.(HTTPError).Msg,  http.StatusText(err.(HTTPError).Status))
+		message = fmt.Sprintf("%s (%s)", err.(HTTPError).Msg, http.StatusText(err.(HTTPError).Status))
 		code = err.(HTTPError).Status
 	}
 
 	SendResponse(rw, &Response{code, nil, message})
+}
+
+func RestrictAccess(handler http.Handler, sess sessions.Store) http.Handler {
+	return &RestrictedMiddleware{NextHandler: handler, SessionStore: sess}
+}
+
+type RestrictedMiddleware struct {
+	NextHandler  http.Handler
+	SessionStore sessions.Store
+}
+
+func (m *RestrictedMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+
+	sess, err := m.SessionStore.Get(r, "login")
+	if err != nil {
+		SendError(rw, HTTPError{"You must be logged in", http.StatusForbidden, err}, false)
+		return
+	}
+
+	_, found := sess.Values["user"]
+	if found == false {
+		SendError(rw, HTTPError{"Failed to get session", http.StatusForbidden, errors.New("No user in session. This shouldn't happen.")}, true)
+		return
+	}
+
+	m.NextHandler.ServeHTTP(rw, r)
 }

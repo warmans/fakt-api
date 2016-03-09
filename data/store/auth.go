@@ -80,3 +80,12 @@ func (a *AuthStore) Register(username, password string) (*User, error) {
 
 	return user, nil
 }
+
+func (a *AuthStore) GetUser(id int64) (*User, error) {
+	user := &User{}
+	err := a.DB.QueryRow("SELECT id, username FROM user WHERE id = ?", id).Scan(&user.ID, &user.Username)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
