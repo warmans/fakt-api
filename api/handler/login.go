@@ -6,9 +6,10 @@ import (
 	"github.com/warmans/stressfaktor-api/data/store"
 	"github.com/gorilla/sessions"
 	"fmt"
+	"golang.org/x/net/context"
 )
 
-func NewLoginHandler(auth *store.AuthStore, sess sessions.Store) http.Handler {
+func NewLoginHandler(auth *store.AuthStore, sess sessions.Store) common.CtxHandler {
 	return &LoginHandler{auth: auth, sessions: sess}
 }
 
@@ -17,14 +18,14 @@ type LoginHandler struct {
 	sessions sessions.Store
 }
 
-func (h *LoginHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (h *LoginHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
 	defer r.Body.Close()
 	r.ParseForm()
 
-//	if r.Method != "POST" {
-//		common.SendError(rw, common.HTTPError{"Only POST requests are supported for login", http.StatusMethodNotAllowed, nil}, false)
-//		return
-//	}
+	if r.Method != "POST" {
+		common.SendError(rw, common.HTTPError{"Only POST requests are supported for login", http.StatusMethodNotAllowed, nil}, false)
+		return
+	}
 
 	if r.Form.Get("username") == "" || r.Form.Get("password") == "" {
 		common.SendError(rw, common.HTTPError{"Username or password missing", http.StatusBadRequest, nil}, false)

@@ -5,9 +5,10 @@ import (
 	"github.com/warmans/stressfaktor-api/data/store"
 	"github.com/gorilla/sessions"
 	"fmt"
+"golang.org/x/net/context"
 )
 
-func NewRegisterHandler(auth *store.AuthStore, sess sessions.Store) http.Handler {
+func NewRegisterHandler(auth *store.AuthStore, sess sessions.Store) common.CtxHandler {
 	return &RegisterHandler{auth: auth, sessions: sess}
 }
 
@@ -16,7 +17,7 @@ type RegisterHandler struct {
 	sessions sessions.Store
 }
 
-func (h *RegisterHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (h *RegisterHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
 	defer r.Body.Close()
 	r.ParseForm()
 

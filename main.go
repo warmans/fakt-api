@@ -16,7 +16,6 @@ import (
 	"github.com/warmans/dbr"
 
 	"github.com/gorilla/sessions"
-	"github.com/gorilla/securecookie"
 )
 
 // VERSION is used in packaging
@@ -31,6 +30,7 @@ func main() {
 	ver := flag.Bool("v", false, "Print version and exit")
 	verbose := flag.Bool("verbose", false, "Verbose logging")
 	runIngest := flag.Bool("ingest", true, "Periodically ingest new data")
+	authKey := flag.String("auth.key", "changeme91234567890123456789012", "key used to create sessions")
 
 	flag.Parse()
 
@@ -70,17 +70,15 @@ func main() {
 	}
 
 	//sessions
-	authKey := securecookie.GenerateRandomKey(32)
-	enctyptionKey := securecookie.GenerateRandomKey(32)
-	if authKey == nil || enctyptionKey == nil {
-		log.Fatal("Failed to create secure session key")
+	if *authKey == "" {
+		log.Fatal("You must specify an auth.key")
 	}
 
 	API := api.API{
 		AppVersion: VERSION,
 		EventStore: eventStore,
 		AuthStore: authStore,
-		SessionStore: sessions.NewCookieStore(authKey, enctyptionKey),
+		SessionStore: sessions.NewCookieStore([]byte(*authKey)),
 	}
 	http.Handle("/api/v1/", http.StripPrefix("/api/v1", API.NewServeMux()))
 

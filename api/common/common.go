@@ -6,13 +6,14 @@ import (
 	"log"
 	"fmt"
 	"github.com/gorilla/sessions"
-	"errors"
+	"golang.org/x/net/context"
+	"github.com/warmans/stressfaktor-api/data/store"
 )
 
 type Response struct {
 	Status  int         `json:"status"`
 	Payload interface{} `json:"payload"`
-	Message string        `json:"message"`
+	Message string      `json:"message"`
 }
 
 func SendResponse(rw http.ResponseWriter, response *Response) {
@@ -51,28 +52,43 @@ func SendError(rw http.ResponseWriter, err error, writeToLog bool) {
 	SendResponse(rw, &Response{code, nil, message})
 }
 
-func RestrictAccess(handler http.Handler, sess sessions.Store) http.Handler {
-	return &RestrictedMiddleware{NextHandler: handler, SessionStore: sess}
+type CtxHandler interface {
+	ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context)
 }
 
-type RestrictedMiddleware struct {
-	NextHandler  http.Handler
+func AddCtx(handler CtxHandler, sess sessions.Store, auth *store.AuthStore) http.Handler {
+	return &CtxMiddleware{NextHandler: handler, SessionStore: sess, AuthStore: auth}
+}
+
+type CtxMiddleware struct {
+	NextHandler  CtxHandler
 	SessionStore sessions.Store
+	AuthStore 	 *store.AuthStore
 }
 
-func (m *RestrictedMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (m *CtxMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+
+	ctx := context.Background()
 
 	sess, err := m.SessionStore.Get(r, "login")
 	if err != nil {
-		SendError(rw, HTTPError{"You must be logged in", http.StatusForbidden, err}, false)
+		log.Printf("Failed to get session: %s", err.Error())
+		m.NextHandler.ServeHTTP(rw, r, ctx)
 		return
 	}
 
-	_, found := sess.Values["user"]
+	userId, found := sess.Values["user"]
 	if found == false {
-		SendError(rw, HTTPError{"Failed to get session", http.StatusForbidden, errors.New("No user in session. This shouldn't happen.")}, true)
+		m.NextHandler.ServeHTTP(rw, r, ctx)
 		return
 	}
 
-	m.NextHandler.ServeHTTP(rw, r)
+	user, err := m.AuthStore.GetUser(userId.(int64))
+	if err == nil && user != nil {
+		ctx = context.WithValue(ctx, "user", user)
+	} else {
+		log.Printf("Failed to get user: %s", err.Error())
+	}
+
+	m.NextHandler.ServeHTTP(rw, r, ctx)
 }

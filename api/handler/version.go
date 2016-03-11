@@ -1,7 +1,8 @@
 package handler
+
 import (
-"net/http"
-"github.com/warmans/stressfaktor-api/api/common"
+	"net/http"
+	"github.com/warmans/stressfaktor-api/api/common"
 )
 
 func NewVersionHandler(version string) http.Handler {

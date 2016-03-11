@@ -3,39 +3,21 @@ package handler
 import (
 	"net/http"
 	"github.com/warmans/stressfaktor-api/api/common"
-	"github.com/gorilla/sessions"
-	"errors"
-	"github.com/warmans/stressfaktor-api/data/store"
+	"golang.org/x/net/context"
 )
 
-func NewMeHandler(sess sessions.Store) http.Handler {
-	return &MeHandler{sessions: sess}
+func NewMeHandler() common.CtxHandler {
+	return &MeHandler{}
 }
 
-type MeHandler struct {
-	sessions sessions.Store
-	auth     *store.AuthStore
-}
+type MeHandler struct {}
 
-func (h *MeHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (h *MeHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
 	defer r.Body.Close()
 
-	//create their session
-	sess, err := h.sessions.Get(r, "login")
-	if err != nil {
-		common.SendError(rw, common.HTTPError{"Failed to get session", http.StatusForbidden, err}, false)
-		return
-	}
-
-	userId, found := sess.Values["user"]
-	if found == false {
-		common.SendError(rw, common.HTTPError{"Failed to get session", http.StatusForbidden, errors.New("No user in session. This shouldn't happen.")}, true)
-		return
-	}
-
-	user, err := h.auth.GetUser(userId.(int64))
-	if err != nil {
-		common.SendError(rw, common.HTTPError{"Failed to get user", http.StatusInternalServerError, err}, true)
+	user := ctx.Value("user");
+	if user == nil {
+		common.SendError(rw, common.HTTPError{"Not logged in", http.StatusForbidden, nil}, false)
 		return
 	}
 

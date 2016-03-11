@@ -6,6 +6,8 @@ import (
 	"github.com/warmans/stressfaktor-api/data/store"
 	"github.com/gorilla/context"
 	"github.com/gorilla/sessions"
+"github.com/warmans/stressfaktor-api/api/common"
+	"github.com/gorilla/mux"
 )
 
 type API struct {
@@ -16,16 +18,43 @@ type API struct {
 }
 
 func (a *API) NewServeMux() http.Handler {
-	mux := http.NewServeMux()
-	mux.Handle("/event", handler.NewEventHandler(a.EventStore))
-	mux.Handle("/event_type", handler.NewEventTypeHandler(a.EventStore))
-	mux.Handle("/venue", handler.NewVenueHandler(a.EventStore))
-	mux.Handle("/performer", handler.NewPerformerHandler(a.EventStore))
+	mux := mux.NewRouter()
+
+	mux.Handle(
+		"/event",
+		common.AddCtx(handler.NewEventHandler(a.EventStore), a.SessionStore, a.AuthStore),
+	)
+	mux.Handle(
+		"/event/{id:[0-9]+}/tag",
+		common.AddCtx(handler.NewEventTypeHandler(a.EventStore), a.SessionStore, a.AuthStore),
+	)
+	mux.Handle(
+		"/event_type",
+		common.AddCtx(handler.NewEventTypeHandler(a.EventStore), a.SessionStore, a.AuthStore),
+	)
+	mux.Handle(
+		"/venue",
+		common.AddCtx(handler.NewVenueHandler(a.EventStore), a.SessionStore, a.AuthStore),
+	)
+	mux.Handle(
+		"/performer",
+		common.AddCtx(handler.NewPerformerHandler(a.EventStore), a.SessionStore, a.AuthStore),
+	)
 
 	//user
-	mux.Handle("/login", handler.NewLoginHandler(a.AuthStore, a.SessionStore))
-	mux.Handle("/register", handler.NewRegisterHandler(a.AuthStore, a.SessionStore))
-	mux.Handle("/me", handler.NewMeHandler(a.SessionStore))
+	mux.Handle(
+		"/login",
+		common.AddCtx(handler.NewLoginHandler(a.AuthStore, a.SessionStore), a.SessionStore, a.AuthStore),
+	)
+
+	mux.Handle(
+		"/register",
+		common.AddCtx(handler.NewRegisterHandler(a.AuthStore, a.SessionStore), a.SessionStore, a.AuthStore),
+	)
+	mux.Handle(
+		"/me",
+		common.AddCtx(handler.NewMeHandler(), a.SessionStore, a.AuthStore),
+	)
 
 	//meta
 	mux.Handle("/version", handler.NewVersionHandler(a.AppVersion))
