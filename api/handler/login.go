@@ -22,11 +22,6 @@ func (h *LoginHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx co
 	defer r.Body.Close()
 	r.ParseForm()
 
-	if r.Method != "POST" {
-		common.SendError(rw, common.HTTPError{"Only POST requests are supported for login", http.StatusMethodNotAllowed, nil}, false)
-		return
-	}
-
 	if r.Form.Get("username") == "" || r.Form.Get("password") == "" {
 		common.SendError(rw, common.HTTPError{"Username or password missing", http.StatusBadRequest, nil}, false)
 		return
@@ -54,7 +49,7 @@ func (h *LoginHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx co
 		common.SendError(rw, common.HTTPError{"Failed to create session", http.StatusInternalServerError, err}, true)
 		return
 	}
-	sess.Values["user"] = user.ID
+	sess.Values["userId"] = user.ID
 	sess.Save(r, rw)
 
 	common.SendResponse(

@@ -26,7 +26,7 @@ func (a *API) NewServeMux() http.Handler {
 	)
 	mux.Handle(
 		"/event/{id:[0-9]+}/tag",
-		common.AddCtx(handler.NewEventTypeHandler(a.EventStore), a.SessionStore, a.AuthStore),
+		common.AddCtx(handler.NewEventTagHandler(a.EventStore), a.SessionStore, a.AuthStore),
 	)
 	mux.Handle(
 		"/event_type",
@@ -45,6 +45,10 @@ func (a *API) NewServeMux() http.Handler {
 	mux.Handle(
 		"/login",
 		common.AddCtx(handler.NewLoginHandler(a.AuthStore, a.SessionStore), a.SessionStore, a.AuthStore),
+	)
+	mux.Handle(
+		"/logout",
+		common.AddCtx(handler.NewLogoutHandler(a.SessionStore), a.SessionStore, a.AuthStore),
 	)
 
 	mux.Handle(

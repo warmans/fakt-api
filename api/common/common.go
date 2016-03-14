@@ -56,14 +56,15 @@ type CtxHandler interface {
 	ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context)
 }
 
-func AddCtx(handler CtxHandler, sess sessions.Store, auth *store.AuthStore) http.Handler {
+func AddCtx(handler CtxHandler, sess sessions.Store, auth *store.AuthStore, restrict bool) http.Handler {
 	return &CtxMiddleware{NextHandler: handler, SessionStore: sess, AuthStore: auth}
 }
 
 type CtxMiddleware struct {
-	NextHandler  CtxHandler
-	SessionStore sessions.Store
-	AuthStore 	 *store.AuthStore
+	NextHandler    CtxHandler
+	SessionStore   sessions.Store
+	AuthStore      *store.AuthStore
+	RestrictAccess bool
 }
 
 func (m *CtxMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
@@ -77,8 +78,12 @@ func (m *CtxMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userId, found := sess.Values["user"]
-	if found == false {
+	userId, found := sess.Values["userId"]
+	if found == false || userId == nil || userId.(int64) < 1 {
+		if m.RestrictAccess {
+			SendError(rw, HTTPError{"Access Denied", http.StatusForbidden, nil}, false)
+			return
+		}
 		m.NextHandler.ServeHTTP(rw, r, ctx)
 		return
 	}
@@ -87,7 +92,10 @@ func (m *CtxMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if err == nil && user != nil {
 		ctx = context.WithValue(ctx, "user", user)
 	} else {
-		log.Printf("Failed to get user: %s", err.Error())
+		if m.RestrictAccess {
+			SendError(rw, HTTPError{"Access Denied", http.StatusForbidden, nil}, false)
+			return
+		}
 	}
 
 	m.NextHandler.ServeHTTP(rw, r, ctx)

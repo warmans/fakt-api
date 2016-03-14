@@ -25,6 +25,11 @@ type Link struct {
 	Text string `json:"text" db:"link_description"`
 }
 
+type UTags struct {
+	Username string   `json:"username" db:"username"`
+	Values   []string `json:"tags" db:"tags"`
+}
+
 type Event struct {
 	ID          int64        `json:"id"`
 	Date        time.Time    `json:"date"`
@@ -32,6 +37,7 @@ type Event struct {
 	Type        string       `json:"type"`
 	Description string       `json:"description"`
 	Performers  []*Performer `json:"performer,omitempty"`
+	UTags       []UTags     `json:"utag"`
 }
 
 func (e *Event) GuessPerformers() {
@@ -159,7 +165,6 @@ func (s *Store) FindEvents(filter *EventFilter) ([]*Event, error) {
 	}
 	q.Where("event.deleted <= ?", IfOrInt(filter.ShowDeleted, 1, 0))
 
-	// :/
 	sql, vals := q.ToSql()
 	interpolated, err := dbr.InterpolateForDialect(sql, vals, dialect.SQLite3)
 	if err != nil {
@@ -210,6 +215,13 @@ func (s *Store) FindEvents(filter *EventFilter) ([]*Event, error) {
 				},
 				Performers: make([]*Performer, 0),
 			}
+
+			//todo: if this is slow fix it 14.03.16
+			tags, err := s.FindEventUTags(curEvent.ID)
+			if err != nil {
+				return nil, err
+			}
+			curEvent.UTags = tags
 		}
 
 		curPerformer := &Performer{
@@ -328,6 +340,41 @@ func (s *Store) FindEventTypes() ([]string, error) {
 		return nil, err
 	}
 	return types, nil
+}
+
+func (s *Store) FindEventUTags(eventID int64) ([]UTags, error) {
+
+	q := s.DB.Select("user.username", "event_user_tag.tags").
+	From("event_user_tag").
+	Where("event_id = ?", eventID).
+	LeftJoin("user", "event_user_tag.user_id = user.id")
+
+	sql, vals := q.ToSql()
+	interpolated, err := dbr.InterpolateForDialect(sql, vals, dialect.SQLite3)
+	if err != nil {
+		return nil, err
+	}
+	result, err := s.DB.Query(interpolated)
+	if err != nil && err != dbr.ErrNotFound {
+		return nil, err
+	}
+	defer result.Close()
+
+	utags := make([]UTags, 0)
+	var username, tagString string
+	for result.Next() {
+		if err := result.Scan(&username, &tagString); err != nil {
+			return nil, err
+		}
+		utags = append(utags, UTags{Username: username, Values: strings.Split(tagString, ";")})
+	}
+
+	return utags, nil
+}
+
+func (s *Store) StoreEventUTags(eventID int64, userID int64, tags []string) error {
+	_, err := s.DB.Exec("REPLACE INTO event_user_tag (event_id, user_id, tags) VALUES (?, ?, ?)", eventID, userID, strings.Join(tags, ";"))
+	return err
 }
 
 func IfOrInt(val bool, trueVal, falseVal int) int {
