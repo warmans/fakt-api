@@ -3,9 +3,7 @@ package handler
 import (
 	"net/http"
 	"github.com/warmans/stressfaktor-api/api/common"
-	"github.com/warmans/stressfaktor-api/data/store"
 	"github.com/gorilla/sessions"
-	"fmt"
 	"golang.org/x/net/context"
 )
 
@@ -14,7 +12,6 @@ func NewLogoutHandler(sess sessions.Store) common.CtxHandler {
 }
 
 type LogoutHandler struct {
-	auth     *store.AuthStore
 	sessions sessions.Store
 }
 
@@ -24,13 +21,11 @@ func (h *LogoutHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx c
 
 	//create their session
 	sess, err := h.sessions.Get(r, "login")
-	if err != nil {
-		common.SendError(rw, common.HTTPError{"Failed to create session", http.StatusInternalServerError, err}, true)
-		return
+	if err == nil {
+		delete(sess.Values, "login")
+		sess.Options.MaxAge = -1;
+		sess.Save(r, rw)
 	}
-	delete(sess.Values, "user")
-	sess.Save(r, rw)
-
 	common.SendResponse(
 		rw,
 		&common.Response{

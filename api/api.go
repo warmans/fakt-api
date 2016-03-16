@@ -22,42 +22,42 @@ func (a *API) NewServeMux() http.Handler {
 
 	mux.Handle(
 		"/event",
-		common.AddCtx(handler.NewEventHandler(a.EventStore), a.SessionStore, a.AuthStore),
+		common.AddCtx(handler.NewEventHandler(a.EventStore), a.SessionStore, a.AuthStore, false),
 	)
 	mux.Handle(
 		"/event/{id:[0-9]+}/tag",
-		common.AddCtx(handler.NewEventTagHandler(a.EventStore), a.SessionStore, a.AuthStore),
+		common.AddCtx(handler.NewEventTagHandler(a.EventStore), a.SessionStore, a.AuthStore, false),
 	)
 	mux.Handle(
 		"/event_type",
-		common.AddCtx(handler.NewEventTypeHandler(a.EventStore), a.SessionStore, a.AuthStore),
+		common.AddCtx(handler.NewEventTypeHandler(a.EventStore), a.SessionStore, a.AuthStore, false),
 	)
 	mux.Handle(
 		"/venue",
-		common.AddCtx(handler.NewVenueHandler(a.EventStore), a.SessionStore, a.AuthStore),
+		common.AddCtx(handler.NewVenueHandler(a.EventStore), a.SessionStore, a.AuthStore, false),
 	)
 	mux.Handle(
 		"/performer",
-		common.AddCtx(handler.NewPerformerHandler(a.EventStore), a.SessionStore, a.AuthStore),
+		common.AddCtx(handler.NewPerformerHandler(a.EventStore), a.SessionStore, a.AuthStore, false),
 	)
 
 	//user
 	mux.Handle(
 		"/login",
-		common.AddCtx(handler.NewLoginHandler(a.AuthStore, a.SessionStore), a.SessionStore, a.AuthStore),
+		common.AddCtx(handler.NewLoginHandler(a.AuthStore, a.SessionStore), a.SessionStore, a.AuthStore, false),
 	)
 	mux.Handle(
 		"/logout",
-		common.AddCtx(handler.NewLogoutHandler(a.SessionStore), a.SessionStore, a.AuthStore),
+		common.AddCtx(handler.NewLogoutHandler(a.SessionStore), a.SessionStore, a.AuthStore, false),
 	)
 
 	mux.Handle(
 		"/register",
-		common.AddCtx(handler.NewRegisterHandler(a.AuthStore, a.SessionStore), a.SessionStore, a.AuthStore),
+		common.AddCtx(handler.NewRegisterHandler(a.AuthStore, a.SessionStore), a.SessionStore, a.AuthStore, false),
 	)
 	mux.Handle(
 		"/me",
-		common.AddCtx(handler.NewMeHandler(), a.SessionStore, a.AuthStore),
+		common.AddCtx(handler.NewMeHandler(), a.SessionStore, a.AuthStore, true),
 	)
 
 	//meta
