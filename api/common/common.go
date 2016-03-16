@@ -5,9 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"fmt"
-	"github.com/gorilla/sessions"
 	"golang.org/x/net/context"
-	"github.com/warmans/stressfaktor-api/data/store"
 )
 
 type Response struct {
@@ -54,49 +52,4 @@ func SendError(rw http.ResponseWriter, err error, writeToLog bool) {
 
 type CtxHandler interface {
 	ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context)
-}
-
-func AddCtx(handler CtxHandler, sess sessions.Store, auth *store.AuthStore, restrict bool) http.Handler {
-	return &CtxMiddleware{NextHandler: handler, SessionStore: sess, AuthStore: auth}
-}
-
-type CtxMiddleware struct {
-	NextHandler    CtxHandler
-	SessionStore   sessions.Store
-	AuthStore      *store.AuthStore
-	RestrictAccess bool
-}
-
-func (m *CtxMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-
-	ctx := context.Background()
-
-	sess, err := m.SessionStore.Get(r, "login")
-	if err != nil {
-		log.Printf("Failed to get session: %s", err.Error())
-		m.NextHandler.ServeHTTP(rw, r, ctx)
-		return
-	}
-
-	userId, found := sess.Values["userId"]
-	if found == false || userId == nil || userId.(int64) < 1 {
-		if m.RestrictAccess {
-			SendError(rw, HTTPError{"Access Denied", http.StatusForbidden, nil}, false)
-			return
-		}
-		m.NextHandler.ServeHTTP(rw, r, ctx)
-		return
-	}
-
-	user, err := m.AuthStore.GetUser(userId.(int64))
-	if err == nil && user != nil {
-		ctx = context.WithValue(ctx, "user", user)
-	} else {
-		if m.RestrictAccess {
-			SendError(rw, HTTPError{"Access Denied", http.StatusForbidden, nil}, false)
-			return
-		}
-	}
-
-	m.NextHandler.ServeHTTP(rw, r, ctx)
 }

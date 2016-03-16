@@ -7,10 +7,16 @@ import (
 	"github.com/gorilla/sessions"
 	"fmt"
 	"golang.org/x/net/context"
+	"encoding/json"
 )
 
 func NewLoginHandler(auth *store.AuthStore, sess sessions.Store) common.CtxHandler {
 	return &LoginHandler{auth: auth, sessions: sess}
+}
+
+type LoginPayload struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 type LoginHandler struct {
@@ -20,14 +26,16 @@ type LoginHandler struct {
 
 func (h *LoginHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
 	defer r.Body.Close()
-	r.ParseForm()
 
-	if r.Form.Get("username") == "" || r.Form.Get("password") == "" {
+	payload := &LoginPayload{}
+	json.NewDecoder(r.Body).Decode(payload)
+
+	if payload.Username == "" || payload.Password == "" {
 		common.SendError(rw, common.HTTPError{"Username or password missing", http.StatusBadRequest, nil}, false)
 		return
 	}
 
-	user, err := h.auth.Authenticate(r.Form.Get("username"), r.Form.Get("password"))
+	user, err := h.auth.Authenticate(payload.Username, payload.Password)
 	if err != nil {
 		common.SendError(rw, common.HTTPError{"Authentication failed due to an internal error", http.StatusInternalServerError, err}, true)
 		return

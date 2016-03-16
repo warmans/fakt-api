@@ -8,7 +8,7 @@ import (
 	"github.com/warmans/stressfaktor-api/data/store"
 	"database/sql"
 	"strconv"
-	"strings"
+	"encoding/json"
 )
 
 func NewEventTagHandler(eventStore *store.Store) common.CtxHandler {
@@ -21,7 +21,6 @@ type EventTagHandler struct{
 
 func (h *EventTagHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
 	defer r.Body.Close()
-	r.ParseForm()
 
 	vars := mux.Vars(r)
 	eventId, err := strconv.Atoi(vars["id"])
@@ -35,9 +34,12 @@ func (h *EventTagHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx
 		return
 	}
 
+	payload := make([]string, 0)
+	json.NewDecoder(r.Body).Decode(&payload)
+
 	//store any submitted tags
 	if r.Method == "POST" {
-		if err := h.EventStore.StoreEventUTags(int64(eventId), user.ID, strings.Split(r.Form.Get("tags"), ";")); err != nil {
+		if err := h.EventStore.StoreEventUTags(int64(eventId), user.ID, payload); err != nil {
 			common.SendError(rw, common.HTTPError{"Failed to save tags", http.StatusInternalServerError, err}, true)
 			return
 		}

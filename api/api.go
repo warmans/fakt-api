@@ -6,8 +6,8 @@ import (
 	"github.com/warmans/stressfaktor-api/data/store"
 	"github.com/gorilla/context"
 	"github.com/gorilla/sessions"
-"github.com/warmans/stressfaktor-api/api/common"
 	"github.com/gorilla/mux"
+	mw "github.com/warmans/stressfaktor-api/api/middleware"
 )
 
 type API struct {
@@ -22,47 +22,61 @@ func (a *API) NewServeMux() http.Handler {
 
 	mux.Handle(
 		"/event",
-		common.AddCtx(handler.NewEventHandler(a.EventStore), a.SessionStore, a.AuthStore, false),
+		mw.AddCtx(handler.NewEventHandler(a.EventStore), a.SessionStore, a.AuthStore, false),
 	)
 	mux.Handle(
 		"/event/{id:[0-9]+}/tag",
-		common.AddCtx(handler.NewEventTagHandler(a.EventStore), a.SessionStore, a.AuthStore, false),
+		mw.AddCtx(handler.NewEventTagHandler(a.EventStore), a.SessionStore, a.AuthStore, false),
 	)
 	mux.Handle(
 		"/event_type",
-		common.AddCtx(handler.NewEventTypeHandler(a.EventStore), a.SessionStore, a.AuthStore, false),
+		mw.AddCtx(handler.NewEventTypeHandler(a.EventStore), a.SessionStore, a.AuthStore, false),
 	)
 	mux.Handle(
 		"/venue",
-		common.AddCtx(handler.NewVenueHandler(a.EventStore), a.SessionStore, a.AuthStore, false),
+		mw.AddCtx(handler.NewVenueHandler(a.EventStore), a.SessionStore, a.AuthStore, false),
 	)
 	mux.Handle(
 		"/performer",
-		common.AddCtx(handler.NewPerformerHandler(a.EventStore), a.SessionStore, a.AuthStore, false),
+		mw.AddCtx(handler.NewPerformerHandler(a.EventStore), a.SessionStore, a.AuthStore, false),
 	)
 
 	//user
 	mux.Handle(
 		"/login",
-		common.AddCtx(handler.NewLoginHandler(a.AuthStore, a.SessionStore), a.SessionStore, a.AuthStore, false),
+		mw.AddCtx(handler.NewLoginHandler(a.AuthStore, a.SessionStore), a.SessionStore, a.AuthStore, false),
 	)
 	mux.Handle(
 		"/logout",
-		common.AddCtx(handler.NewLogoutHandler(a.SessionStore), a.SessionStore, a.AuthStore, false),
+		mw.AddCtx(handler.NewLogoutHandler(a.SessionStore), a.SessionStore, a.AuthStore, false),
 	)
 
 	mux.Handle(
 		"/register",
-		common.AddCtx(handler.NewRegisterHandler(a.AuthStore, a.SessionStore), a.SessionStore, a.AuthStore, false),
+		mw.AddCtx(handler.NewRegisterHandler(a.AuthStore, a.SessionStore), a.SessionStore, a.AuthStore, false),
 	)
 	mux.Handle(
 		"/me",
-		common.AddCtx(handler.NewMeHandler(), a.SessionStore, a.AuthStore, true),
+		mw.AddCtx(handler.NewMeHandler(), a.SessionStore, a.AuthStore, true),
 	)
 
 	//meta
 	mux.Handle("/version", handler.NewVersionHandler(a.AppVersion))
 
-	return context.ClearHandler(mux)
+	//additional middlewares
+
+	handler := context.ClearHandler(mux)
+
+	handler = mw.AddCommonHeaders(
+		handler,
+		map[string]string{
+			"Access-Control-Allow-Origin": "*",
+			"Access-Control-Allow-Credentials": "true",
+			"Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+			"Access-Control-Allow-Headers": "Content-Type, *",
+		},
+	)
+
+	return handler
 }
 
