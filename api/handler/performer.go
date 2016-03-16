@@ -7,9 +7,10 @@ import (
 	"strings"
 	"strconv"
 	"github.com/warmans/stressfaktor-api/data/store"
+"golang.org/x/net/context"
 )
 
-func NewPerformerHandler(eventStore *store.Store) http.Handler {
+func NewPerformerHandler(eventStore *store.Store) common.CtxHandler {
 	return &PerformerHandler{eventStore: eventStore}
 }
 
@@ -17,7 +18,7 @@ type PerformerHandler struct {
 	eventStore *store.Store
 }
 
-func (h *PerformerHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (h *PerformerHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
 	defer r.Body.Close()
 	r.ParseForm()
 

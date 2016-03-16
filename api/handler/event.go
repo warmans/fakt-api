@@ -8,9 +8,10 @@ import (
 	"strconv"
 	"time"
 	"github.com/warmans/stressfaktor-api/data/store"
+	"golang.org/x/net/context"
 )
 
-func NewEventHandler(eventStore *store.Store) http.Handler {
+func NewEventHandler(eventStore *store.Store) common.CtxHandler {
 	return &EventHandler{eventStore: eventStore}
 }
 
@@ -18,7 +19,7 @@ type EventHandler struct {
 	eventStore *store.Store
 }
 
-func (h *EventHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (h *EventHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
 
 	defer r.Body.Close()
 	events, err := h.eventStore.FindEvents(h.filterFromRequest(r))
