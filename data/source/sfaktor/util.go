@@ -6,7 +6,18 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"log"
 )
+
+var localTime *time.Location
+
+func init() {
+	var err error
+	localTime, err = time.LoadLocation("Europe/Berlin")
+	if err != nil {
+		log.Fatal("Cannot load localtime")
+	}
+}
 
 //ParseTime parses times in the format e.g. "Montag, 21.12.2015", "21:00 Uhr"
 func ParseTime(dateString, timeString string) (time.Time, error) {
@@ -17,7 +28,7 @@ func ParseTime(dateString, timeString string) (time.Time, error) {
 			strings.Trim(timeString, " Uhr"),
 			strings.TrimSpace(strings.Split(dateString, ",")[1]),
 		)
-		return time.Parse("15.04 02.01.2006", cleanDate)
+		return time.ParseInLocation("15.04 02.01.2006", cleanDate, localTime)
 	}
 
 	return time.Time{}, errors.New("header date format looks wrong")
