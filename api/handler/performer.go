@@ -10,12 +10,12 @@ import (
 "golang.org/x/net/context"
 )
 
-func NewPerformerHandler(eventStore *store.Store) common.CtxHandler {
-	return &PerformerHandler{eventStore: eventStore}
+func NewPerformerHandler(ds *store.Store) common.CtxHandler {
+	return &PerformerHandler{ds: ds}
 }
 
 type PerformerHandler struct {
-	eventStore *store.Store
+	ds *store.Store
 }
 
 func (h *PerformerHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
@@ -35,12 +35,12 @@ func (h *PerformerHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ct
 	filter.Genre = r.Form.Get("genre")
 	filter.Home = r.Form.Get("home")
 
-	venues, err := h.eventStore.FindPerformers(filter)
+	performers, err := h.ds.FindPerformers(filter)
 	if err != nil {
 		log.Print(err.Error())
 		common.SendResponse(rw, &common.Response{Status: http.StatusInternalServerError, Payload: nil})
 		return
 	}
 
-	common.SendResponse(rw, &common.Response{Status: http.StatusOK, Payload: venues})
+	common.SendResponse(rw, &common.Response{Status: http.StatusOK, Payload: performers})
 }

@@ -11,15 +11,16 @@ import (
 	"encoding/json"
 )
 
-func NewEventTagHandler(eventStore *store.Store) common.CtxHandler {
-	return &EventTagHandler{EventStore: eventStore}
+func NewEventTagHandler(ds *store.Store) common.CtxHandler {
+	return &EventTagHandler{ds: ds}
 }
 
 type EventTagHandler struct{
-	EventStore *store.Store
+	ds *store.Store
 }
 
 func (h *EventTagHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
+	r.ParseForm()
 	defer r.Body.Close()
 
 	vars := mux.Vars(r)
@@ -39,14 +40,14 @@ func (h *EventTagHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx
 
 	//store any submitted tags
 	if r.Method == "POST" {
-		if err := h.EventStore.StoreEventUTags(int64(eventId), user.ID, payload); err != nil {
+		if err := h.ds.StoreEventUTags(int64(eventId), user.ID, payload); err != nil {
 			common.SendError(rw, common.HTTPError{"Failed to save tags", http.StatusInternalServerError, err}, true)
 			return
 		}
 	}
 
 	//then get all tags for the event
-	tags, err := h.EventStore.FindEventUTags(int64(eventId))
+	tags, err := h.ds.FindEventUTags(int64(eventId), &store.UTagsFilter{Username: r.Form.Get("username")})
 	if err != nil && err != sql.ErrNoRows {
 		common.SendError(rw, common.HTTPError{"Failed to get tags", http.StatusInternalServerError, err}, true)
 		return

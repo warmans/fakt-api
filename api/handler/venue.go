@@ -10,12 +10,12 @@ import (
 "golang.org/x/net/context"
 )
 
-func NewVenueHandler(eventStore *store.Store) common.CtxHandler {
-	return &VenueHandler{eventStore: eventStore}
+func NewVenueHandler(ds *store.Store) common.CtxHandler {
+	return &VenueHandler{ds: ds}
 }
 
 type VenueHandler struct {
-	eventStore *store.Store
+	ds *store.Store
 }
 
 func (h *VenueHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
@@ -34,7 +34,7 @@ func (h *VenueHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx co
 
 	filter.Name = r.Form.Get("name")
 
-	venues, err := h.eventStore.FindVenues(filter)
+	venues, err := h.ds.FindVenues(filter)
 	if err != nil {
 		log.Print(err.Error())
 		common.SendResponse(rw, &common.Response{Status: http.StatusInternalServerError, Payload: nil})

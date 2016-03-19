@@ -53,8 +53,8 @@ func main() {
 		log.Fatalf("Failed to initialize local DB: %s", err.Error())
 	}
 
-	eventStore := &store.Store{DB: db.NewSession(nil)}
-	authStore := &store.AuthStore{DB: db.NewSession(nil)}
+	dataStore := &store.Store{DB: db.NewSession(nil)}
+	userStore := &store.UserStore{DB: db.NewSession(nil)}
 
 	if *runIngest {
 		dataIngest := data.Ingest{
@@ -62,7 +62,7 @@ func main() {
 			UpdateFrequency: time.Duration(1) * time.Hour,
 			Stressfaktor:  &sfaktor.Crawler{TermineURI: *terminURI},
 			EventVisitors: []store.EventVisitor{
-				&store.EventStoreVisitor{Store: eventStore},
+				&store.EventStoreVisitor{Store: dataStore},
 				&store.BandcampVisitor{Bandcamp: &bcamp.Bandcamp{HTTP: http.DefaultClient}, VerboseLogging: *verbose},
 			},
 		}
@@ -76,8 +76,8 @@ func main() {
 
 	API := api.API{
 		AppVersion: VERSION,
-		EventStore: eventStore,
-		AuthStore: authStore,
+		DataStore: dataStore,
+		UserStore: userStore,
 		SessionStore: sessions.NewCookieStore([]byte(*authKey)),
 	}
 	http.Handle("/api/v1/", http.StripPrefix("/api/v1", API.NewServeMux()))

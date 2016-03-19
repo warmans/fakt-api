@@ -11,18 +11,18 @@ import (
 	"golang.org/x/net/context"
 )
 
-func NewEventHandler(eventStore *store.Store) common.CtxHandler {
-	return &EventHandler{eventStore: eventStore}
+func NewEventHandler(ds *store.Store) common.CtxHandler {
+	return &EventHandler{ds: ds}
 }
 
 type EventHandler struct {
-	eventStore *store.Store
+	ds *store.Store
 }
 
 func (h *EventHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
 
 	defer r.Body.Close()
-	events, err := h.eventStore.FindEvents(h.filterFromRequest(r))
+	events, err := h.ds.FindEvents(h.filterFromRequest(r, ctx))
 	if err != nil {
 		log.Print(err.Error())
 		common.SendResponse(rw, &common.Response{Status: http.StatusInternalServerError, Payload: nil})
@@ -32,7 +32,7 @@ func (h *EventHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx co
 	common.SendResponse(rw, &common.Response{Status: http.StatusOK, Payload: events})
 }
 
-func (h *EventHandler) filterFromRequest(r *http.Request) *store.EventFilter {
+func (h *EventHandler) filterFromRequest(r *http.Request, ctx context.Context) *store.EventFilter {
 	r.ParseForm()
 
 	filter := &store.EventFilter{
@@ -75,6 +75,12 @@ func (h *EventHandler) filterFromRequest(r *http.Request) *store.EventFilter {
 	if deleted := r.Form.Get("deleted"); (deleted == "1" || deleted == "true") {
 		filter.ShowDeleted = true
 	}
+
+	//limit to events with only these tags
+	filter.Tag = r.Form.Get("tag")
+
+	//additionally only look for tags from a specific user
+	filter.TagUser =r.Form.Get("tag_user")
 
 	return filter
 }

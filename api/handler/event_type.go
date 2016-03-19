@@ -8,17 +8,17 @@ import (
 	"golang.org/x/net/context"
 )
 
-func NewEventTypeHandler(eventStore *store.Store) common.CtxHandler {
-	return &EventTypeHandler{eventStore: eventStore}
+func NewEventTypeHandler(ds *store.Store) common.CtxHandler {
+	return &EventTypeHandler{ds: ds}
 }
 
 type EventTypeHandler struct {
-	eventStore *store.Store
+	ds *store.Store
 }
 
 func (h *EventTypeHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
 	defer r.Body.Close()
-	events, err := h.eventStore.FindEventTypes()
+	events, err := h.ds.FindEventTypes()
 	if err != nil {
 		log.Print(err.Error())
 		common.SendResponse(rw, &common.Response{Status: http.StatusInternalServerError, Payload: nil})

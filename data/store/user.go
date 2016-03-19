@@ -13,11 +13,11 @@ type User struct {
 	Password string `json:"-",db:"password"`
 }
 
-type AuthStore struct {
+type UserStore struct {
 	DB *dbr.Session
 }
 
-func (a *AuthStore) Authenticate(username, password string) (*User, error) {
+func (a *UserStore) Authenticate(username, password string) (*User, error) {
 
 	time.Sleep(time.Second)
 
@@ -53,7 +53,7 @@ func (a *AuthStore) Authenticate(username, password string) (*User, error) {
 	return user, nil
 }
 
-func (a *AuthStore) Register(username, password string) (*User, error) {
+func (a *UserStore) Register(username, password string) (*User, error) {
 
 	time.Sleep(time.Second)
 
@@ -81,7 +81,7 @@ func (a *AuthStore) Register(username, password string) (*User, error) {
 	return user, nil
 }
 
-func (a *AuthStore) GetUser(id int64) (*User, error) {
+func (a *UserStore) GetUser(id int64) (*User, error) {
 	user := &User{}
 	err := a.DB.QueryRow("SELECT id, username FROM user WHERE id = ?", id).Scan(&user.ID, &user.Username)
 	if err != nil {

@@ -10,8 +10,8 @@ import (
 	"encoding/json"
 )
 
-func NewLoginHandler(auth *store.AuthStore, sess sessions.Store) common.CtxHandler {
-	return &LoginHandler{auth: auth, sessions: sess}
+func NewLoginHandler(users *store.UserStore, sess sessions.Store) common.CtxHandler {
+	return &LoginHandler{users: users, sessions: sess}
 }
 
 type LoginPayload struct {
@@ -20,7 +20,7 @@ type LoginPayload struct {
 }
 
 type LoginHandler struct {
-	auth     *store.AuthStore
+	users    *store.UserStore
 	sessions sessions.Store
 }
 
@@ -35,7 +35,7 @@ func (h *LoginHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx co
 		return
 	}
 
-	user, err := h.auth.Authenticate(payload.Username, payload.Password)
+	user, err := h.users.Authenticate(payload.Username, payload.Password)
 	if err != nil {
 		common.SendError(rw, common.HTTPError{"Authentication failed due to an internal error", http.StatusInternalServerError, err}, true)
 		return

@@ -30,6 +30,19 @@ type UTags struct {
 	Values   []string `json:"tags" db:"tags"`
 }
 
+func (u *UTags) HasValue(value string) bool {
+	for _, val := range u.Values {
+		if value == val {
+			return true
+		}
+	}
+	return false
+}
+
+type UTagsFilter struct {
+	Username string	`json:"username"`
+}
+
 type Event struct {
 	ID          int64        `json:"id"`
 	Date        time.Time    `json:"date"`
@@ -80,19 +93,36 @@ func (e *Event) Accept(visitor EventVisitor) {
 	visitor.Visit(e)
 }
 
+func (e *Event) HasTag(tag string, username string) bool {
+	if tag == "" {
+		return true
+	}
+	for _, utag := range e.UTags {
+		if utag.HasValue(tag) {
+			if username != "" && utag.Username != username {
+				continue;
+			}
+			return true
+		}
+	}
+	return false
+}
+
 type EventFilter struct {
 	EventIDs    []int     `json:"events"`
 	DateFrom    time.Time `json:"from_date"`
 	DateTo      time.Time `json:"to_date"`
-	VenueIDs    []int64     `json:"venues"`
+	VenueIDs    []int64   `json:"venues"`
 	Types       []string  `json:"types"`
 	ShowDeleted bool      `json:"show_deleted"`
+	Tag         string    `json:"tag"`
+	TagUser    string     `json:"tag_user"`
 }
 
 type Venue struct {
-	ID      int64  `json:"id"`
-	Name    string `json:"name"`
-	Address string `json:"address"`
+	ID      int64    `json:"id"`
+	Name    string   `json:"name"`
+	Address string   `json:"address"`
 	Events  []*Event `json:"event,omitempty"`
 }
 
@@ -199,7 +229,9 @@ func (s *Store) FindEvents(filter *EventFilter) ([]*Event, error) {
 
 			//append to result set
 			if curEvent.ID != 0 {
-				events = append(events, curEvent)
+				if curEvent.HasTag(filter.Tag, filter.TagUser) {
+					events = append(events, curEvent)
+				}
 			}
 
 			//new current event
@@ -216,8 +248,8 @@ func (s *Store) FindEvents(filter *EventFilter) ([]*Event, error) {
 				Performers: make([]*Performer, 0),
 			}
 
-			//todo: if this is slow fix it 14.03.16
-			tags, err := s.FindEventUTags(curEvent.ID)
+			//append the tags
+			tags, err := s.FindEventUTags(curEvent.ID, &UTagsFilter{})
 			if err != nil {
 				return nil, err
 			}
@@ -239,7 +271,9 @@ func (s *Store) FindEvents(filter *EventFilter) ([]*Event, error) {
 	}
 
 	if curEvent.ID != 0 {
-		events = append(events, curEvent)
+		if curEvent.HasTag(filter.Tag, filter.TagUser) {
+			events = append(events, curEvent)
+		}
 	}
 	return events, nil
 }
@@ -342,12 +376,16 @@ func (s *Store) FindEventTypes() ([]string, error) {
 	return types, nil
 }
 
-func (s *Store) FindEventUTags(eventID int64) ([]UTags, error) {
+func (s *Store) FindEventUTags(eventID int64, filter *UTagsFilter) ([]UTags, error) {
 
 	q := s.DB.Select("user.username", "event_user_tag.tags").
 	From("event_user_tag").
 	Where("event_id = ?", eventID).
 	LeftJoin("user", "event_user_tag.user_id = user.id")
+
+	if filter.Username != "" {
+		q.Where("user.username = ?", filter.Username)
+	}
 
 	sql, vals := q.ToSql()
 	interpolated, err := dbr.InterpolateForDialect(sql, vals, dialect.SQLite3)

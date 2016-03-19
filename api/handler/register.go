@@ -8,12 +8,12 @@ import (
 "golang.org/x/net/context"
 )
 
-func NewRegisterHandler(auth *store.AuthStore, sess sessions.Store) common.CtxHandler {
-	return &RegisterHandler{auth: auth, sessions: sess}
+func NewRegisterHandler(users *store.UserStore, sess sessions.Store) common.CtxHandler {
+	return &RegisterHandler{users: users, sessions: sess}
 }
 
 type RegisterHandler struct {
-	auth     *store.AuthStore
+	users    *store.UserStore
 	sessions sessions.Store
 }
 
@@ -31,7 +31,7 @@ func (h *RegisterHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx
 		return
 	}
 
-	user, err := h.auth.Register(r.Form.Get("username"), r.Form.Get("password"))
+	user, err := h.users.Register(r.Form.Get("username"), r.Form.Get("password"))
 	if err != nil {
 		common.SendError(rw, common.HTTPError{"Registration failed due to an internal error", http.StatusInternalServerError, err}, true)
 		return
