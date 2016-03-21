@@ -6,10 +6,16 @@ import (
 	"github.com/gorilla/sessions"
 	"fmt"
 "golang.org/x/net/context"
+	"encoding/json"
 )
 
 func NewRegisterHandler(users *store.UserStore, sess sessions.Store) common.CtxHandler {
 	return &RegisterHandler{users: users, sessions: sess}
+}
+
+type RegisterPayload struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 type RegisterHandler struct {
@@ -19,19 +25,16 @@ type RegisterHandler struct {
 
 func (h *RegisterHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
 	defer r.Body.Close()
-	r.ParseForm()
 
-	if r.Method != "POST" {
-		common.SendError(rw, common.HTTPError{"Only POST requests are supported for login", http.StatusMethodNotAllowed, nil}, false)
-		return
-	}
+	payload := &RegisterPayload{}
+	json.NewDecoder(r.Body).Decode(payload)
 
-	if r.Form.Get("username") == "" || r.Form.Get("password") == "" {
+	if payload.Username == "" || payload.Password == "" {
 		common.SendError(rw, common.HTTPError{"Username or password missing", http.StatusBadRequest, nil}, false)
 		return
 	}
 
-	user, err := h.users.Register(r.Form.Get("username"), r.Form.Get("password"))
+	user, err := h.users.Register(payload.Username, payload.Password)
 	if err != nil {
 		common.SendError(rw, common.HTTPError{"Registration failed due to an internal error", http.StatusInternalServerError, err}, true)
 		return
@@ -62,6 +65,7 @@ func (h *RegisterHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx
 		&common.Response{
 			Status: http.StatusOK,
 			Payload: user,
+			Message: "Registration Successful",
 		},
 	)
 }
