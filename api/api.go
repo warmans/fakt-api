@@ -40,6 +40,10 @@ func (a *API) NewServeMux() http.Handler {
 		"/performer",
 		mw.AddCtx(handler.NewPerformerHandler(a.DataStore), a.SessionStore, a.UserStore, false),
 	)
+	mux.Handle(
+		"/performer/{id:[0-9]+}/tag",
+		mw.AddCtx(handler.NewPerformerTagHandler(a.DataStore), a.SessionStore, a.UserStore, false),
+	)
 
 	//user
 	mux.Handle(

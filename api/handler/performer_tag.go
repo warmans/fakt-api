@@ -1,0 +1,63 @@
+package handler
+
+import (
+	"github.com/warmans/stressfaktor-api/api/common"
+	"net/http"
+	"golang.org/x/net/context"
+	"github.com/gorilla/mux"
+	"github.com/warmans/stressfaktor-api/data/store"
+	"database/sql"
+	"strconv"
+	"encoding/json"
+)
+
+func NewPerformerTagHandler(ds *store.Store) common.CtxHandler {
+	return &PerformerTagHandler{ds: ds}
+}
+
+type PerformerTagHandler struct{
+	ds *store.Store
+}
+
+func (h *PerformerTagHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
+	r.ParseForm()
+	defer r.Body.Close()
+
+	vars := mux.Vars(r)
+	performerID, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		common.SendError(rw, common.HTTPError{"Invalid performerID", http.StatusBadRequest, err}, false)
+	}
+
+	user := ctx.Value("user").(*store.User);
+	if user == nil {
+		common.SendError(rw, common.HTTPError{"Not logged in", http.StatusForbidden, nil}, false)
+		return
+	}
+
+	payload := make([]string, 0)
+	json.NewDecoder(r.Body).Decode(&payload)
+
+	//store any submitted tags
+	if r.Method == "POST" {
+		if err := h.ds.StorePerformerUTags(int64(performerID), user.ID, payload); err != nil {
+			common.SendError(rw, common.HTTPError{"Failed to save tags", http.StatusInternalServerError, err}, true)
+			return
+		}
+	}
+
+	//then get all tags for the event
+	tags, err := h.ds.FindPerformerUTags(int64(performerID), &store.UTagsFilter{Username: r.Form.Get("username")})
+	if err != nil && err != sql.ErrNoRows {
+		common.SendError(rw, common.HTTPError{"Failed to get tags", http.StatusInternalServerError, err}, true)
+		return
+	}
+
+	common.SendResponse(
+		rw,
+		&common.Response{
+			Status: http.StatusOK,
+			Payload: tags,
+		},
+	)
+}

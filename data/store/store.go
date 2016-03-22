@@ -11,14 +11,6 @@ import (
 
 const DATE_FORMAT_SQL = "2006-01-02 15:04:05.999999999-07:00"
 
-const (
-	LINK_TYPE_FACEBOOK = "facebook"
-	LINK_TYPE_MYSPACE = "myspace"
-	LINK_TYPE_YOUTUBE = "youtube"
-	LINK_TYPE_TWITTER = "twitter"
-	LINK_TYPE_OTHER = "other"
-)
-
 type Link struct {
 	URI  string `json:"uri" db:"link"`
 	Type string `json:"type" db:"link_type"`
@@ -40,7 +32,7 @@ func (u *UTags) HasValue(value string) bool {
 }
 
 type UTagsFilter struct {
-	Username string	`json:"username"`
+	Username string        `json:"username"`
 }
 
 type Event struct {
@@ -109,14 +101,15 @@ func (e *Event) HasTag(tag string, username string) bool {
 }
 
 type EventFilter struct {
-	EventIDs    []int     `json:"events"`
-	DateFrom    time.Time `json:"from_date"`
-	DateTo      time.Time `json:"to_date"`
-	VenueIDs    []int64   `json:"venues"`
-	Types       []string  `json:"types"`
-	ShowDeleted bool      `json:"show_deleted"`
-	Tag         string    `json:"tag"`
-	TagUser    string     `json:"tag_user"`
+	EventIDs          []int     `json:"events"`
+	DateFrom          time.Time `json:"from_date"`
+	DateTo            time.Time `json:"to_date"`
+	VenueIDs          []int64   `json:"venues"`
+	Types             []string  `json:"types"`
+	ShowDeleted       bool      `json:"show_deleted"`
+	Tag               string    `json:"tag"`
+	TagUser           string    `json:"tag_user"`
+	LoadPerformerTags bool            `json:"load_performer_tags"`
 }
 
 type Venue struct {
@@ -132,15 +125,16 @@ type VenueFilter struct {
 }
 
 type Performer struct {
-	ID        int64  `json:"id"`
-	Name      string `json:"name"`
-	Info      string `json:"info"`
-	Genre     string `json:"genre"`
-	Home      string `json:"home"`
-	Img       string `json:"img"`
-	ListenURL string `json:"listen_url"`
+	ID        int64    `json:"id"`
+	Name      string   `json:"name"`
+	Info      string   `json:"info"`
+	Genre     string   `json:"genre"`
+	Home      string   `json:"home"`
+	Img       string   `json:"img"`
+	ListenURL string   `json:"listen_url"`
 	Events    []*Event `json:"event,omitempty"`
-	Links     []*Link `json:"link,omitempty"`
+	Links     []*Link  `json:"link,omitempty"`
+	UTags     []UTags  `json:"utag,omitempty"`
 }
 
 type PerformerFilter struct {
@@ -266,6 +260,15 @@ func (s *Store) FindEvents(filter *EventFilter) ([]*Event, error) {
 			ListenURL: pListen,
 		}
 		if curPerformer.ID != 0 {
+
+			//add user tags
+			tags, err := s.FindPerformerUTags(curPerformer.ID, &UTagsFilter{})
+			if err != nil {
+				return nil, err
+			}
+			curPerformer.UTags = tags
+
+			//append to event
 			curEvent.Performers = append(curEvent.Performers, curPerformer)
 		}
 	}
@@ -343,6 +346,13 @@ func (s *Store) FindPerformers(filter *PerformerFilter) ([]*Performer, error) {
 			return nil, err
 		}
 		performers[k].Links = links
+
+		//append the tags
+		tags, err := s.FindPerformerUTags(performer.ID, &UTagsFilter{})
+		if err != nil {
+			return nil, err
+		}
+		performers[k].UTags = tags
 	}
 
 	return performers, nil
@@ -377,7 +387,6 @@ func (s *Store) FindEventTypes() ([]string, error) {
 }
 
 func (s *Store) FindEventUTags(eventID int64, filter *UTagsFilter) ([]UTags, error) {
-
 	q := s.DB.Select("user.username", "event_user_tag.tags").
 	From("event_user_tag").
 	Where("event_id = ?", eventID).
@@ -386,16 +395,43 @@ func (s *Store) FindEventUTags(eventID int64, filter *UTagsFilter) ([]UTags, err
 	if filter.Username != "" {
 		q.Where("user.username = ?", filter.Username)
 	}
+	return s.findUTags(q)
+}
 
+func (s *Store) FindPerformerUTags(performerID int64, filter *UTagsFilter) ([]UTags, error) {
+	q := s.DB.Select("user.username", "performer_user_tag.tags").
+	From("performer_user_tag").
+	Where("performer_id = ?", performerID).
+	LeftJoin("user", "performer_user_tag.user_id = user.id")
+
+	if filter.Username != "" {
+		q.Where("user.username = ?", filter.Username)
+	}
+	return s.findUTags(q)
+}
+
+func (s *Store) StoreEventUTags(eventID int64, userID int64, tags []string) error {
+	_, err := s.DB.Exec("REPLACE INTO event_user_tag (event_id, user_id, tags) VALUES (?, ?, ?)", eventID, userID, strings.Join(tags, ";"))
+	return err
+}
+
+func (s *Store) StorePerformerUTags(performerID int64, userID int64, tags []string) error {
+	_, err := s.DB.Exec("REPLACE INTO performer_user_tag (performer_id, user_id, tags) VALUES (?, ?, ?)", performerID, userID, strings.Join(tags, ";"))
+	return err
+}
+
+func (s *Store) findUTags(q *dbr.SelectBuilder) ([]UTags, error) {
 	sql, vals := q.ToSql()
 	interpolated, err := dbr.InterpolateForDialect(sql, vals, dialect.SQLite3)
 	if err != nil {
 		return nil, err
 	}
+
 	result, err := s.DB.Query(interpolated)
 	if err != nil && err != dbr.ErrNotFound {
 		return nil, err
 	}
+
 	defer result.Close()
 
 	utags := make([]UTags, 0)
@@ -406,13 +442,7 @@ func (s *Store) FindEventUTags(eventID int64, filter *UTagsFilter) ([]UTags, err
 		}
 		utags = append(utags, UTags{Username: username, Values: strings.Split(tagString, ";")})
 	}
-
 	return utags, nil
-}
-
-func (s *Store) StoreEventUTags(eventID int64, userID int64, tags []string) error {
-	_, err := s.DB.Exec("REPLACE INTO event_user_tag (event_id, user_id, tags) VALUES (?, ?, ?)", eventID, userID, strings.Join(tags, ";"))
-	return err
 }
 
 func IfOrInt(val bool, trueVal, falseVal int) int {

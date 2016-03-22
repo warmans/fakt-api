@@ -40,6 +40,7 @@ func (h *EventHandler) filterFromRequest(r *http.Request, ctx context.Context) *
 		VenueIDs: make([]int64, 0),
 		Types: make([]string, 0),
 		ShowDeleted: false,
+		LoadPerformerTags: false,
 	}
 
 	if event := r.Form.Get("event"); event != "" {
@@ -74,6 +75,10 @@ func (h *EventHandler) filterFromRequest(r *http.Request, ctx context.Context) *
 
 	if deleted := r.Form.Get("deleted"); (deleted == "1" || deleted == "true") {
 		filter.ShowDeleted = true
+	}
+
+	if perfTags := r.Form.Get("performer_tags"); (perfTags == "1" || perfTags == "true") {
+		filter.LoadPerformerTags = true
 	}
 
 	//limit to events with only these tags
