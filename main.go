@@ -19,7 +19,7 @@ import (
 )
 
 // VERSION is used in packaging
-const VERSION = "0.10.0"
+const VERSION = "0.10.1"
 
 func main() {
 
