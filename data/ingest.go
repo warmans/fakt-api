@@ -202,7 +202,7 @@ func (i *Ingest) performerMustExist(tr *dbr.Tx, performer *store.Performer) erro
 }
 
 func (s *Ingest) Cleanup() {
-	res, err := s.DB.Exec(`UPDATE event SET deleted=1 WHERE date < $1 AND deleted=0`, time.Now().Add(9 * time.Hour).Format(store.DATE_FORMAT_SQL))
+	res, err := s.DB.Exec(`UPDATE event SET deleted=1 WHERE date(date) < date('now') AND deleted=0`)
 	if err != nil {
 		log.Printf("Cleaned failed: %s", err.Error())
 		return
