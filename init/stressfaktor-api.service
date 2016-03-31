@@ -1,0 +1,9 @@
+[Unit]
+Description=Stressfaktor API
+
+[Service]
+ExecStart=/usr/bin/stressfaktor-api -dbpath=/var/lib/stressfaktor-api/db.sqlite3
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

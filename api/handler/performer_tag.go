@@ -36,11 +36,20 @@ func (h *PerformerTagHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request,
 	}
 
 	payload := make([]string, 0)
-	json.NewDecoder(r.Body).Decode(&payload)
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		common.SendError(rw, common.HTTPError{"Invalid payload", http.StatusBadRequest, nil}, false)
+		return
+	}
 
 	//store any submitted tags
 	if r.Method == "POST" {
 		if err := h.ds.StorePerformerUTags(int64(performerID), user.ID, payload); err != nil {
+			common.SendError(rw, common.HTTPError{"Failed to save tags", http.StatusInternalServerError, err}, true)
+			return
+		}
+	}
+	if r.Method == "DELETE" {
+		if err := h.ds.RemovePerformerUTags(int64(performerID), user.ID, payload); err != nil {
 			common.SendError(rw, common.HTTPError{"Failed to save tags", http.StatusInternalServerError, err}, true)
 			return
 		}

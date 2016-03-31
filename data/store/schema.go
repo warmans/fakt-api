@@ -46,8 +46,8 @@ func InitializeSchema(sess *dbr.Session) error {
 		`CREATE TABLE IF NOT EXISTS performer_user_tag (
 			performer_id INTEGER,
 			user_id INTEGER,
-			tags TEXT,
-			PRIMARY KEY (performer_id, user_id)
+			tag TEXT,
+			PRIMARY KEY (performer_id, user_id, tag)
 		);`,
 		`CREATE TABLE IF NOT EXISTS event_performer (
 			event_id INTEGER,
@@ -57,8 +57,8 @@ func InitializeSchema(sess *dbr.Session) error {
 		`CREATE TABLE IF NOT EXISTS event_user_tag (
 			event_id INTEGER,
 			user_id INTEGER,
-			tags TEXT,
-			PRIMARY KEY (event_id, user_id)
+			tag TEXT,
+			PRIMARY KEY (event_id, user_id, tag)
 		);`,
 		`CREATE TABLE IF NOT EXISTS user (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,

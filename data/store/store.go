@@ -109,7 +109,7 @@ type EventFilter struct {
 	ShowDeleted       bool      `json:"show_deleted"`
 	Tag               string    `json:"tag"`
 	TagUser           string    `json:"tag_user"`
-	LoadPerformerTags bool            `json:"load_performer_tags"`
+	LoadPerformerTags bool      `json:"load_performer_tags"`
 }
 
 type Venue struct {
@@ -387,10 +387,11 @@ func (s *Store) FindEventTypes() ([]string, error) {
 }
 
 func (s *Store) FindEventUTags(eventID int64, filter *UTagsFilter) ([]UTags, error) {
-	q := s.DB.Select("user.username", "event_user_tag.tags").
+	q := s.DB.Select("user.username", "GROUP_CONCAT(event_user_tag.tag, ';')").
 	From("event_user_tag").
 	Where("event_id = ?", eventID).
-	LeftJoin("user", "event_user_tag.user_id = user.id")
+	LeftJoin("user", "event_user_tag.user_id = user.id").
+	GroupBy("event_user_tag.event_id", "event_user_tag.user_id")
 
 	if filter.Username != "" {
 		q.Where("user.username = ?", filter.Username)
@@ -399,10 +400,11 @@ func (s *Store) FindEventUTags(eventID int64, filter *UTagsFilter) ([]UTags, err
 }
 
 func (s *Store) FindPerformerUTags(performerID int64, filter *UTagsFilter) ([]UTags, error) {
-	q := s.DB.Select("user.username", "performer_user_tag.tags").
+	q := s.DB.Select("user.username", "GROUP_CONCAT(performer_user_tag.tag, ';')").
 	From("performer_user_tag").
 	Where("performer_id = ?", performerID).
-	LeftJoin("user", "performer_user_tag.user_id = user.id")
+	LeftJoin("user", "performer_user_tag.user_id = user.id").
+	GroupBy("performer_user_tag.performer_id", "performer_user_tag.user_id")
 
 	if filter.Username != "" {
 		q.Where("user.username = ?", filter.Username)
@@ -411,13 +413,43 @@ func (s *Store) FindPerformerUTags(performerID int64, filter *UTagsFilter) ([]UT
 }
 
 func (s *Store) StoreEventUTags(eventID int64, userID int64, tags []string) error {
-	_, err := s.DB.Exec("REPLACE INTO event_user_tag (event_id, user_id, tags) VALUES (?, ?, ?)", eventID, userID, strings.Join(tags, ";"))
-	return err
+	for _, tag := range tags {
+		_, err := s.DB.Exec("INSERT OR IGNORE INTO event_user_tag (event_id, user_id, tag) VALUES (?, ?, ?)", eventID, userID, tag)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Store) RemoveEventUTags(eventID int64, userID int64, tags []string) error {
+	for _, tag := range tags {
+		_, err := s.DB.Exec("DELETE FROM event_user_tag WHERE event_id=? AND user_id=? AND tag=?", eventID, userID, tag)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *Store) StorePerformerUTags(performerID int64, userID int64, tags []string) error {
-	_, err := s.DB.Exec("REPLACE INTO performer_user_tag (performer_id, user_id, tags) VALUES (?, ?, ?)", performerID, userID, strings.Join(tags, ";"))
-	return err
+	for _, tag := range tags {
+		_, err := s.DB.Exec("INSERT OR IGNORE INTO performer_user_tag (performer_id, user_id, tag) VALUES (?, ?, ?)", performerID, userID, tag)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Store) RemovePerformerUTags(performerID int64, userID int64, tags []string) error {
+	for _, tag := range tags {
+		_, err := s.DB.Exec("DELETE FROM performer_user_tag WHERE performer_id=? AND user_id=? AND tag=?", performerID, userID, tag)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *Store) findUTags(q *dbr.SelectBuilder) ([]UTags, error) {

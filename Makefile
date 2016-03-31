@@ -7,33 +7,28 @@ PACKAGE_DIR=dist
 
 .PHONY: test
 test:
-
 	@go test
 
 .PHONY: build
 build:
-
 	go get
 	go build
 
 .PHONY: install
 install: build
-
 	#install binary
 	GOBIN=${BINDIR} go install -v
 
 	#install init script
-	install -Dm 755 init.d/${PROJ} ${DESTDIR}/etc/init.d/${PROJ}
+	install -Dm 755 init/${PROJ}.service ${DESTDIR}/etc/systemd/system/${PROJ}.service
 
 	mkdir -p ${DESTDIR}/var/lib/${PROJ}
 
 .PHONY: package
 package:
-
 	#
 	# export PACKAGE_TYPE to vary package type (e.g. deb, tar, rpm)
 	#
-
 	@if [ -z "$(shell which fpm 2>/dev/null)" ]; then \
 		echo "error:\nPackaging requires effing package manager (fpm) to run.\nsee https://github.com/jordansissel/fpm\n"; \
 		exit 1; \
