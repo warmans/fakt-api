@@ -11,6 +11,7 @@ type User struct {
 	ID       int64  `json:"id",db:"id"`
 	Username string `json:"username",db:"username"`
 	Password string `json:"-",db:"password"`
+	Admin    bool   `json:"-",db:"admin"`
 }
 
 type UserStore struct {

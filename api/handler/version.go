@@ -14,7 +14,6 @@ type VersionHandler struct {
 }
 
 func (h *VersionHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
 	common.SendResponse(
 		rw,
 		&common.Response{

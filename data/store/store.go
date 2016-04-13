@@ -42,7 +42,7 @@ type Event struct {
 	Type        string       `json:"type"`
 	Description string       `json:"description"`
 	Performers  []*Performer `json:"performer,omitempty"`
-	UTags       []UTags     `json:"utag"`
+	UTags       []UTags      `json:"utag"`
 }
 
 func (e *Event) GuessPerformers() {
@@ -79,6 +79,13 @@ func (e *Event) GuessPerformers() {
 		}
 		e.Performers = append(e.Performers, perf)
 	}
+}
+
+func (e *Event) IsValid() bool {
+	if e.Date.IsZero() || e.Venue == nil {
+		return false
+	}
+	return true
 }
 
 func (e *Event) Accept(visitor EventVisitor) {
@@ -119,6 +126,13 @@ type Venue struct {
 	Events  []*Event `json:"event,omitempty"`
 }
 
+func (v *Venue) IsValid() bool {
+	if v.Name == "" {
+		return false
+	}
+	return true
+}
+
 type VenueFilter struct {
 	VenueIDs []int     `json:"venues"`
 	Name     string    `json:"name"`
@@ -135,6 +149,13 @@ type Performer struct {
 	Events    []*Event `json:"event,omitempty"`
 	Links     []*Link  `json:"link,omitempty"`
 	UTags     []UTags  `json:"utag,omitempty"`
+}
+
+func (p *Performer) IsValid() bool {
+	if p.Name == "" || p.Genre == "" {
+		return false
+	}
+	return true
 }
 
 type PerformerFilter struct {

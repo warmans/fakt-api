@@ -19,8 +19,6 @@ type PerformerHandler struct {
 }
 
 func (h *PerformerHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	defer r.Body.Close()
-	r.ParseForm()
 
 	//query to filter
 	filter := &store.PerformerFilter{PerformerID: make([]int, 0)}

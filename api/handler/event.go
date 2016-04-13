@@ -9,6 +9,7 @@ import (
 	"time"
 	"github.com/warmans/stressfaktor-api/data/store"
 	"golang.org/x/net/context"
+	"github.com/warmans/stressfaktor-api/data"
 )
 
 func NewEventHandler(ds *store.Store) common.CtxHandler {
@@ -16,24 +17,41 @@ func NewEventHandler(ds *store.Store) common.CtxHandler {
 }
 
 type EventHandler struct {
-	ds *store.Store
+	ds     *store.Store
+	ingest *data.Ingest
 }
 
 func (h *EventHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
+	switch {
+	case r.Method == "PUT":
+		h.handlePut(rw, r, ctx)
+	case r.Method == "GET":
+		h.handleGet(rw, r, ctx)
+	}
+}
 
-	defer r.Body.Close()
+func (h *EventHandler) handleGet(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
 	events, err := h.ds.FindEvents(h.filterFromRequest(r, ctx))
 	if err != nil {
 		log.Print(err.Error())
 		common.SendResponse(rw, &common.Response{Status: http.StatusInternalServerError, Payload: nil})
 		return
 	}
-
 	common.SendResponse(rw, &common.Response{Status: http.StatusOK, Payload: events})
 }
 
+func (h *EventHandler) handlePut(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
+	user := ctx.Value("user")
+	if user == nil || !user.(*store.User).Admin {
+		common.SendError(rw, common.HTTPError{"Access Denied", http.StatusForbidden, nil}, false)
+		return
+	}
+
+	event := &store.Event{}
+	h.ingest.Ingest(event)
+}
+
 func (h *EventHandler) filterFromRequest(r *http.Request, ctx context.Context) *store.EventFilter {
-	r.ParseForm()
 
 	filter := &store.EventFilter{
 		EventIDs: make([]int, 0),
@@ -85,7 +103,7 @@ func (h *EventHandler) filterFromRequest(r *http.Request, ctx context.Context) *
 	filter.Tag = r.Form.Get("tag")
 
 	//additionally only look for tags from a specific user
-	filter.TagUser =r.Form.Get("tag_user")
+	filter.TagUser = r.Form.Get("tag_user")
 
 	return filter
 }

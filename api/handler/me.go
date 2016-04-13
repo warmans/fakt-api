@@ -13,7 +13,6 @@ func NewMeHandler() common.CtxHandler {
 type MeHandler struct {}
 
 func (h *MeHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	defer r.Body.Close()
 
 	user := ctx.Value("user");
 	if user == nil {

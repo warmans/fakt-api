@@ -19,8 +19,6 @@ type VenueHandler struct {
 }
 
 func (h *VenueHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	defer r.Body.Close()
-	r.ParseForm()
 
 	//query to filter
 	filter := &store.VenueFilter{VenueIDs: make([]int, 0)}

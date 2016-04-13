@@ -64,6 +64,7 @@ func InitializeSchema(sess *dbr.Session) error {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			username TEXT,
 			password TEXT,
+			admin BOOLEAN DEFAULT 0,
 			CONSTRAINT username_uniq UNIQUE (username)
 		);`,
 	}

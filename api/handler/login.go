@@ -25,7 +25,6 @@ type LoginHandler struct {
 }
 
 func (h *LoginHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	defer r.Body.Close()
 
 	payload := &LoginPayload{}
 	json.NewDecoder(r.Body).Decode(payload)

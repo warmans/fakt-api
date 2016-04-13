@@ -30,8 +30,12 @@ func (i *Ingest) Run() {
 	}
 }
 
-//todo: update records as well as inserting new ones
 func (i *Ingest) Ingest(event *store.Event) error {
+
+	//sanity check incoming data
+	if !event.IsValid() || event.Venue == nil || !event.Venue.IsValid() {
+		return fmt.Errorf("Invalid event/venue was rejected at injest. Event was %+v venue was %+v", event, event.Venue)
+	}
 
 	//update DB
 	tx, err := i.DB.Begin()
@@ -60,17 +64,23 @@ func (i *Ingest) Ingest(event *store.Event) error {
 			}
 		}
 
-		//get/create the main event record
-		err = tr.QueryRow("SELECT id FROM event WHERE venue_id=? AND date=?", event.Venue.ID, event.Date.Format(store.DATE_FORMAT_SQL)).Scan(&event.ID)
-		if err != nil && err != sql.ErrNoRows {
-			return err
-		}
 		if event.ID == 0 {
-			//now insert the main record
+			// if no ID was supplied try and find one based on the venue and date. i.e. assume two events cannot occur at the
+			// same venue at the same time. Note that if either of these fields has been updated there will be no match
+			// and the row will be processed as though it is a new record.
+			err = tr.QueryRow("SELECT id FROM event WHERE venue_id=? AND date=?", event.Venue.ID, event.Date.Format(store.DATE_FORMAT_SQL)).Scan(&event.ID)
+			if err != nil && err != sql.ErrNoRows {
+				return err
+			}
+		}
+
+		//update/create the main event record
+		if event.ID == 0 {
+
 			res, err := tr.Exec(
-				"INSERT INTO event (venue_id, date, type, description) VALUES (?, ?, ?, ?)",
-				event.Venue.ID,
+				"INSERT INTO event (date, venue_id, type, description) VALUES (?, ?, ?, ?)",
 				event.Date.Format(store.DATE_FORMAT_SQL),
+				event.Venue.ID,
 				event.Type,
 				event.Description,
 			)
@@ -81,10 +91,15 @@ func (i *Ingest) Ingest(event *store.Event) error {
 			if err != nil {
 				return err
 			}
+
 		} else {
-			//always update the description
+
+			// note that we cannot update the venue or date. Doing so will create a new event since these fields act
+			// as a composite primary key.
 			_, err := tr.Exec(
 				"UPDATE event SET type=?, description=? WHERE id=?",
+				event.Date,
+				event.Venue.ID,
 				event.Type,
 				event.Description,
 				event.ID,
@@ -131,9 +146,10 @@ func (i *Ingest) Ingest(event *store.Event) error {
 }
 
 func (i *Ingest) venueMustExist(tr *dbr.Tx, venue *store.Venue) error {
+
 	//get the venue ID if it exists
 	if venue.ID == 0 {
-		err := tr.QueryRow("SELECT id FROM venue WHERE name=? AND address=?", venue.Name, venue.Address).Scan(&venue.ID)
+		err := tr.QueryRow("SELECT id FROM venue WHERE name=?", venue.Name, venue.Address).Scan(&venue.ID)
 		if err != nil && err != sql.ErrNoRows {
 			return err
 		}
@@ -152,20 +168,31 @@ func (i *Ingest) venueMustExist(tr *dbr.Tx, venue *store.Venue) error {
 		if err != nil {
 			return err
 		}
+	} else {
+		_, err := tr.Exec(
+			"UPDATE venue SET address=? WHERE id=?",
+			venue.Address,
+			venue.ID,
+		)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 func (i *Ingest) performerMustExist(tr *dbr.Tx, performer *store.Performer) error {
 
-	if performer.ID != 0 {
+	if !performer.IsValid(){
 		return nil
 	}
 
-	//get/create the performer
-	err := tr.QueryRow("SELECT id FROM performer WHERE name=? AND genre=?", performer.Name, performer.Genre).Scan(&performer.ID)
-	if err != nil && err != sql.ErrNoRows {
-		return err
+	if performer.ID == 0 {
+		//get/create the performer
+		err := tr.QueryRow("SELECT id FROM performer WHERE name=? AND genre=?", performer.Name, performer.Genre).Scan(&performer.ID)
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
 	}
 	if performer.ID == 0 {
 		res, err := tr.Exec(
@@ -184,20 +211,40 @@ func (i *Ingest) performerMustExist(tr *dbr.Tx, performer *store.Performer) erro
 		if err != nil {
 			return err
 		}
-		for _, link := range performer.Links {
-			_, err := tr.Exec(
-				"INSERT INTO performer_extra (performer_id, link, link_type, link_description) VALUES (?, ?, ?, ?)",
-				performer.ID,
-				link.URI,
-				link.Type,
-				link.Text,
-			)
-			if err != nil {
-				log.Print("Failed to insert performer_extra: %s", err.Error())
-				continue
-			}
+	} else {
+		_, err := tr.Exec(
+			"UPDATE performer SET info=?, home=?, img=?, listen_url=? WHERE id=?",
+			performer.Info,
+			performer.Home,
+			performer.Img,
+			performer.ListenURL,
+			performer.ID,
+		)
+		if err != nil {
+			return err
 		}
 	}
+
+	//clear existing relationships for extra data to allow links to be kept up-to-date
+	_, err := tr.Exec("DELETE FROM performer_extra WHERE performer_id=?", performer.ID)
+	if err != nil {
+		return err
+	}
+
+	for _, link := range performer.Links {
+		_, err := tr.Exec(
+			"INSERT INTO performer_extra (performer_id, link, link_type, link_description) VALUES (?, ?, ?, ?)",
+			performer.ID,
+			link.URI,
+			link.Type,
+			link.Text,
+		)
+		if err != nil {
+			log.Print("Failed to insert performer_extra: %s", err.Error())
+			continue
+		}
+	}
+
 	return nil
 }
 

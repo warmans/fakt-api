@@ -16,8 +16,6 @@ type LogoutHandler struct {
 }
 
 func (h *LogoutHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	defer r.Body.Close()
-	r.ParseForm()
 
 	//create their session
 	sess, err := h.sessions.Get(r, "login")

@@ -24,7 +24,6 @@ type RegisterHandler struct {
 }
 
 func (h *RegisterHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	defer r.Body.Close()
 
 	payload := &RegisterPayload{}
 	json.NewDecoder(r.Body).Decode(payload)

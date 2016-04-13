@@ -17,7 +17,6 @@ type EventTypeHandler struct {
 }
 
 func (h *EventTypeHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	defer r.Body.Close()
 	events, err := h.ds.FindEventTypes()
 	if err != nil {
 		log.Print(err.Error())

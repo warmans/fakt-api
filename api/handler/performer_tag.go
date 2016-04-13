@@ -20,8 +20,6 @@ type PerformerTagHandler struct{
 }
 
 func (h *PerformerTagHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	r.ParseForm()
-	defer r.Body.Close()
 
 	vars := mux.Vars(r)
 	performerID, err := strconv.Atoi(vars["id"])

@@ -32,7 +32,6 @@ func (e HTTPError) Error() string {
 	return fmt.Sprintf("%s (caused by: %s)", e.Msg, e.LastErr.Error())
 }
 
-
 func SendError(rw http.ResponseWriter, err error, writeToLog bool) {
 	if writeToLog {
 		log.Print(err.Error())

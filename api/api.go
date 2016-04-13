@@ -81,6 +81,5 @@ func (a *API) NewServeMux() http.Handler {
 		},
 	)
 
-	return handler
+	return mw.AddSetup(handler)
 }
-

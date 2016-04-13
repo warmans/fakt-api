@@ -45,7 +45,7 @@ func (c *Crawler) Crawl() []*store.Event {
 	doc.Find("body > table:nth-child(4) > tbody > tr > td:nth-child(2) > table").Each(func(i int, sel *goquery.Selection) {
 		events = append(events, c.HandleDateTable(i, sel)...)
 	})
-
+	log.Print("scraping completed OK...")
 	return events
 }
 
