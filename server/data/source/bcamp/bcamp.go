@@ -1,28 +1,30 @@
 package bcamp
+
 import (
 	"net/http"
 	"net/url"
-	"github.com/PuerkitoBio/goquery"
-	"strings"
-	"github.com/texttheater/golang-levenshtein/levenshtein"
-	"unicode"
 	"sort"
+	"strings"
+	"unicode"
+
+	"github.com/PuerkitoBio/goquery"
+	"github.com/texttheater/golang-levenshtein/levenshtein"
 )
 
 type Results []*Result
 
-func (a Results) Len() int { return len(a) }
-func (a Results) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a Results) Len() int           { return len(a) }
+func (a Results) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a Results) Less(i, j int) bool { return a[i].Score < a[j].Score }
 
 type Result struct {
-	Name       string
-	Location   string
-	URL        string
-	Genre      string
-	Tags       []string
-	Art        string
-	Score      int
+	Name     string
+	Location string
+	URL      string
+	Genre    string
+	Tags     []string
+	Art      string
+	Score    int
 }
 
 type ArtistPage struct {
@@ -40,7 +42,7 @@ type Bandcamp struct {
 }
 
 func (b *Bandcamp) Search(name string, location string) (Results, error) {
-	searchPage, err := b.HTTP.Get("https://bandcamp.com/search?q=" + url.QueryEscape(name + " " + location))
+	searchPage, err := b.HTTP.Get("https://bandcamp.com/search?q=" + url.QueryEscape(name+" "+location))
 	if err != nil {
 		return nil, err
 	}
@@ -110,5 +112,3 @@ func (b *Bandcamp) scoreResult(searchedName, searchedLocation string, result *Re
 	}
 	result.Score += levenshtein.DistanceForStrings([]rune(searchedName), []rune(result.Name), opts)
 }
-
-

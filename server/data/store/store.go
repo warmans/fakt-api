@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
 	"github.com/warmans/dbr"
 	"github.com/warmans/dbr/dialect"
 )
@@ -32,7 +33,7 @@ func (u *UTags) HasValue(value string) bool {
 }
 
 type UTagsFilter struct {
-	Username string        `json:"username"`
+	Username string `json:"username"`
 }
 
 type Event struct {
@@ -75,7 +76,7 @@ func (e *Event) GuessPerformers() {
 		perf := &Performer{
 			Name:  name,
 			Genre: genre,
-			Home: home,
+			Home:  home,
 		}
 		e.Performers = append(e.Performers, perf)
 	}
@@ -99,7 +100,7 @@ func (e *Event) HasTag(tag string, username string) bool {
 	for _, utag := range e.UTags {
 		if utag.HasValue(tag) {
 			if username != "" && utag.Username != username {
-				continue;
+				continue
 			}
 			return true
 		}
@@ -134,8 +135,8 @@ func (v *Venue) IsValid() bool {
 }
 
 type VenueFilter struct {
-	VenueIDs []int     `json:"venues"`
-	Name     string    `json:"name"`
+	VenueIDs []int  `json:"venues"`
+	Name     string `json:"name"`
 }
 
 type Performer struct {
@@ -159,10 +160,10 @@ func (p *Performer) IsValid() bool {
 }
 
 type PerformerFilter struct {
-	PerformerID []int `json:"performers"`
-	Name        string    `json:"name"`
-	Genre       string    `json:"name"`
-	Home        string    `json:"name"`
+	PerformerID []int  `json:"performers"`
+	Name        string `json:"name"`
+	Genre       string `json:"name"`
+	Home        string `json:"name"`
 }
 
 type Store struct {
@@ -272,12 +273,12 @@ func (s *Store) FindEvents(filter *EventFilter) ([]*Event, error) {
 		}
 
 		curPerformer := &Performer{
-			ID:    int64(pID),
-			Name:  pName,
-			Info: pInfo,
-			Genre: pGenre,
-			Home:  pHome,
-			Img: pImg,
+			ID:        int64(pID),
+			Name:      pName,
+			Info:      pInfo,
+			Genre:     pGenre,
+			Home:      pHome,
+			Img:       pImg,
 			ListenURL: pListen,
 		}
 		if curPerformer.ID != 0 {
@@ -305,8 +306,8 @@ func (s *Store) FindEvents(filter *EventFilter) ([]*Event, error) {
 func (s *Store) FindVenues(filter *VenueFilter) ([]*Venue, error) {
 
 	q := s.DB.Select("v.id", "v.name", "v.address").
-	From("venue v").
-	OrderBy("v.name")
+		From("venue v").
+		OrderBy("v.name")
 
 	if len(filter.VenueIDs) > 0 {
 		q.Where("v.id IN ?", filter.VenueIDs)
@@ -341,8 +342,8 @@ func (s *Store) FindVenues(filter *VenueFilter) ([]*Venue, error) {
 func (s *Store) FindPerformers(filter *PerformerFilter) ([]*Performer, error) {
 
 	q := s.DB.Select("id", "name", "info", "genre", "home", "img", "listen_url").
-	From("performer p").
-	OrderBy("p.name")
+		From("performer p").
+		OrderBy("p.name")
 
 	if len(filter.PerformerID) > 0 {
 		q.Where("p.id IN ?", filter.PerformerID)
@@ -381,9 +382,9 @@ func (s *Store) FindPerformers(filter *PerformerFilter) ([]*Performer, error) {
 
 func (s *Store) FindPerformerLinks(performerId int64) ([]*Link, error) {
 	q := s.DB.
-	Select("link", "link_type", "link_description").
-	From("performer_extra").
-	Where("performer_id = ?", performerId)
+		Select("link", "link_type", "link_description").
+		From("performer_extra").
+		Where("performer_id = ?", performerId)
 
 	links := make([]*Link, 0)
 	if _, err := q.Load(&links); err != nil && err != dbr.ErrNotFound {
@@ -394,11 +395,11 @@ func (s *Store) FindPerformerLinks(performerId int64) ([]*Link, error) {
 
 func (s *Store) FindEventTypes() ([]string, error) {
 	q := s.DB.
-	Select("event.type").
-	From("event").
-	Where("event.deleted = 0").
-	GroupBy("event.type").
-	OrderDir("SUM(1)", false)
+		Select("event.type").
+		From("event").
+		Where("event.deleted = 0").
+		GroupBy("event.type").
+		OrderDir("SUM(1)", false)
 
 	types := make([]string, 0)
 	if _, err := q.Load(&types); err != nil && err != dbr.ErrNotFound {
@@ -409,10 +410,10 @@ func (s *Store) FindEventTypes() ([]string, error) {
 
 func (s *Store) FindEventUTags(eventID int64, filter *UTagsFilter) ([]UTags, error) {
 	q := s.DB.Select("user.username", "GROUP_CONCAT(event_user_tag.tag, ';')").
-	From("event_user_tag").
-	Where("event_id = ?", eventID).
-	LeftJoin("user", "event_user_tag.user_id = user.id").
-	GroupBy("event_user_tag.event_id", "event_user_tag.user_id")
+		From("event_user_tag").
+		Where("event_id = ?", eventID).
+		LeftJoin("user", "event_user_tag.user_id = user.id").
+		GroupBy("event_user_tag.event_id", "event_user_tag.user_id")
 
 	if filter.Username != "" {
 		q.Where("user.username = ?", filter.Username)
@@ -422,10 +423,10 @@ func (s *Store) FindEventUTags(eventID int64, filter *UTagsFilter) ([]UTags, err
 
 func (s *Store) FindPerformerUTags(performerID int64, filter *UTagsFilter) ([]UTags, error) {
 	q := s.DB.Select("user.username", "GROUP_CONCAT(performer_user_tag.tag, ';')").
-	From("performer_user_tag").
-	Where("performer_id = ?", performerID).
-	LeftJoin("user", "performer_user_tag.user_id = user.id").
-	GroupBy("performer_user_tag.performer_id", "performer_user_tag.user_id")
+		From("performer_user_tag").
+		Where("performer_id = ?", performerID).
+		LeftJoin("user", "performer_user_tag.user_id = user.id").
+		GroupBy("performer_user_tag.performer_id", "performer_user_tag.user_id")
 
 	if filter.Username != "" {
 		q.Where("user.username = ?", filter.Username)

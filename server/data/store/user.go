@@ -2,9 +2,10 @@ package store
 
 import (
 	"database/sql"
-	"golang.org/x/crypto/bcrypt"
-	"github.com/warmans/dbr"
 	"time"
+
+	"github.com/warmans/dbr"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {

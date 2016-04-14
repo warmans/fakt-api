@@ -1,8 +1,9 @@
 package store
 
 import (
-	"github.com/warmans/stressfaktor-api/data/source/bcamp"
 	"log"
+
+	"github.com/warmans/stressfaktor-api/server/data/source/bcamp"
 )
 
 type EventVisitor interface {

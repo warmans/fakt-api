@@ -2,8 +2,9 @@ package handler
 
 import (
 	"net/http"
-	"github.com/warmans/stressfaktor-api/api/common"
+
 	"github.com/gorilla/sessions"
+	"github.com/warmans/stressfaktor-api/server/api/common"
 	"golang.org/x/net/context"
 )
 
@@ -21,13 +22,13 @@ func (h *LogoutHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx c
 	sess, err := h.sessions.Get(r, "login")
 	if err == nil {
 		delete(sess.Values, "login")
-		sess.Options.MaxAge = -1;
+		sess.Options.MaxAge = -1
 		sess.Save(r, rw)
 	}
 	common.SendResponse(
 		rw,
 		&common.Response{
-			Status: http.StatusOK,
+			Status:  http.StatusOK,
 			Payload: nil,
 		},
 	)

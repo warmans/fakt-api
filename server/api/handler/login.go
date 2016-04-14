@@ -1,31 +1,33 @@
 package handler
+
 import (
-	"net/http"
-	"github.com/warmans/stressfaktor-api/api/common"
-	"github.com/warmans/stressfaktor-api/data/store"
-	"github.com/gorilla/sessions"
-	"fmt"
-"golang.org/x/net/context"
 	"encoding/json"
+	"fmt"
+	"net/http"
+
+	"github.com/gorilla/sessions"
+	"github.com/warmans/stressfaktor-api/server/api/common"
+	"github.com/warmans/stressfaktor-api/server/data/store"
+	"golang.org/x/net/context"
 )
 
-func NewRegisterHandler(users *store.UserStore, sess sessions.Store) common.CtxHandler {
-	return &RegisterHandler{users: users, sessions: sess}
+func NewLoginHandler(users *store.UserStore, sess sessions.Store) common.CtxHandler {
+	return &LoginHandler{users: users, sessions: sess}
 }
 
-type RegisterPayload struct {
+type LoginPayload struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
-type RegisterHandler struct {
+type LoginHandler struct {
 	users    *store.UserStore
 	sessions sessions.Store
 }
 
-func (h *RegisterHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
+func (h *LoginHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
 
-	payload := &RegisterPayload{}
+	payload := &LoginPayload{}
 	json.NewDecoder(r.Body).Decode(payload)
 
 	if payload.Username == "" || payload.Password == "" {
@@ -33,13 +35,13 @@ func (h *RegisterHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx
 		return
 	}
 
-	user, err := h.users.Register(payload.Username, payload.Password)
+	user, err := h.users.Authenticate(payload.Username, payload.Password)
 	if err != nil {
-		common.SendError(rw, common.HTTPError{"Registration failed due to an internal error", http.StatusInternalServerError, err}, true)
+		common.SendError(rw, common.HTTPError{"Authentication failed due to an internal error", http.StatusInternalServerError, err}, true)
 		return
 	}
 	if user == nil {
-		common.SendError(rw, common.HTTPError{"Unknown error", http.StatusInternalServerError, nil}, false)
+		common.SendError(rw, common.HTTPError{"Unknown user", http.StatusOK, err}, false)
 		return
 	}
 
@@ -55,16 +57,14 @@ func (h *RegisterHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx
 		common.SendError(rw, common.HTTPError{"Failed to create session", http.StatusInternalServerError, err}, true)
 		return
 	}
-
-	sess.Values["user"] = user.ID
+	sess.Values["userId"] = user.ID
 	sess.Save(r, rw)
 
 	common.SendResponse(
 		rw,
 		&common.Response{
-			Status: http.StatusOK,
+			Status:  http.StatusOK,
 			Payload: user,
-			Message: "Registration Successful",
 		},
 	)
 }

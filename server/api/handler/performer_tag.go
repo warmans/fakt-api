@@ -1,21 +1,22 @@
 package handler
 
 import (
-	"github.com/warmans/stressfaktor-api/api/common"
-	"net/http"
-	"golang.org/x/net/context"
-	"github.com/gorilla/mux"
-	"github.com/warmans/stressfaktor-api/data/store"
 	"database/sql"
-	"strconv"
 	"encoding/json"
+	"net/http"
+	"strconv"
+
+	"github.com/gorilla/mux"
+	"github.com/warmans/stressfaktor-api/server/api/common"
+	"github.com/warmans/stressfaktor-api/server/data/store"
+	"golang.org/x/net/context"
 )
 
 func NewPerformerTagHandler(ds *store.Store) common.CtxHandler {
 	return &PerformerTagHandler{ds: ds}
 }
 
-type PerformerTagHandler struct{
+type PerformerTagHandler struct {
 	ds *store.Store
 }
 
@@ -27,7 +28,7 @@ func (h *PerformerTagHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request,
 		common.SendError(rw, common.HTTPError{"Invalid performerID", http.StatusBadRequest, err}, false)
 	}
 
-	user := ctx.Value("user").(*store.User);
+	user := ctx.Value("user").(*store.User)
 	if user == nil {
 		common.SendError(rw, common.HTTPError{"Not logged in", http.StatusForbidden, nil}, false)
 		return
@@ -63,7 +64,7 @@ func (h *PerformerTagHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request,
 	common.SendResponse(
 		rw,
 		&common.Response{
-			Status: http.StatusOK,
+			Status:  http.StatusOK,
 			Payload: tags,
 		},
 	)

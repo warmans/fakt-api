@@ -1,11 +1,13 @@
 package middleware
+
 import (
-	"github.com/gorilla/sessions"
-	"github.com/warmans/stressfaktor-api/data/store"
-	"net/http"
-	"golang.org/x/net/context"
 	"log"
-	"github.com/warmans/stressfaktor-api/api/common"
+	"net/http"
+
+	"github.com/gorilla/sessions"
+	"github.com/warmans/stressfaktor-api/server/api/common"
+	"github.com/warmans/stressfaktor-api/server/data/store"
+	"golang.org/x/net/context"
 )
 
 func AddCtx(nextHandler common.CtxHandler, sess sessions.Store, users *store.UserStore, restrict bool) http.Handler {

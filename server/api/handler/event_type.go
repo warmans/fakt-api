@@ -1,10 +1,11 @@
 package handler
 
 import (
-	"net/http"
 	"log"
-	"github.com/warmans/stressfaktor-api/api/common"
-	"github.com/warmans/stressfaktor-api/data/store"
+	"net/http"
+
+	"github.com/warmans/stressfaktor-api/server/api/common"
+	"github.com/warmans/stressfaktor-api/server/data/store"
 	"golang.org/x/net/context"
 )
 

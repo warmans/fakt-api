@@ -1,21 +1,22 @@
 package data
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
-	"time"
 	"log"
-	"github.com/warmans/stressfaktor-api/data/source/sfaktor"
+	"time"
+
 	"github.com/warmans/dbr"
-	"database/sql"
-	"github.com/warmans/stressfaktor-api/data/store"
+	"github.com/warmans/stressfaktor-api/server/data/source/sfaktor"
+	"github.com/warmans/stressfaktor-api/server/data/store"
 )
 
 type Ingest struct {
 	DB              *dbr.Session
 	UpdateFrequency time.Duration
 	Stressfaktor    *sfaktor.Crawler
-	EventVisitors  []store.EventVisitor
+	EventVisitors   []store.EventVisitor
 }
 
 func (i *Ingest) Run() {
@@ -183,7 +184,7 @@ func (i *Ingest) venueMustExist(tr *dbr.Tx, venue *store.Venue) error {
 
 func (i *Ingest) performerMustExist(tr *dbr.Tx, performer *store.Performer) error {
 
-	if !performer.IsValid(){
+	if !performer.IsValid() {
 		return nil
 	}
 

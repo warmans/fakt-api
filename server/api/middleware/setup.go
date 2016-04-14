@@ -1,9 +1,10 @@
 package middleware
 
 import (
-	"net/http"
-	"github.com/warmans/stressfaktor-api/api/common"
 	"log"
+	"net/http"
+
+	"github.com/warmans/stressfaktor-api/server/api/common"
 )
 
 func AddSetup(nextHandler http.Handler) http.Handler {

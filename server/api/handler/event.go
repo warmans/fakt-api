@@ -1,15 +1,16 @@
 package handler
 
 import (
-	"net/http"
 	"log"
-	"github.com/warmans/stressfaktor-api/api/common"
-	"strings"
+	"net/http"
 	"strconv"
+	"strings"
 	"time"
-	"github.com/warmans/stressfaktor-api/data/store"
+
+	"github.com/warmans/stressfaktor-api/server/api/common"
+	"github.com/warmans/stressfaktor-api/server/data"
+	"github.com/warmans/stressfaktor-api/server/data/store"
 	"golang.org/x/net/context"
-	"github.com/warmans/stressfaktor-api/data"
 )
 
 func NewEventHandler(ds *store.Store) common.CtxHandler {
@@ -54,10 +55,10 @@ func (h *EventHandler) handlePut(rw http.ResponseWriter, r *http.Request, ctx co
 func (h *EventHandler) filterFromRequest(r *http.Request, ctx context.Context) *store.EventFilter {
 
 	filter := &store.EventFilter{
-		EventIDs: make([]int, 0),
-		VenueIDs: make([]int64, 0),
-		Types: make([]string, 0),
-		ShowDeleted: false,
+		EventIDs:          make([]int, 0),
+		VenueIDs:          make([]int64, 0),
+		Types:             make([]string, 0),
+		ShowDeleted:       false,
 		LoadPerformerTags: false,
 	}
 
@@ -91,11 +92,11 @@ func (h *EventHandler) filterFromRequest(r *http.Request, ctx context.Context) *
 		}
 	}
 
-	if deleted := r.Form.Get("deleted"); (deleted == "1" || deleted == "true") {
+	if deleted := r.Form.Get("deleted"); deleted == "1" || deleted == "true" {
 		filter.ShowDeleted = true
 	}
 
-	if perfTags := r.Form.Get("performer_tags"); (perfTags == "1" || perfTags == "true") {
+	if perfTags := r.Form.Get("performer_tags"); perfTags == "1" || perfTags == "true" {
 		filter.LoadPerformerTags = true
 	}
 

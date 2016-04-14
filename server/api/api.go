@@ -2,12 +2,13 @@ package api
 
 import (
 	"net/http"
-	"github.com/warmans/stressfaktor-api/api/handler"
-	"github.com/warmans/stressfaktor-api/data/store"
+
 	"github.com/gorilla/context"
-	"github.com/gorilla/sessions"
 	"github.com/gorilla/mux"
-	mw "github.com/warmans/stressfaktor-api/api/middleware"
+	"github.com/gorilla/sessions"
+	"github.com/warmans/stressfaktor-api/server/api/handler"
+	mw "github.com/warmans/stressfaktor-api/server/api/middleware"
+	"github.com/warmans/stressfaktor-api/server/data/store"
 )
 
 type API struct {
@@ -74,10 +75,10 @@ func (a *API) NewServeMux() http.Handler {
 	handler = mw.AddCommonHeaders(
 		handler,
 		map[string]string{
-			"Access-Control-Allow-Origin": "*",
+			"Access-Control-Allow-Origin":      "*",
 			"Access-Control-Allow-Credentials": "true",
-			"Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-			"Access-Control-Allow-Headers": "Content-Type, *",
+			"Access-Control-Allow-Methods":     "GET, POST, OPTIONS",
+			"Access-Control-Allow-Headers":     "Content-Type, *",
 		},
 	)
 

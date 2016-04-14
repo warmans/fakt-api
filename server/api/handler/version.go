@@ -2,7 +2,8 @@ package handler
 
 import (
 	"net/http"
-	"github.com/warmans/stressfaktor-api/api/common"
+
+	"github.com/warmans/stressfaktor-api/server/api/common"
 )
 
 func NewVersionHandler(version string) http.Handler {
@@ -17,7 +18,7 @@ func (h *VersionHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	common.SendResponse(
 		rw,
 		&common.Response{
-			Status: http.StatusOK,
+			Status:  http.StatusOK,
 			Payload: map[string]string{"version": h.version},
 		},
 	)

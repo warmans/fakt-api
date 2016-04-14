@@ -1,13 +1,14 @@
 package handler
 
 import (
-	"net/http"
-	"github.com/warmans/stressfaktor-api/api/common"
 	"log"
-	"strings"
+	"net/http"
 	"strconv"
-	"github.com/warmans/stressfaktor-api/data/store"
-"golang.org/x/net/context"
+	"strings"
+
+	"github.com/warmans/stressfaktor-api/server/api/common"
+	"github.com/warmans/stressfaktor-api/server/data/store"
+	"golang.org/x/net/context"
 )
 
 func NewPerformerHandler(ds *store.Store) common.CtxHandler {
