@@ -1,0 +1,20 @@
+package: github.com/warmans/stressfaktor-api
+import:
+- package: github.com/PuerkitoBio/goquery
+- package: github.com/djimenez/iconv-go
+- package: github.com/gorilla/context
+- package: github.com/gorilla/mux
+- package: github.com/gorilla/sessions
+- package: github.com/mattn/go-sqlite3
+- package: github.com/texttheater/golang-levenshtein
+  subpackages:
+  - levenshtein
+- package: github.com/warmans/dbr
+  subpackages:
+  - dialect
+- package: golang.org/x/crypto
+  subpackages:
+  - bcrypt
+- package: golang.org/x/net
+  subpackages:
+  - context

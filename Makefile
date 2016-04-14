@@ -12,7 +12,7 @@ test:
 .PHONY: build
 build:
 	go get
-	go build
+	GO15VENDOREXPERIMENT=1 go build
 
 .PHONY: install
 install: build
