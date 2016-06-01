@@ -6,3 +6,4 @@
 /vendor
 private.mk
 .packaging
+.dist
