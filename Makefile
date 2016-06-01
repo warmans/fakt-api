@@ -1,9 +1,9 @@
-PREFIX=/usr
-BINDIR=${DESTDIR}${PREFIX}/bin
-PROJ=stressfaktor-api
-PACKAGE_TYPE=deb
-PACKAGE_BUILD_DIR=temp
-PACKAGE_DIR=dist
+PROJECT_NAME=stressfaktor-api
+PROJECT_PACKAGING_DIR=
+PROJECT_VERSION=0.10.1
+
+# Go
+#-----------------------------------------------------------------------
 
 .PHONY: test
 test:
@@ -12,39 +12,50 @@ test:
 .PHONY: build
 build:
 	go get
-	GO15VENDOREXPERIMENT=1 go build
+	GO15VENDOREXPERIMENT=1 go build -ldflags "-X github.com/warmans/stressfaktor-api/server.Version=$(PROJECT_VERSION)"
 
-.PHONY: install
-install: build
-	#install binary
-	GOBIN=${BINDIR} go install -v
+# Github Releases
+#-----------------------------------------------------------------------
 
-	#install init script
-	install -Dm 755 init/${PROJ}.service ${DESTDIR}/etc/systemd/system/${PROJ}.service
+#this contains a github api token and is not included in the repo
+include .make/private.mk
 
-	mkdir -p ${DESTDIR}/var/lib/${PROJ}
+GH_REPO_OWNER = warmans
+GH_REPO_NAME = stressfaktor-api
 
-.PHONY: package
-package:
-	#
-	# export PACKAGE_TYPE to vary package type (e.g. deb, tar, rpm)
-	#
-	@if [ -z "$(shell which fpm 2>/dev/null)" ]; then \
-		echo "error:\nPackaging requires effing package manager (fpm) to run.\nsee https://github.com/jordansissel/fpm\n"; \
-		exit 1; \
-	fi
+RELEASE_TARGET_COMMITISH = master
+RELEASE_ARTIFACT_DIR = dist
+RELEASE_ARTIFACT_REGEX = .*\.deb
+RELEASE_VERSION=$(PROJECT_VERSION)
 
-	#run make install against the packaging dir
-	mkdir -p ${PACKAGE_BUILD_DIR} && $(MAKE) install DESTDIR=${PACKAGE_BUILD_DIR}
+include .make/github.mk
 
-	#clean
-	mkdir -p ${PACKAGE_DIR} && rm -f dist/*.${PACKAGE_TYPE}
+# Packaging
+#-----------------------------------------------------------------------
 
-	#build package
-	fpm --rpm-os linux \
-		-s dir \
-		-p dist \
-		-t ${PACKAGE_TYPE} \
-		-n ${PROJ} \
-		-v `${PACKAGE_BUILD_DIR}${PREFIX}/bin/${PROJ} -v` \
-		-C ${PACKAGE_BUILD_DIR} .
+PACKAGE_NAME := $(PROJECT_NAME)
+PACKAGE_CONTENT_DIR := .packaging
+PACKAGE_TYPE := deb
+PACKAGE_OUTPUT_DIR := dist
+PACKAGE_VERSION := $(PROJECT_VERSION)
+
+include .make/packaging.mk
+
+.PHONY: _configure_package
+_configure_package: build
+	echo "moving files into package staging area ($(PACKAGE_CONTENT_DIR))..."
+
+	#copy binary
+	@mkdir -p $(PACKAGE_CONTENT_DIR)/usr/bin/ && cp $(PROJECT_NAME) $(PACKAGE_CONTENT_DIR)/usr/bin/.
+
+	#install config
+	@install -Dm 755 init/$(PROJECT_NAME).service $(PACKAGE_CONTENT_DIR)/etc/systemd/system/$(PROJECT_NAME).service
+
+	#setup dirs
+	@mkdir -p $(PACKAGE_CONTENT_DIR)/var/lib/$(PROJECT_NAME)
+
+# Meta
+#-----------------------------------------------------------------------
+
+.PHONY: publish
+publish: build package release

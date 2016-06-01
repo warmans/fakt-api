@@ -27,7 +27,7 @@ func main() {
 	flag.Parse()
 
 	if *ver {
-		fmt.Printf("%s", server.VERSION)
+		fmt.Printf("%s", server.Version)
 		os.Exit(0)
 	}
 

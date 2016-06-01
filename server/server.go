@@ -16,8 +16,7 @@ import (
 )
 
 // VERSION is used in packaging
-const VERSION = "0.10.1"
-
+var Version string
 
 type Config struct {
 	ServerBind     string
@@ -71,7 +70,7 @@ func (s *Server) Start() error {
 	}
 
 	API := api.API{
-		AppVersion:   VERSION,
+		AppVersion:   Version,
 		DataStore:    dataStore,
 		UserStore:    userStore,
 		SessionStore: sessions.NewCookieStore([]byte(s.conf.EncryptionKey)),

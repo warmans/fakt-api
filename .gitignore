@@ -4,3 +4,5 @@
 /stressfaktor-api
 /temp
 /vendor
+private.mk
+.packaging
