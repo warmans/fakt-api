@@ -13,6 +13,10 @@ build:
 	go get
 	GO15VENDOREXPERIMENT=1 go build -ldflags "-X github.com/warmans/stressfaktor-api/server.Version=$(PROJECT_VERSION)"
 
+.PHONY: docker
+docker: 
+	docker build -t warmans/stressfaktor-api:$(PROJECT_VERSION) .
+
 # Github Releases
 #-----------------------------------------------------------------------
 
