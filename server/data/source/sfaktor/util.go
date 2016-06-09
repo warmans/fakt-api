@@ -15,7 +15,7 @@ func init() {
 	var err error
 	localTime, err = time.LoadLocation("Europe/Berlin")
 	if err != nil {
-		log.Fatal("Cannot load localtime")
+		log.Printf("Cannot load localtime (%s). Event times may be wrong.", err.Error())
 	}
 }
 

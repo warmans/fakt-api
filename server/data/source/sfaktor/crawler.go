@@ -23,26 +23,31 @@ type Crawler struct {
 }
 
 func (c *Crawler) Crawl() []*store.Event {
+
 	log.Print("re-scraping...")
+	events := make([]*store.Event, 0)
+
 	res, err := http.Get(c.TermineURI)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("SF crawler fetch failed: %s", err.Error())
+		return events
 	}
 	defer res.Body.Close()
 
 	//must convert to utf-8 or the special chars will be broken
 	utfBody, err := iconv.NewReader(res.Body, "ISO-8859-1", "utf-8")
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("SF crawler failed to convert character set: %s", err.Error())
+		return events
 	}
 
 	doc, err := goquery.NewDocumentFromReader(utfBody)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("SF crawler failed to parse result: %s", err.Error())
+		return events
 	}
 
 	//select the main data column and handle all the sub-tables
-	events := make([]*store.Event, 0)
 	doc.Find("body > table:nth-child(4) > tbody > tr > td:nth-child(2) > table").Each(func(i int, sel *goquery.Selection) {
 		events = append(events, c.HandleDateTable(i, sel)...)
 	})
