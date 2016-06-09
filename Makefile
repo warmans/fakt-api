@@ -1,5 +1,5 @@
 PROJECT_NAME=stressfaktor-api
-PROJECT_VERSION=0.10.1
+PROJECT_VERSION=0.10.2
 
 # Go
 #-----------------------------------------------------------------------
@@ -20,11 +20,10 @@ build:
 include .make/private.mk
 
 GH_REPO_OWNER = warmans
-GH_REPO_NAME = stressfaktor-api
+GH_REPO_NAME = $(PROJECT_NAME)
 
 RELEASE_TARGET_COMMITISH = master
 RELEASE_ARTIFACT_DIR = .dist
-RELEASE_ARTIFACT_REGEX = .*\.deb
 RELEASE_VERSION=$(PROJECT_VERSION)
 
 include .make/github.mk

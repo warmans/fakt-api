@@ -5,11 +5,12 @@ PACKAGE_VERSION ?= $(RELEASE_VERSION)
 # Location to stage the package contents before creating the archive. (OPTIONAL)
 PACKAGE_CONTENT_DIR ?= .packaging
 
-# Where to put the artifact (deb or whatever) (OPTIONAL)
+# Where to put the artifact (REQUIRED)
+# BEWARE: This dir is cleaned each time package is run
 PACKAGE_OUTPUT_DIR ?= .dist
 
-# Type of package to build. This is passed directly to fpm.
-PACKAGE_TYPE ?= deb (OPTIONAL)
+# Type of package to build. This is passed directly to fpm (OPTIONAL)
+PACKAGE_TYPE ?= deb
 
 # The package name (REQUIRED)
 PACKAGE_NAME ?=
@@ -22,7 +23,7 @@ package: _configure_package
 		exit 1; \
 	fi
 
-	mkdir -p $(PACKAGE_OUTPUT_DIR)
+	mkdir -p $(PACKAGE_OUTPUT_DIR) && rm -rf $(PACKAGE_OUTPUT_DIR)/*
 
 	#build package
 	fpm --rpm-os linux \

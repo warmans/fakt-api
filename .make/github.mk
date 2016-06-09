@@ -51,7 +51,7 @@ _release:
 _artifacts:
 	@if [ ! -z $(RELEASE_ARTIFACT_DIR) ]; then \
 		if [ ! -f $(_RELEASE_INFO) ]; then echo "missing release info. Unable to publish artifacts without a release ID"; exit 1; fi; \
-		echo "uploading artifacts..."; \
+		echo "uploading artifacts... (matching $(RELEASE_ARTIFACT_REGEX))"; \
 		for ARTIFACT in `find  $(RELEASE_ARTIFACT_DIR) -maxdepth 1 -regex $(RELEASE_ARTIFACT_REGEX) -type f -printf '%p\n'`; \
 			do echo `basename $${ARTIFACT}`; \
 			curl -H "Authorization: token $(GH_API_TOKEN)" -H "Content-Type: `file --mime-type $${ARTIFACT}`" \
