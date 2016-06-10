@@ -10,7 +10,7 @@ test:
 
 .PHONY: build
 build:
-	go get
+	glide install
 	GO15VENDOREXPERIMENT=1 go build -ldflags "-X github.com/warmans/stressfaktor-api/server.Version=$(PROJECT_VERSION)"
 
 .PHONY: docker
