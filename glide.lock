@@ -1,5 +1,5 @@
 hash: 4b827b6d405126ff39a61f68523673a9c0c15dd8177d62e892cb61fd50fef83c
-updated: 2016-04-14T19:10:48.869120387+02:00
+updated: 2016-06-22T21:10:32.131665766+02:00
 imports:
 - name: github.com/andybalholm/cascadia
   version: 3ad29d1ad1c4f2023e355603324348cf1f4b2d48
@@ -25,6 +25,10 @@ imports:
   version: 3c1c54f637871b1b2513b2737d80d79ba7d40376
   subpackages:
   - dialect
+- name: github.com/warmans/go-bandcamp-search
+  version: bf1aefe60d892be9d9caf5098f0fc4260dade9d3
+  subpackages:
+  - bcamp
 - name: golang.org/x/crypto
   version: 1777f3ba8c1fed80fcaec3317e3aaa4f627764d2
   subpackages:

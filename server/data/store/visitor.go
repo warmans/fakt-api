@@ -3,7 +3,7 @@ package store
 import (
 	"log"
 
-	"github.com/warmans/stressfaktor-api/server/data/source/bcamp"
+	"github.com/warmans/go-bandcamp-search/bcamp"
 )
 
 type EventVisitor interface {
@@ -23,30 +23,32 @@ func (v *BandcampVisitor) Visit(e *Event) {
 			continue //don't re-fetch data for existing performer or performer with existing listen URL
 		}
 		//update listen URLs with bandcamp
-		results, err := v.Bandcamp.Search(performer.Name, performer.Home)
+		results, err := v.Bandcamp.Search(performer.Name, performer.Home, 1)
 		if err != nil {
 			log.Print("Failed to query bandcamp: %s", err.Error())
+			return
 		}
-		if err == nil && len(results) > 0 {
-			if results[0].Score <= 1 {
+		if len(results) > 0 {
+			//todo: IMPORTANT mirror images locally rather than hotlinking
+			e.Performers[k].ListenURL = results[0].URL
+			e.Performers[k].Img = results[0].Art
 
-				//todo: IMPORTANT mirror images locally rather than hotlinking
-				e.Performers[k].ListenURL = results[0].URL
-				e.Performers[k].Img = results[0].Art
-
-				//get some more data
-				artistInfo := v.Bandcamp.GetArtistPageInfo(results[0].URL)
-				e.Performers[k].Info = artistInfo.Bio
-				for _, link := range artistInfo.Links {
-					if e.Performers[k].Links == nil {
-						e.Performers[k].Links = make([]*Link, 0)
-					}
-					e.Performers[k].Links = append(e.Performers[k].Links, &Link{URI: link.URI, Text: link.Text})
+			//get some more data
+			artistInfo, err := v.Bandcamp.GetArtistPageInfo(results[0].URL)
+			if err != nil {
+				log.Print("Failed to get artist info: %s", err.Error())
+				//don't return - use blank info
+			}
+			e.Performers[k].Info = artistInfo.Bio
+			for _, link := range artistInfo.Links {
+				if e.Performers[k].Links == nil {
+					e.Performers[k].Links = make([]*Link, 0)
 				}
-				if v.VerboseLogging {
-					log.Printf("Search Result: %+v", results[0])
-					log.Printf("Arist Info: %+v", artistInfo)
-				}
+				e.Performers[k].Links = append(e.Performers[k].Links, &Link{URI: link.URI, Text: link.Text})
+			}
+			if v.VerboseLogging {
+				log.Printf("Search Result: %+v", results[0])
+				log.Printf("Arist Info: %+v", artistInfo)
 			}
 		}
 	}

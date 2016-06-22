@@ -5,14 +5,15 @@ import (
 	"net/http"
 	"time"
 
+	"fmt"
+
 	"github.com/gorilla/sessions"
 	"github.com/warmans/dbr"
+	"github.com/warmans/go-bandcamp-search/bcamp"
 	"github.com/warmans/stressfaktor-api/server/api"
 	"github.com/warmans/stressfaktor-api/server/data"
-	"github.com/warmans/stressfaktor-api/server/data/source/bcamp"
 	"github.com/warmans/stressfaktor-api/server/data/source/sfaktor"
 	"github.com/warmans/stressfaktor-api/server/data/store"
-	"fmt"
 )
 
 // VERSION is used in packaging
