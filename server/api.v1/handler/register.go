@@ -6,12 +6,13 @@ import (
 	"net/http"
 
 	"github.com/gorilla/sessions"
-	"github.com/warmans/stressfaktor-api/server/api/common"
+	"github.com/warmans/ctxhandler"
+	"github.com/warmans/stressfaktor-api/server/api.v1/common"
 	"github.com/warmans/stressfaktor-api/server/data/store"
 	"golang.org/x/net/context"
 )
 
-func NewRegisterHandler(users *store.UserStore, sess sessions.Store) common.CtxHandler {
+func NewRegisterHandler(users *store.UserStore, sess sessions.Store) ctxhandler.CtxHandler {
 	return &RegisterHandler{users: users, sessions: sess}
 }
 

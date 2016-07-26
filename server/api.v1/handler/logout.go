@@ -4,11 +4,12 @@ import (
 	"net/http"
 
 	"github.com/gorilla/sessions"
-	"github.com/warmans/stressfaktor-api/server/api/common"
+	"github.com/warmans/ctxhandler"
+	"github.com/warmans/stressfaktor-api/server/api.v1/common"
 	"golang.org/x/net/context"
 )
 
-func NewLogoutHandler(sess sessions.Store) common.CtxHandler {
+func NewLogoutHandler(sess sessions.Store) ctxhandler.CtxHandler {
 	return &LogoutHandler{sessions: sess}
 }
 

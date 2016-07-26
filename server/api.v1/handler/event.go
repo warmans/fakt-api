@@ -7,31 +7,24 @@ import (
 	"strings"
 	"time"
 
-	"github.com/warmans/stressfaktor-api/server/api/common"
+	"github.com/warmans/resty"
+	"github.com/warmans/stressfaktor-api/server/api.v1/common"
 	"github.com/warmans/stressfaktor-api/server/data"
 	"github.com/warmans/stressfaktor-api/server/data/store"
 	"golang.org/x/net/context"
 )
 
-func NewEventHandler(ds *store.Store) common.CtxHandler {
+func NewEventHandler(ds *store.Store) resty.RESTHandler {
 	return &EventHandler{ds: ds}
 }
 
 type EventHandler struct {
+	resty.DefaultRESTHandler
 	ds     *store.Store
 	ingest *data.Ingest
 }
 
-func (h *EventHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	switch {
-	case r.Method == "PUT":
-		h.handlePut(rw, r, ctx)
-	case r.Method == "GET":
-		h.handleGet(rw, r, ctx)
-	}
-}
-
-func (h *EventHandler) handleGet(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
+func (h *EventHandler) HandleGet(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
 	events, err := h.ds.FindEvents(h.filterFromRequest(r, ctx))
 	if err != nil {
 		log.Print(err.Error())
@@ -39,17 +32,6 @@ func (h *EventHandler) handleGet(rw http.ResponseWriter, r *http.Request, ctx co
 		return
 	}
 	common.SendResponse(rw, &common.Response{Status: http.StatusOK, Payload: events})
-}
-
-func (h *EventHandler) handlePut(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	user := ctx.Value("user")
-	if user == nil || !user.(*store.User).Admin {
-		common.SendError(rw, common.HTTPError{"Access Denied", http.StatusForbidden, nil}, false)
-		return
-	}
-
-	event := &store.Event{}
-	h.ingest.Ingest(event)
 }
 
 func (h *EventHandler) filterFromRequest(r *http.Request, ctx context.Context) *store.EventFilter {

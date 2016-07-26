@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/warmans/stressfaktor-api/server/api/common"
+	"github.com/warmans/stressfaktor-api/server/api.v1/common"
 )
 
 func AddSetup(nextHandler http.Handler) http.Handler {

@@ -7,12 +7,13 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"github.com/warmans/stressfaktor-api/server/api/common"
+	"github.com/warmans/ctxhandler"
+	"github.com/warmans/stressfaktor-api/server/api.v1/common"
 	"github.com/warmans/stressfaktor-api/server/data/store"
 	"golang.org/x/net/context"
 )
 
-func NewEventTagHandler(ds *store.Store) common.CtxHandler {
+func NewEventTagHandler(ds *store.Store) ctxhandler.CtxHandler {
 	return &EventTagHandler{ds: ds}
 }
 

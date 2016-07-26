@@ -1,5 +1,5 @@
-hash: 4b827b6d405126ff39a61f68523673a9c0c15dd8177d62e892cb61fd50fef83c
-updated: 2016-06-22T21:10:32.131665766+02:00
+hash: f49b74894e5a09d0e34cb71df1821a8f9ff97195ba3934527340f110f4fc3840
+updated: 2016-07-26T20:19:40.164098903+02:00
 imports:
 - name: github.com/andybalholm/cascadia
   version: 3ad29d1ad1c4f2023e355603324348cf1f4b2d48
@@ -21,6 +21,8 @@ imports:
   version: 14026fface0cb806188c85e792a93d625dc37d0f
   subpackages:
   - levenshtein
+- name: github.com/warmans/ctxhandler
+  version: d3d30f2ff86c9c41130b74ef5690e2c50ac83028
 - name: github.com/warmans/dbr
   version: 3c1c54f637871b1b2513b2737d80d79ba7d40376
   subpackages:
@@ -29,6 +31,8 @@ imports:
   version: bf1aefe60d892be9d9caf5098f0fc4260dade9d3
   subpackages:
   - bcamp
+- name: github.com/warmans/resty
+  version: c8f477f16b0985bb7571e6f7209605040c2b7611
 - name: golang.org/x/crypto
   version: 1777f3ba8c1fed80fcaec3317e3aaa4f627764d2
   subpackages:

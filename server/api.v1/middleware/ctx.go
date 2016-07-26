@@ -5,17 +5,18 @@ import (
 	"net/http"
 
 	"github.com/gorilla/sessions"
-	"github.com/warmans/stressfaktor-api/server/api/common"
+	"github.com/warmans/ctxhandler"
+	"github.com/warmans/stressfaktor-api/server/api.v1/common"
 	"github.com/warmans/stressfaktor-api/server/data/store"
 	"golang.org/x/net/context"
 )
 
-func AddCtx(nextHandler common.CtxHandler, sess sessions.Store, users *store.UserStore, restrict bool) http.Handler {
+func AddCtx(nextHandler ctxhandler.CtxHandler, sess sessions.Store, users *store.UserStore, restrict bool) http.Handler {
 	return &CtxMiddleware{next: nextHandler, sessions: sess, users: users, restrict: restrict}
 }
 
 type CtxMiddleware struct {
-	next     common.CtxHandler
+	next     ctxhandler.CtxHandler
 	sessions sessions.Store
 	users    *store.UserStore
 	restrict bool

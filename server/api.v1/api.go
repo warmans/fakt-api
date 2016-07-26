@@ -6,9 +6,10 @@ import (
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
-	"github.com/warmans/stressfaktor-api/server/api/handler"
-	mw "github.com/warmans/stressfaktor-api/server/api/middleware"
+	"github.com/warmans/stressfaktor-api/server/api.v1/handler"
+	mw "github.com/warmans/stressfaktor-api/server/api.v1/middleware"
 	"github.com/warmans/stressfaktor-api/server/data/store"
+	"github.com/warmans/resty"
 )
 
 type API struct {
@@ -23,7 +24,7 @@ func (a *API) NewServeMux() http.Handler {
 
 	mux.Handle(
 		"/event",
-		mw.AddCtx(handler.NewEventHandler(a.DataStore), a.SessionStore, a.UserStore, false),
+		mw.AddCtx(resty.Restful(handler.NewEventHandler(a.DataStore)), a.SessionStore, a.UserStore, false),
 	)
 	mux.Handle(
 		"/event/{id:[0-9]+}/tag",
@@ -83,4 +84,10 @@ func (a *API) NewServeMux() http.Handler {
 	)
 
 	return mw.AddSetup(handler)
+}
+
+func handleAll(mux *mux.Router, handler http.Handler, routes... string) {
+	for _, route := range routes {
+		mux.Handle(route, handler)
+	}
 }

@@ -1,11 +1,10 @@
 package common
 
 import (
-	"net/http"
 	"encoding/json"
-	"log"
 	"fmt"
-	"golang.org/x/net/context"
+	"log"
+	"net/http"
 )
 
 type Response struct {
@@ -39,7 +38,7 @@ func SendError(rw http.ResponseWriter, err error, writeToLog bool) {
 
 	code := 500
 	message := "An error occured"
-	switch err.(type){
+	switch err.(type) {
 	case HTTPError:
 		//assume HTTP error messages are safe to show to the user
 		message = fmt.Sprintf("%s (%s)", err.(HTTPError).Msg, http.StatusText(err.(HTTPError).Status))
@@ -47,8 +46,4 @@ func SendError(rw http.ResponseWriter, err error, writeToLog bool) {
 	}
 
 	SendResponse(rw, &Response{code, nil, message})
-}
-
-type CtxHandler interface {
-	ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context)
 }

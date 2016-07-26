@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/warmans/dbr"
 	"github.com/warmans/go-bandcamp-search/bcamp"
-	"github.com/warmans/stressfaktor-api/server/api"
+	v1 "github.com/warmans/stressfaktor-api/server/api.v1"
 	"github.com/warmans/stressfaktor-api/server/data"
 	"github.com/warmans/stressfaktor-api/server/data/source/sfaktor"
 	"github.com/warmans/stressfaktor-api/server/data/store"
@@ -70,7 +70,7 @@ func (s *Server) Start() error {
 		return fmt.Errorf("You must specify an auth.key")
 	}
 
-	API := api.API{
+	API := v1.API{
 		AppVersion:   Version,
 		DataStore:    dataStore,
 		UserStore:    userStore,

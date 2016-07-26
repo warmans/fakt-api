@@ -18,3 +18,5 @@ import:
 - package: golang.org/x/net
   subpackages:
   - context
+- package: github.com/warmans/resty
+- package: github.com/warmans/ctxhandler
