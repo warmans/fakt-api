@@ -59,4 +59,4 @@ _configure_package: build
 #-----------------------------------------------------------------------
 
 .PHONY: publish
-publish: build package release
+publish: test build package release

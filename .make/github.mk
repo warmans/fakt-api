@@ -49,10 +49,10 @@ _release:
 # Execute the artifact upload for the release (if required).
 .PHONY: _artifacts
 _artifacts:
-	@if [ ! -z $(RELEASE_ARTIFACT_DIR) ]; then \
+	if [ ! -z $(RELEASE_ARTIFACT_DIR) ]; then \
 		if [ ! -f $(_RELEASE_INFO) ]; then echo "missing release info. Unable to publish artifacts without a release ID"; exit 1; fi; \
 		echo "uploading artifacts... (matching $(RELEASE_ARTIFACT_REGEX))"; \
-		for ARTIFACT in `find  $(RELEASE_ARTIFACT_DIR) -maxdepth 1 -regex $(RELEASE_ARTIFACT_REGEX) -type f -printf '%p\n'`; \
+		for ARTIFACT in `find  $(RELEASE_ARTIFACT_DIR) -maxdepth 1 -type f -printf '%p\n'`; \
 			do echo `basename $${ARTIFACT}`; \
 			curl -H "Authorization: token $(GH_API_TOKEN)" -H "Content-Type: `file --mime-type $${ARTIFACT}`" \
 			 --data-binary @$${ARTIFACT} \
@@ -67,4 +67,4 @@ _cleanup:
 
 # Meta-target to execute all targets in correct order.
 .PHONY: release
-release: _validate _release _artifacts _cleanup
+release: _validate _release _artifacts

@@ -7,3 +7,4 @@
 private.mk
 .packaging
 .dist
+.release-info.json
