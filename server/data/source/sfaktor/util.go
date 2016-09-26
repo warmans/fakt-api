@@ -4,23 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 )
 
-var localTime *time.Location
-
-func init() {
-	var err error
-	localTime, err = time.LoadLocation("Europe/Berlin")
-	if err != nil {
-		log.Printf("Cannot load localtime (%s). Event times may be wrong.", err.Error())
-	}
-}
-
 //ParseTime parses times in the format e.g. "Montag, 21.12.2015", "21:00 Uhr"
-func ParseTime(dateString, timeString string) (time.Time, error) {
+func ParseTime(dateString, timeString string, localTime *time.Location) (time.Time, error) {
 
 	if strings.Contains(dateString, ",") {
 		cleanDate := fmt.Sprintf(

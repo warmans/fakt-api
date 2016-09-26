@@ -32,13 +32,13 @@ func main() {
 	}
 
 	config := &server.Config{
-		ServerBind:     *bind,
-		ServerLocale:   *location,
-		TermineURI:     *terminURI,
-		DbPath:         *dbPath,
-		RunIngest:      *runIngest,
-		EncryptionKey:  *authKey,
-		VerboseLogging: *verbose,
+		ServerBind:             *bind,
+		ServerLocale:           *location,
+		StressfaktorTermineURI: *terminURI,
+		DbPath:                 *dbPath,
+		RunIngest:              *runIngest,
+		EncryptionKey:          *authKey,
+		VerboseLogging:         *verbose,
 	}
 
 	log.Fatal(server.NewServer(config).Start())

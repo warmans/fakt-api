@@ -20,3 +20,4 @@ import:
   - context
 - package: github.com/warmans/resty
 - package: github.com/warmans/ctxhandler
+- package: github.com/ungerik/go-rss
