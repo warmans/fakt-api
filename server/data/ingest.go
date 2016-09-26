@@ -30,9 +30,8 @@ func (i *Ingest) Run() {
 				continue
 			}
 
-
+			log.Printf("Discovered %d events", len(events))
 			for _, event := range events {
-				log.Printf("Discovered %+v", *event)
 				if err := i.Ingest(event); err != nil {
 					log.Printf("Failed to ingest event: %s", err.Error())
 				}

@@ -30,7 +30,6 @@ func (c *Crawler) Crawl(localTime *time.Location) ([]*store.Event, error) {
 		return events, err
 	}
 
-	log.Printf("Feed returned %d items", len(channel.Item))
 	for _, itm := range channel.Item {
 		if event := eventFromFeedItem(itm, localTime); event != nil {
 			events = append(events, event)

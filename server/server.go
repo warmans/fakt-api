@@ -15,6 +15,7 @@ import (
 	"github.com/warmans/stressfaktor-api/server/data/source"
 	"github.com/warmans/stressfaktor-api/server/data/source/k9"
 	"github.com/warmans/stressfaktor-api/server/data/store"
+	"github.com/warmans/stressfaktor-api/server/data/source/sfaktor"
 )
 
 // VERSION is used in packaging
@@ -58,7 +59,7 @@ func (s *Server) Start() error {
 			DB:              db.NewSession(nil),
 			UpdateFrequency: time.Duration(1) * time.Hour,
 			Crawlers: []source.Crawler{
-				//&sfaktor.Crawler{TermineURI: s.conf.StressfaktorTermineURI},
+				&sfaktor.Crawler{TermineURI: s.conf.StressfaktorTermineURI},
 				&k9.Crawler{},
 			},
 			EventVisitors: []store.EventVisitor{

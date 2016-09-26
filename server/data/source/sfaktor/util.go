@@ -9,7 +9,7 @@ import (
 )
 
 //ParseTime parses times in the format e.g. "Montag, 21.12.2015", "21:00 Uhr"
-func ParseTime(dateString, timeString string, localTime time.Location) (time.Time, error) {
+func ParseTime(dateString, timeString string, localTime *time.Location) (time.Time, error) {
 
 	if strings.Contains(dateString, ",") {
 		cleanDate := fmt.Sprintf(

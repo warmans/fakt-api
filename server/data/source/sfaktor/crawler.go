@@ -53,7 +53,7 @@ func (c *Crawler) Crawl(localTime *time.Location) ([]*store.Event, error) {
 	return events, nil
 }
 
-func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection, localTime time.Location) []*store.Event {
+func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection, localTime *time.Location) []*store.Event {
 
 	var dateStr string
 	var time time.Time
