@@ -1,5 +1,5 @@
-hash: f49b74894e5a09d0e34cb71df1821a8f9ff97195ba3934527340f110f4fc3840
-updated: 2016-07-26T20:19:40.164098903+02:00
+hash: 926b0773ca60a650bbe0d151144e380f94fab45d18a3c6844fff9e1abda22584
+updated: 2016-09-26T21:18:56.194159888+02:00
 imports:
 - name: github.com/andybalholm/cascadia
   version: 3ad29d1ad1c4f2023e355603324348cf1f4b2d48
@@ -15,12 +15,19 @@ imports:
   version: a1216e0aed834aa9074063dd4085f5c3df8d1fab
 - name: github.com/mattn/go-sqlite3
   version: 37aa7c6f5bc95b7264de70cd1f0ca1d39228ebd6
+- name: github.com/paulrosania/go-charset
+  version: 621bb39fcc835dce592e682f5073025d0169587b
+  subpackages:
+  - charset
+  - data
 - name: github.com/PuerkitoBio/goquery
   version: 2e29ea41f0d13f4a303c75553f4eeadddc7a4c56
 - name: github.com/texttheater/golang-levenshtein
   version: 14026fface0cb806188c85e792a93d625dc37d0f
   subpackages:
   - levenshtein
+- name: github.com/ungerik/go-rss
+  version: bb39c3b1f3e47e671d97a593c98170ff4b44af06
 - name: github.com/warmans/ctxhandler
   version: d3d30f2ff86c9c41130b74ef5690e2c50ac83028
 - name: github.com/warmans/dbr

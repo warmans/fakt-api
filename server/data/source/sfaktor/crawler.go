@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"fmt"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/djimenez/iconv-go"
 	"github.com/warmans/stressfaktor-api/server/data/store"
@@ -22,40 +24,36 @@ type Crawler struct {
 	TermineURI string
 }
 
-func (c *Crawler) Crawl() []*store.Event {
+func (c *Crawler) Crawl(localTime *time.Location) ([]*store.Event, error) {
 
-	log.Print("re-scraping...")
 	events := make([]*store.Event, 0)
 
 	res, err := http.Get(c.TermineURI)
 	if err != nil {
-		log.Printf("SF crawler fetch failed: %s", err.Error())
-		return events
+		return events, fmt.Errorf("SF crawler fetch failed: %s", err.Error())
 	}
 	defer res.Body.Close()
 
 	//must convert to utf-8 or the special chars will be broken
 	utfBody, err := iconv.NewReader(res.Body, "ISO-8859-1", "utf-8")
 	if err != nil {
-		log.Printf("SF crawler failed to convert character set: %s", err.Error())
-		return events
+		return events, fmt.Errorf("SF crawler failed to convert character set: %s", err.Error())
 	}
 
 	doc, err := goquery.NewDocumentFromReader(utfBody)
 	if err != nil {
-		log.Printf("SF crawler failed to parse result: %s", err.Error())
-		return events
+		return events, fmt.Errorf("SF crawler failed to parse result: %s", err.Error())
 	}
 
 	//select the main data column and handle all the sub-tables
 	doc.Find("body > table:nth-child(4) > tbody > tr > td:nth-child(2) > table").Each(func(i int, sel *goquery.Selection) {
-		events = append(events, c.HandleDateTable(i, sel)...)
+		events = append(events, c.HandleDateTable(i, sel, localTime)...)
 	})
-	log.Print("scraping completed OK...")
-	return events
+
+	return events, nil
 }
 
-func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection) []*store.Event {
+func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection, localTime time.Location) []*store.Event {
 
 	var dateStr string
 	var time time.Time
@@ -86,7 +84,7 @@ func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection) []*store.Event 
 		}
 
 		var err error
-		time, err = ParseTime(dateStr, timeStr)
+		time, err = ParseTime(dateStr, timeStr, localTime)
 		if err != nil {
 			log.Printf("Failed to parse date: %s %s (%s)", dateStr, timeStr, err.Error())
 			return

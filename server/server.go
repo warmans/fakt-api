@@ -12,7 +12,8 @@ import (
 	"github.com/warmans/go-bandcamp-search/bcamp"
 	v1 "github.com/warmans/stressfaktor-api/server/api.v1"
 	"github.com/warmans/stressfaktor-api/server/data"
-	"github.com/warmans/stressfaktor-api/server/data/source/sfaktor"
+	"github.com/warmans/stressfaktor-api/server/data/source"
+	"github.com/warmans/stressfaktor-api/server/data/source/k9"
 	"github.com/warmans/stressfaktor-api/server/data/store"
 )
 
@@ -20,13 +21,13 @@ import (
 var Version string
 
 type Config struct {
-	ServerBind     string
-	ServerLocale   string
-	TermineURI     string
-	DbPath         string
-	EncryptionKey  string
-	RunIngest      bool
-	VerboseLogging bool
+	ServerBind             string
+	ServerLocale           string
+	StressfaktorTermineURI string
+	DbPath                 string
+	EncryptionKey          string
+	RunIngest              bool
+	VerboseLogging         bool
 }
 
 type Server struct {
@@ -56,7 +57,10 @@ func (s *Server) Start() error {
 		dataIngest := data.Ingest{
 			DB:              db.NewSession(nil),
 			UpdateFrequency: time.Duration(1) * time.Hour,
-			Stressfaktor:    &sfaktor.Crawler{TermineURI: s.conf.TermineURI},
+			Crawlers: []source.Crawler{
+				//&sfaktor.Crawler{TermineURI: s.conf.StressfaktorTermineURI},
+				&k9.Crawler{},
+			},
 			EventVisitors: []store.EventVisitor{
 				&store.EventStoreVisitor{Store: dataStore},
 				&store.BandcampVisitor{Bandcamp: &bcamp.Bandcamp{HTTP: http.DefaultClient}, VerboseLogging: s.conf.VerboseLogging},

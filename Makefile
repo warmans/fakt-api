@@ -1,16 +1,15 @@
 PROJECT_NAME=stressfaktor-api
-PROJECT_VERSION=0.10.2
+PROJECT_VERSION=0.11.0
 
 # Go
 #-----------------------------------------------------------------------
 
 .PHONY: test
 test:
-	@go test
+	go test ./server/...
 
 .PHONY: build
 build:
-	glide install
 	GO15VENDOREXPERIMENT=1 go build -ldflags "-X github.com/warmans/stressfaktor-api/server.Version=$(PROJECT_VERSION)"
 
 .PHONY: docker

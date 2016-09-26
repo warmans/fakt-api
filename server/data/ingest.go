@@ -8,24 +8,37 @@ import (
 	"time"
 
 	"github.com/warmans/dbr"
-	"github.com/warmans/stressfaktor-api/server/data/source/sfaktor"
+	"github.com/warmans/stressfaktor-api/server/data/source"
 	"github.com/warmans/stressfaktor-api/server/data/store"
 )
 
 type Ingest struct {
 	DB              *dbr.Session
 	UpdateFrequency time.Duration
-	Stressfaktor    *sfaktor.Crawler
 	EventVisitors   []store.EventVisitor
+	Crawlers        []source.Crawler
 }
 
 func (i *Ingest) Run() {
 	for {
-		for _, event := range i.Stressfaktor.Crawl() {
-			if err := i.Ingest(event); err != nil {
-				log.Printf("Failed to ingest event: %s", err.Error())
+		for _, c := range i.Crawlers {
+
+			log.Printf("Crawling %T...", c)
+			events, err := c.Crawl(source.MustMakeTimeLocation("Europe/Berlin"))
+			if err != nil {
+				log.Printf("Failed %T failed crawling: %s", c, err.Error())
+				continue
+			}
+
+
+			for _, event := range events {
+				log.Printf("Discovered %+v", *event)
+				if err := i.Ingest(event); err != nil {
+					log.Printf("Failed to ingest event: %s", err.Error())
+				}
 			}
 		}
+
 		i.Cleanup()
 		time.Sleep(i.UpdateFrequency)
 	}
@@ -94,13 +107,10 @@ func (i *Ingest) Ingest(event *store.Event) error {
 			}
 
 		} else {
-
 			// note that we cannot update the venue or date. Doing so will create a new event since these fields act
 			// as a composite primary key.
 			_, err := tr.Exec(
 				"UPDATE event SET type=?, description=? WHERE id=?",
-				event.Date,
-				event.Venue.ID,
 				event.Type,
 				event.Description,
 				event.ID,
