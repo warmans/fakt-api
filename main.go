@@ -12,14 +12,14 @@ import (
 )
 
 var (
-	bind      = flag.String("bind", ":8080", "Web server bind address")
-	terminURI = flag.String("termin", "https://stressfaktor.squat.net/termine.php?display=30", "Address of termine page")
-	location  = flag.String("location", "Europe/Berlin", "Time localization")
-	dbPath    = flag.String("dbpath", "./db.sqlite3", "Location of DB file")
-	ver       = flag.Bool("v", false, "Print version and exit")
-	verbose   = flag.Bool("verbose", false, "Verbose logging")
-	runIngest = flag.Bool("ingest", true, "Periodically ingest new data")
-	authKey   = flag.String("auth.key", "changeme91234567890123456789012", "key used to create sessions")
+	serverBind             = flag.String("server.bind", ":8080", "Web server bind address")
+	serverEncryptionKey    = flag.String("server.encryption.key", "changeme91234567890123456789012", "Key used to create sessions")
+	crawlerStressfaktorURI = flag.String("crawler.stressfaktor.uri", "https://stressfaktor.squat.net/termine.php?display=30", "Address of termine page")
+	crawlerLocation        = flag.String("crawler.location", "Europe/Berlin", "Time localization")
+	crawlerRun             = flag.Bool("crawler.run", true, "Periodically ingest new data")
+	dbPath                 = flag.String("db.path", "./db.sqlite3", "Location of DB file")
+	verbose                = flag.Bool("log.verbose", false, "Verbose logging")
+	ver                    = flag.Bool("v", false, "Print version and exit")
 )
 
 func main() {
@@ -32,12 +32,12 @@ func main() {
 	}
 
 	config := &server.Config{
-		ServerBind:             *bind,
-		ServerLocale:           *location,
-		StressfaktorTermineURI: *terminURI,
+		ServerBind:             *serverBind,
+		ServerLocation:         *crawlerLocation,
+		CrawlerStressfaktorURI: *crawlerStressfaktorURI,
 		DbPath:                 *dbPath,
-		RunIngest:              *runIngest,
-		EncryptionKey:          *authKey,
+		CrawlerRun:             *crawlerRun,
+		EncryptionKey:          *serverEncryptionKey,
 		VerboseLogging:         *verbose,
 	}
 

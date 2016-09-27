@@ -24,6 +24,10 @@ type Crawler struct {
 	TermineURI string
 }
 
+func (c *Crawler) Name() string {
+	return "stressfaktor"
+}
+
 func (c *Crawler) Crawl(localTime *time.Location) ([]*store.Event, error) {
 
 	events := make([]*store.Event, 0)

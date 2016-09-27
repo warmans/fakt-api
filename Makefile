@@ -1,5 +1,6 @@
 PROJECT_NAME=stressfaktor-api
 PROJECT_VERSION=0.11.0
+DOCKER_NAME=warmans/stressfaktor-api
 
 # Go
 #-----------------------------------------------------------------------
@@ -10,11 +11,8 @@ test:
 
 .PHONY: build
 build:
-	GO15VENDOREXPERIMENT=1 go build -ldflags "-X github.com/warmans/stressfaktor-api/server.Version=$(PROJECT_VERSION)"
+	GO15VENDOREXPERIMENT=1 GOOS=linux go build -ldflags "-X github.com/warmans/stressfaktor-api/server.Version=$(PROJECT_VERSION)"
 
-.PHONY: docker
-docker: 
-	docker build -t warmans/stressfaktor-api:$(PROJECT_VERSION) .
 
 # Github Releases
 #-----------------------------------------------------------------------
@@ -54,6 +52,15 @@ _configure_package: build
 
 	#setup dirs
 	@mkdir -p $(PACKAGE_CONTENT_DIR)/var/lib/$(PROJECT_NAME)
+
+.PHONY: dockerize
+dockerize:
+	docker build -t $(DOCKER_NAME):$(PROJECT_VERSION) .
+
+.PHONY: docker-publish
+docker-publish:
+	docker push $(DOCKER_NAME):$(PROJECT_VERSION)
+
 
 # Meta
 #-----------------------------------------------------------------------

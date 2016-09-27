@@ -13,7 +13,8 @@ func InitializeSchema(sess *dbr.Session) error {
 			date DATETIME,
 			type TEXT NULL,
 			description TEXT NULL,
-			deleted BOOLEAN DEFAULT 0
+			deleted BOOLEAN DEFAULT 0,
+			source TEXT NULL
 		);`,
 		`CREATE TABLE IF NOT EXISTS venue (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,

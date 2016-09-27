@@ -9,6 +9,7 @@ import (
 
 type Crawler interface {
 	Crawl(localTime *time.Location) ([]*store.Event, error)
+	Name() string
 }
 
 func MustMakeTimeLocation(locationName string) *time.Location {
