@@ -8,7 +8,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/warmans/stressfaktor-api/server/data/store"
+	"github.com/warmans/fakt-api/server/data/store"
 	"github.com/ungerik/go-rss"
 )
 
@@ -21,6 +21,10 @@ const (
 )
 
 type Crawler struct{}
+
+func (c *Crawler) Name() string {
+	return "k9"
+}
 
 func (c *Crawler) Crawl(localTime *time.Location) ([]*store.Event, error) {
 	events := make([]*store.Event, 0)

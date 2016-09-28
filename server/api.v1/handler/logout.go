@@ -5,7 +5,7 @@ import (
 
 	"github.com/gorilla/sessions"
 	"github.com/warmans/ctxhandler"
-	"github.com/warmans/stressfaktor-api/server/api.v1/common"
+	"github.com/warmans/fakt-api/server/api.v1/common"
 	"golang.org/x/net/context"
 )
 

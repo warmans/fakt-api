@@ -1,11 +1,6 @@
-# Stressfaktor API
+# Fakt API
 
-Parses stressfaktor termine pages and provides data in a structured format.
-
-## Installing
-
-Deb packages are provided in the dist directory. This is the easiest way to install. If you have a Go environment
-you can build different packages via the `make package` target. e.g. `PACKAGE_TYPE=rpm make package`.
+Berlin event listing API/Crawler.
 
 ## Building
 
@@ -13,4 +8,4 @@ you can build different packages via the `make package` target. e.g. `PACKAGE_TY
 
 ## UI
 
-There is also a mobile-friendly UI for this API available here: https://github.com/warmans/stressfaktor-api-ui
+There is also a mobile-friendly UI for this API available here: https://github.com/warmans/fakt-api-ui

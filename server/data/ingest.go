@@ -8,8 +8,9 @@ import (
 	"time"
 
 	"github.com/warmans/dbr"
-	"github.com/warmans/stressfaktor-api/server/data/source"
-	"github.com/warmans/stressfaktor-api/server/data/store"
+	"github.com/warmans/fakt-api/server/data/source"
+	"github.com/warmans/fakt-api/server/data/store"
+	"sync"
 )
 
 type Ingest struct {
@@ -21,22 +22,30 @@ type Ingest struct {
 
 func (i *Ingest) Run() {
 	for {
+		wg := sync.WaitGroup{}
 		for _, c := range i.Crawlers {
+			wg.Add(1)
+			go func(c source.Crawler) {
 
-			log.Printf("Crawling %T...", c)
-			events, err := c.Crawl(source.MustMakeTimeLocation("Europe/Berlin"))
-			if err != nil {
-				log.Printf("Failed %T failed crawling: %s", c, err.Error())
-				continue
-			}
-
-			log.Printf("Discovered %d events", len(events))
-			for _, event := range events {
-				if err := i.Ingest(event); err != nil {
-					log.Printf("Failed to ingest event: %s", err.Error())
+				defer wg.Done()
+				log.Printf("%T | Crawling...", c)
+				events, err := c.Crawl(source.MustMakeTimeLocation("Europe/Berlin"))
+				if err != nil {
+					log.Printf("%T | Failed failed crawling: %s", c, err.Error())
+					return
 				}
-			}
+
+				log.Printf("%T | Discovered %d events", c, len(events))
+				for _, event := range events {
+					//append the source to all events
+					event.Source = c.Name()
+					if err := i.Ingest(event); err != nil {
+						log.Printf("%T | Failed to ingest event: %s", c, err.Error())
+					}
+				}
+			}(c)
 		}
+		wg.Wait()
 
 		i.Cleanup()
 		time.Sleep(i.UpdateFrequency)

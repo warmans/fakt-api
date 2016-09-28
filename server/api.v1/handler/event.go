@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/warmans/resty"
-	"github.com/warmans/stressfaktor-api/server/api.v1/common"
-	"github.com/warmans/stressfaktor-api/server/data"
-	"github.com/warmans/stressfaktor-api/server/data/store"
+	"github.com/warmans/fakt-api/server/api.v1/common"
+	"github.com/warmans/fakt-api/server/data"
+	"github.com/warmans/fakt-api/server/data/store"
 	"golang.org/x/net/context"
 )
 

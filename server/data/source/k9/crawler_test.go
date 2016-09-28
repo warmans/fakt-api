@@ -2,7 +2,7 @@ package k9
 
 import (
 	"testing"
-	"github.com/warmans/stressfaktor-api/server/data/source"
+	"github.com/warmans/fakt-api/server/data/source"
 )
 
 func TestDateFromTitle(t *testing.T) {

@@ -1,14 +1,19 @@
-FROM golang:1.6
-WORKDIR /go/src/github.com/warmans/stressfaktor-api
-ADD . .
-ENV GLIDE_VERSION 0.8.3
-RUN apt-get update && apt-get install -y unzip --no-install-recommends && rm -rf /var/lib/apt/lists/*
-RUN curl \
-	-fsSL "https://github.com/Masterminds/glide/releases/download/${GLIDE_VERSION}/glide-${GLIDE_VERSION}-linux-amd64.zip" -o glide.zip \
-	&& unzip glide.zip  linux-amd64/glide \
-	&& mv linux-amd64/glide /usr/local/bin \
-	&& rm -rf linux-amd64 \
-	&& rm glide.zip
-RUN make build
-ENTRYPOINT ["stressfaktor-api"]
+FROM alpine:latest
+
+COPY ./.build /usr/local/bin/
+COPY ./docker-entrypoint.sh /
+
+#enable CGO (required for sqlite) and tzdata (required for time.Location)
+RUN apk update && \
+	apk --no-cache add ca-certificates &&\
+	update-ca-certificates && \
+	apk add openssl && \
+	apk add --update curl gnupg tzdata && \
+    wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://raw.githubusercontent.com/sgerrand/alpine-pkg-glibc/master/sgerrand.rsa.pub &&\
+    wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.23-r3/glibc-2.23-r3.apk && apk add glibc-2.23-r3.apk
+
+RUN mkdir -p /var/lib/fakt-api && mkdir -p /var/log/fakt-api
+
 EXPOSE 8080
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["fakt-api"]

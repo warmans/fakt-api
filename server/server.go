@@ -10,12 +10,12 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/warmans/dbr"
 	"github.com/warmans/go-bandcamp-search/bcamp"
-	v1 "github.com/warmans/stressfaktor-api/server/api.v1"
-	"github.com/warmans/stressfaktor-api/server/data"
-	"github.com/warmans/stressfaktor-api/server/data/source"
-	"github.com/warmans/stressfaktor-api/server/data/source/k9"
-	"github.com/warmans/stressfaktor-api/server/data/store"
-	"github.com/warmans/stressfaktor-api/server/data/source/sfaktor"
+	v1 "github.com/warmans/fakt-api/server/api.v1"
+	"github.com/warmans/fakt-api/server/data"
+	"github.com/warmans/fakt-api/server/data/source"
+	"github.com/warmans/fakt-api/server/data/source/k9"
+	"github.com/warmans/fakt-api/server/data/store"
+	"github.com/warmans/fakt-api/server/data/source/sfaktor"
 )
 
 // VERSION is used in packaging
@@ -23,11 +23,11 @@ var Version string
 
 type Config struct {
 	ServerBind             string
-	ServerLocale           string
-	StressfaktorTermineURI string
+	ServerLocation         string
+	CrawlerStressfaktorURI string
 	DbPath                 string
 	EncryptionKey          string
-	RunIngest              bool
+	CrawlerRun             bool
 	VerboseLogging         bool
 }
 
@@ -38,7 +38,7 @@ type Server struct {
 func (s *Server) Start() error {
 
 	//localize time
-	time.LoadLocation(s.conf.ServerLocale)
+	time.LoadLocation(s.conf.ServerLocation)
 
 	db, err := dbr.Open("sqlite3", s.conf.DbPath, nil)
 	if err != nil {
@@ -54,12 +54,12 @@ func (s *Server) Start() error {
 	dataStore := &store.Store{DB: db.NewSession(nil)}
 	userStore := &store.UserStore{DB: db.NewSession(nil)}
 
-	if s.conf.RunIngest {
+	if s.conf.CrawlerRun {
 		dataIngest := data.Ingest{
 			DB:              db.NewSession(nil),
 			UpdateFrequency: time.Duration(1) * time.Hour,
 			Crawlers: []source.Crawler{
-				&sfaktor.Crawler{TermineURI: s.conf.StressfaktorTermineURI},
+				&sfaktor.Crawler{TermineURI: s.conf.CrawlerStressfaktorURI},
 				&k9.Crawler{},
 			},
 			EventVisitors: []store.EventVisitor{

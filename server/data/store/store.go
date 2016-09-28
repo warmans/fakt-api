@@ -44,6 +44,7 @@ type Event struct {
 	Description string       `json:"description"`
 	Performers  []*Performer `json:"performer,omitempty"`
 	UTags       []UTags      `json:"utag"`
+	Source      string       `json:"source"`
 }
 
 func (e *Event) GuessPerformers() {
@@ -118,6 +119,7 @@ type EventFilter struct {
 	Tag               string    `json:"tag"`
 	TagUser           string    `json:"tag_user"`
 	LoadPerformerTags bool      `json:"load_performer_tags"`
+	Source            string    `json:"source"`
 }
 
 type Venue struct {
@@ -177,6 +179,7 @@ func (s *Store) FindEvents(filter *EventFilter) ([]*Event, error) {
 		"event.date",
 		"event.type",
 		"event.description",
+		"coalesce(event.source, '')",
 		"coalesce(venue.id, 0)",
 		"venue.name",
 		"venue.address",
@@ -209,6 +212,9 @@ func (s *Store) FindEvents(filter *EventFilter) ([]*Event, error) {
 	if !filter.DateTo.IsZero() {
 		q.Where("event.date < ?", filter.DateTo)
 	}
+	if filter.Source != "" {
+		q.Where("event.source = ?", filter.Source)
+	}
 	q.Where("event.deleted <= ?", IfOrInt(filter.ShowDeleted, 1, 0))
 
 	sql, vals := q.ToSql()
@@ -233,10 +239,10 @@ func (s *Store) FindEvents(filter *EventFilter) ([]*Event, error) {
 		}
 
 		var eID, vID, pID int
-		var eType, eDescription, vName, vAddress, pName, pInfo, pGenre, pHome, pImg, pListen string
+		var eType, eDescription, eSource, vName, vAddress, pName, pInfo, pGenre, pHome, pImg, pListen string
 		var eDate time.Time
 
-		err := result.Scan(&eID, &eDate, &eType, &eDescription, &vID, &vName, &vAddress, &pID, &pName, &pInfo, &pGenre, &pHome, &pImg, &pListen)
+		err := result.Scan(&eID, &eDate, &eType, &eDescription, &eSource, &vID, &vName, &vAddress, &pID, &pName, &pInfo, &pGenre, &pHome, &pImg, &pListen)
 		if err != nil {
 			return nil, err
 		}
@@ -262,6 +268,7 @@ func (s *Store) FindEvents(filter *EventFilter) ([]*Event, error) {
 					Address: vAddress,
 				},
 				Performers: make([]*Performer, 0),
+				Source:     eSource,
 			}
 
 			//append the tags

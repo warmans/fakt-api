@@ -3,12 +3,13 @@ package source
 import (
 	"time"
 
-	"github.com/warmans/stressfaktor-api/server/data/store"
+	"github.com/warmans/fakt-api/server/data/store"
 	"log"
 )
 
 type Crawler interface {
 	Crawl(localTime *time.Location) ([]*store.Event, error)
+	Name() string
 }
 
 func MustMakeTimeLocation(locationName string) *time.Location {
