@@ -2,9 +2,6 @@
 /*.sqlite3
 /*.sqlite3-journal
 /fakt-api
-/temp
+.build
 /vendor
-private.mk
-.packaging
-.dist
-.release-info.json
+

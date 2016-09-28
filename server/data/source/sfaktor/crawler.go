@@ -13,8 +13,8 @@ import (
 	"fmt"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/djimenez/iconv-go"
 	"github.com/warmans/fakt-api/server/data/store"
+	"golang.org/x/text/encoding/charmap"
 )
 
 var validDate = regexp.MustCompile(`^[A-Za-z]+, [0-9]{2}\.[0-9]{2}\.[0-9]{4}$`)
@@ -38,11 +38,8 @@ func (c *Crawler) Crawl(localTime *time.Location) ([]*store.Event, error) {
 	}
 	defer res.Body.Close()
 
-	//must convert to utf-8 or the special chars will be broken
-	utfBody, err := iconv.NewReader(res.Body, "ISO-8859-1", "utf-8")
-	if err != nil {
-		return events, fmt.Errorf("SF crawler failed to convert character set: %s", err.Error())
-	}
+	//we must convert to utf-8 or the special chars will be broken
+	utfBody := charmap.ISO8859_1.NewDecoder().Reader(res.Body)
 
 	doc, err := goquery.NewDocumentFromReader(utfBody)
 	if err != nil {

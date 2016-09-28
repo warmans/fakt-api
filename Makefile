@@ -14,7 +14,7 @@ test:
 build:
 	GO15VENDOREXPERIMENT=1 \
 	GOOS=linux \
-	go build -ldflags "-X github.com/warmans/fakt-api/server.Version=$(PROJECT_VERSION)"
+	go build -ldflags "-X github.com/warmans/fakt-api/server.Version=$(PROJECT_VERSION)" -o .build/$(PROJECT_NAME)
 
 # Packaging
 #-----------------------------------------------------------------------
