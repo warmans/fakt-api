@@ -19,7 +19,7 @@ build:
 # Packaging
 #-----------------------------------------------------------------------
 
-.PHONY: dockerize
+.PHONY: docker-build
 docker-build:
 	docker build -t $(DOCKER_NAME):$(PROJECT_VERSION) .
 
