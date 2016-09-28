@@ -3,7 +3,7 @@ package handler
 import (
 	"net/http"
 
-	"github.com/warmans/stressfaktor-api/server/api.v1/common"
+	"github.com/warmans/fakt-api/server/api.v1/common"
 )
 
 func NewVersionHandler(version string) http.Handler {

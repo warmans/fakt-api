@@ -14,7 +14,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/djimenez/iconv-go"
-	"github.com/warmans/stressfaktor-api/server/data/store"
+	"github.com/warmans/fakt-api/server/data/store"
 )
 
 var validDate = regexp.MustCompile(`^[A-Za-z]+, [0-9]{2}\.[0-9]{2}\.[0-9]{4}$`)

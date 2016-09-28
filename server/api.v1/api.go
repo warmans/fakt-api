@@ -6,9 +6,9 @@ import (
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
-	"github.com/warmans/stressfaktor-api/server/api.v1/handler"
-	mw "github.com/warmans/stressfaktor-api/server/api.v1/middleware"
-	"github.com/warmans/stressfaktor-api/server/data/store"
+	"github.com/warmans/fakt-api/server/api.v1/handler"
+	mw "github.com/warmans/fakt-api/server/api.v1/middleware"
+	"github.com/warmans/fakt-api/server/data/store"
 	"github.com/warmans/resty"
 )
 

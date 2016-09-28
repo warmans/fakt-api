@@ -1,7 +1,7 @@
 /.idea
 /*.sqlite3
 /*.sqlite3-journal
-/stressfaktor-api
+/fakt-api
 /temp
 /vendor
 private.mk

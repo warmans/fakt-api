@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/warmans/dbr"
-	"github.com/warmans/stressfaktor-api/server/data/source"
-	"github.com/warmans/stressfaktor-api/server/data/store"
+	"github.com/warmans/fakt-api/server/data/source"
+	"github.com/warmans/fakt-api/server/data/store"
 	"sync"
 )
 

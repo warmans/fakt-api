@@ -8,7 +8,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/warmans/stressfaktor-api/server/data/store"
+	"github.com/warmans/fakt-api/server/data/store"
 	"github.com/ungerik/go-rss"
 )
 

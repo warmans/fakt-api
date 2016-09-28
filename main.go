@@ -8,7 +8,7 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 
-	"github.com/warmans/stressfaktor-api/server"
+	"github.com/warmans/fakt-api/server"
 )
 
 var (

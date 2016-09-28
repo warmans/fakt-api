@@ -3,7 +3,7 @@ package source
 import (
 	"time"
 
-	"github.com/warmans/stressfaktor-api/server/data/store"
+	"github.com/warmans/fakt-api/server/data/store"
 	"log"
 )
 

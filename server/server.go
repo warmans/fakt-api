@@ -10,12 +10,12 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/warmans/dbr"
 	"github.com/warmans/go-bandcamp-search/bcamp"
-	v1 "github.com/warmans/stressfaktor-api/server/api.v1"
-	"github.com/warmans/stressfaktor-api/server/data"
-	"github.com/warmans/stressfaktor-api/server/data/source"
-	"github.com/warmans/stressfaktor-api/server/data/source/k9"
-	"github.com/warmans/stressfaktor-api/server/data/store"
-	"github.com/warmans/stressfaktor-api/server/data/source/sfaktor"
+	v1 "github.com/warmans/fakt-api/server/api.v1"
+	"github.com/warmans/fakt-api/server/data"
+	"github.com/warmans/fakt-api/server/data/source"
+	"github.com/warmans/fakt-api/server/data/source/k9"
+	"github.com/warmans/fakt-api/server/data/store"
+	"github.com/warmans/fakt-api/server/data/source/sfaktor"
 )
 
 // VERSION is used in packaging

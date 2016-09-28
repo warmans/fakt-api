@@ -1,4 +1,4 @@
-package: github.com/warmans/stressfaktor-api
+package: github.com/warmans/fakt-api
 import:
 - package: github.com/PuerkitoBio/goquery
 - package: github.com/djimenez/iconv-go
