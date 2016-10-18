@@ -156,6 +156,7 @@ type Performer struct {
 	Popularity float64  `json:"popularity"` //toodo:figure out based on banccamp downloads etc?
 	Events     []*Event `json:"event,omitempty"`
 	Links      []*Link  `json:"link,omitempty"`
+	Tags       []string `json:"tag"` //todo: from bandcamp/tokenize genre somehow
 	UTags      []UTags  `json:"utag,omitempty"`
 }
 
