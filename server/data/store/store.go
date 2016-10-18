@@ -123,10 +123,13 @@ type EventFilter struct {
 }
 
 type Venue struct {
-	ID      int64    `json:"id"`
-	Name    string   `json:"name"`
-	Address string   `json:"address"`
-	Events  []*Event `json:"event,omitempty"`
+	ID      int64      `json:"id"`
+	Name    string     `json:"name"`
+	Address string     `json:"address"`  //todo rename do location and create a new address field with actual address
+	LatLong [2]float64 `json:"lat_long"` //todo
+	Info    string     `json:"info"`     //todo
+	Img     string     `json:"img"`      //todo
+	Links   []string   `json:"link"`     //todo
 }
 
 func (v *Venue) IsValid() bool {
@@ -142,16 +145,18 @@ type VenueFilter struct {
 }
 
 type Performer struct {
-	ID        int64    `json:"id"`
-	Name      string   `json:"name"`
-	Info      string   `json:"info"`
-	Genre     string   `json:"genre"`
-	Home      string   `json:"home"`
-	Img       string   `json:"img"`
-	ListenURL string   `json:"listen_url"`
-	Events    []*Event `json:"event,omitempty"`
-	Links     []*Link  `json:"link,omitempty"`
-	UTags     []UTags  `json:"utag,omitempty"`
+	ID         int64    `json:"id"`
+	Name       string   `json:"name"`
+	Info       string   `json:"info"`
+	Genre      string   `json:"genre"`
+	Home       string   `json:"home"`
+	Img        string   `json:"img"`
+	ListenURL  string   `json:"listen_url"`
+	Activity   string   `json:"activity"`   //todo: e.g. high/medium/low based on number of gigs within last X days
+	Popularity float64  `json:"popularity"` //toodo:figure out based on banccamp downloads etc?
+	Events     []*Event `json:"event,omitempty"`
+	Links      []*Link  `json:"link,omitempty"`
+	UTags      []UTags  `json:"utag,omitempty"`
 }
 
 func (p *Performer) IsValid() bool {
@@ -326,21 +331,6 @@ func (s *Store) FindVenues(filter *VenueFilter) ([]*Venue, error) {
 	venues := make([]*Venue, 0)
 	if _, err := q.Load(&venues); err != nil && err != dbr.ErrNotFound {
 		return nil, err
-	}
-
-	for k, venue := range venues {
-
-		//get event data for each venue
-		events, err := s.FindEvents(&EventFilter{VenueIDs: []int64{venue.ID}})
-		if err != nil {
-			events = []*Event{}
-		}
-
-		//append event sans venue data
-		for _, event := range events {
-			event.Venue = nil
-		}
-		venues[k].Events = events
 	}
 
 	return venues, nil
