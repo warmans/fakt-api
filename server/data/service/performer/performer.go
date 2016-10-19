@@ -6,8 +6,8 @@ import (
 
 	"github.com/warmans/dbr"
 	"github.com/warmans/fakt-api/server/data/service/common"
+	"github.com/warmans/fakt-api/server/data/service/tag"
 	"github.com/warmans/fakt-api/server/data/service/utag"
-	"strings"
 )
 
 type PerformerFilter struct {
@@ -20,6 +20,7 @@ type PerformerFilter struct {
 type PerformerService struct {
 	DB          *dbr.Session
 	UTagService *utag.UTagService
+	TagService  *tag.TagService
 }
 
 func (ps *PerformerService) PerformerMustExist(tr *dbr.Tx, performer *common.Performer) error {
@@ -66,42 +67,6 @@ func (ps *PerformerService) PerformerMustExist(tr *dbr.Tx, performer *common.Per
 		}
 	}
 
-	//handle tags
-	if _, err := tr.Exec("DELETE FROM performer_tag WHERE performer_id = ?", performer.ID); err != nil {
-		log.Printf("Failed to delete existing performer_tag relationships (perfomer: %d) because %s", performer.ID, err.Error())
-	}
-
-	//todo: move all this into new tag service
-	for _, tag := range performer.Tags {
-
-		var tagId int64
-		tag = strings.ToLower(tag)
-
-		err := tr.QueryRow("SELECT id FROM tag WHERE tag = ?", tag).Scan(&tagId)
-		if err != nil && err != sql.ErrNoRows {
-			log.Printf("Failed to find tag id for %s because %s", tag, err.Error())
-			continue
-		}
-		if tagId == 0 {
-			res, err := tr.Exec("INSERT OR IGNORE INTO tag (tag) VALUES (?)", tag)
-			if err != nil {
-				log.Printf("Failed to insert tag %s because %s", tag, err.Error())
-				continue
-			}
-			//todo: does this work with OR IGNORE?
-			tagId, err = res.LastInsertId()
-			if err != nil {
-				log.Printf("Failed to get inserted tag id because %s", err.Error())
-				continue
-			}
-		}
-
-		if _, err := tr.Exec("INSERT OR IGNORE INTO performer_tag (performer_id, tag_id) VALUES (?, ?)", performer.ID, tagId); err != nil {
-			log.Printf("Failed to insert performer_tag relationship (perfomer: %d, tag: %s, tagId: %d) because %s", performer.ID, tag, tagId, err.Error())
-			continue
-		}
-	}
-
 	//clear existing relationships for extra data to allow links to be kept up-to-date
 	_, err := tr.Exec("DELETE FROM performer_extra WHERE performer_id=?", performer.ID)
 	if err != nil {
@@ -120,6 +85,9 @@ func (ps *PerformerService) PerformerMustExist(tr *dbr.Tx, performer *common.Per
 			continue
 		}
 	}
+
+	//try and store tags but if it fails it's not the end of the world
+	ps.TagService.StorePerformerTags(tr, performer.ID, performer.Tags)
 
 	return nil
 }

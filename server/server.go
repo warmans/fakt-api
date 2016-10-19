@@ -21,6 +21,7 @@ import (
 	"github.com/warmans/fakt-api/server/data/source/k9"
 	"github.com/warmans/fakt-api/server/data/source/sfaktor"
 	"github.com/warmans/go-bandcamp-search/bcamp"
+	"github.com/warmans/fakt-api/server/data/service/tag"
 )
 
 // VERSION is used in packaging
@@ -56,11 +57,13 @@ func (s *Server) Start() error {
 		log.Fatalf("Failed to initialize local DB: %s", err.Error())
 	}
 
-	utagStore := &utag.UTagService{DB: db.NewSession(nil)}
-	eventStore := &event.EventService{DB: db.NewSession(nil)}
-	performerStore := &performer.PerformerService{DB: db.NewSession(nil), UTagService: utagStore}
-	venueStore := &venue.VenueService{DB: db.NewSession(nil)}
-	userStore := &user.UserStore{DB: db.NewSession(nil)}
+	utagService := &utag.UTagService{DB: db.NewSession(nil)}
+	tagService := &tag.TagService{DB: db.NewSession(nil)}
+	eventService := &event.EventService{DB: db.NewSession(nil)}
+	performerService := &performer.PerformerService{DB: db.NewSession(nil), UTagService: utagService, TagService: tagService}
+	venueService := &venue.VenueService{DB: db.NewSession(nil)}
+	userService := &user.UserStore{DB: db.NewSession(nil)}
+
 
 	if s.conf.CrawlerRun {
 		dataIngest := data.Ingest{
@@ -71,12 +74,12 @@ func (s *Server) Start() error {
 				&k9.Crawler{},
 			},
 			EventVisitors: []common.EventVisitor{
-				&data.PerformerServiceVisitor{PerformerService: performerStore},
+				&data.PerformerServiceVisitor{PerformerService: performerService},
 				&data.BandcampVisitor{Bandcamp: &bcamp.Bandcamp{HTTP: http.DefaultClient}, VerboseLogging: s.conf.VerboseLogging},
 			},
-			EventService:     eventStore,
-			PerformerService: performerStore,
-			VenueService:     venueStore,
+			EventService:     eventService,
+			PerformerService: performerService,
+			VenueService:     venueService,
 		}
 		go dataIngest.Run()
 	}
@@ -88,11 +91,11 @@ func (s *Server) Start() error {
 
 	API := v1.API{
 		AppVersion:       Version,
-		UserService:      userStore,
-		EventService:     eventStore,
-		VenueService:     venueStore,
-		PerformerService: performerStore,
-		UTagService:      utagStore,
+		UserService:      userService,
+		EventService:     eventService,
+		VenueService:     venueService,
+		PerformerService: performerService,
+		UTagService:      utagService,
 		SessionStore:     sessions.NewCookieStore([]byte(s.conf.EncryptionKey)),
 	}
 
