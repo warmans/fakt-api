@@ -9,16 +9,18 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/warmans/ctxhandler"
 	"github.com/warmans/fakt-api/server/api.v1/common"
-	"github.com/warmans/fakt-api/server/data/store"
 	"golang.org/x/net/context"
+	"github.com/warmans/fakt-api/server/data/service/utag"
+	"github.com/warmans/fakt-api/server/data/service/user"
+	dcom "github.com/warmans/fakt-api/server/data/service/common"
 )
 
-func NewPerformerTagHandler(ds *store.Store) ctxhandler.CtxHandler {
+func NewPerformerTagHandler(ds *utag.UTagService) ctxhandler.CtxHandler {
 	return &PerformerTagHandler{ds: ds}
 }
 
 type PerformerTagHandler struct {
-	ds *store.Store
+	ds *utag.UTagService
 }
 
 func (h *PerformerTagHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
@@ -29,7 +31,7 @@ func (h *PerformerTagHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request,
 		common.SendError(rw, common.HTTPError{"Invalid performerID", http.StatusBadRequest, err}, false)
 	}
 
-	user := ctx.Value("user").(*store.User)
+	user := ctx.Value("user").(*user.User)
 	if user == nil {
 		common.SendError(rw, common.HTTPError{"Not logged in", http.StatusForbidden, nil}, false)
 		return
@@ -56,7 +58,7 @@ func (h *PerformerTagHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request,
 	}
 
 	//then get all tags for the event
-	tags, err := h.ds.FindPerformerUTags(int64(performerID), &store.UTagsFilter{Username: r.Form.Get("username")})
+	tags, err := h.ds.FindPerformerUTags(int64(performerID), &dcom.UTagsFilter{Username: r.Form.Get("username")})
 	if err != nil && err != sql.ErrNoRows {
 		common.SendError(rw, common.HTTPError{"Failed to get tags", http.StatusInternalServerError, err}, true)
 		return

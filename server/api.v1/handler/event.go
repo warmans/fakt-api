@@ -9,23 +9,24 @@ import (
 
 	"github.com/warmans/resty"
 	"github.com/warmans/fakt-api/server/api.v1/common"
-	"github.com/warmans/fakt-api/server/data"
-	"github.com/warmans/fakt-api/server/data/store"
+
 	"golang.org/x/net/context"
+	"github.com/warmans/fakt-api/server/data/service/event"
+	"github.com/warmans/fakt-api/server/data"
 )
 
-func NewEventHandler(ds *store.Store) resty.RESTHandler {
-	return &EventHandler{ds: ds}
+func NewEventHandler(ds *event.EventService) resty.RESTHandler {
+	return &EventHandler{es: ds}
 }
 
 type EventHandler struct {
 	resty.DefaultRESTHandler
-	ds     *store.Store
+	es     *event.EventService
 	ingest *data.Ingest
 }
 
 func (h *EventHandler) HandleGet(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	events, err := h.ds.FindEvents(h.filterFromRequest(r, ctx))
+	events, err := h.es.FindEvents(h.filterFromRequest(r, ctx))
 	if err != nil {
 		log.Print(err.Error())
 		common.SendResponse(rw, &common.Response{Status: http.StatusInternalServerError, Payload: nil})
@@ -34,9 +35,9 @@ func (h *EventHandler) HandleGet(rw http.ResponseWriter, r *http.Request, ctx co
 	common.SendResponse(rw, &common.Response{Status: http.StatusOK, Payload: events})
 }
 
-func (h *EventHandler) filterFromRequest(r *http.Request, ctx context.Context) *store.EventFilter {
+func (h *EventHandler) filterFromRequest(r *http.Request, ctx context.Context) *event.EventFilter {
 
-	filter := &store.EventFilter{
+	filter := &event.EventFilter{
 		EventIDs:          make([]int, 0),
 		VenueIDs:          make([]int64, 0),
 		Types:             make([]string, 0),

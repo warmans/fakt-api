@@ -13,7 +13,7 @@ import (
 	"fmt"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/warmans/fakt-api/server/data/store"
+	"github.com/warmans/fakt-api/server/data/service/common"
 	"golang.org/x/text/encoding/charmap"
 )
 
@@ -28,9 +28,9 @@ func (c *Crawler) Name() string {
 	return "stressfaktor"
 }
 
-func (c *Crawler) Crawl(localTime *time.Location) ([]*store.Event, error) {
+func (c *Crawler) Crawl(localTime *time.Location) ([]*common.Event, error) {
 
-	events := make([]*store.Event, 0)
+	events := make([]*common.Event, 0)
 
 	res, err := http.Get(c.TermineURI)
 	if err != nil {
@@ -54,12 +54,12 @@ func (c *Crawler) Crawl(localTime *time.Location) ([]*store.Event, error) {
 	return events, nil
 }
 
-func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection, localTime *time.Location) []*store.Event {
+func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection, localTime *time.Location) []*common.Event {
 
 	var dateStr string
 	var time time.Time
 	var failed bool
-	var events []*store.Event
+	var events []*common.Event
 
 	sel.Find("tr").Each(func(i int, tr *goquery.Selection) {
 
@@ -103,7 +103,7 @@ func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection, localTime *time
 	return events
 }
 
-func (c *Crawler) CreateEvent(time time.Time, body *goquery.Selection) (*store.Event, error) {
+func (c *Crawler) CreateEvent(time time.Time, body *goquery.Selection) (*common.Event, error) {
 
 	//attempt to parse venue address (not always set)
 	venueEl := body.Find("b").First()
@@ -128,9 +128,9 @@ func (c *Crawler) CreateEvent(time time.Time, body *goquery.Selection) (*store.E
 		return nil, errors.New("invalid title line")
 	}
 
-	e := &store.Event{
+	e := &common.Event{
 		Date: time,
-		Venue: &store.Venue{
+		Venue: &common.Venue{
 			Name:    StripHTML(html.UnescapeString(venueEl.Text())),
 			Address: StripHTML(html.UnescapeString(venueAddress)),
 		},

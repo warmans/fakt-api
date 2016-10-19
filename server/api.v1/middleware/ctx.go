@@ -7,18 +7,18 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/warmans/ctxhandler"
 	"github.com/warmans/fakt-api/server/api.v1/common"
-	"github.com/warmans/fakt-api/server/data/store"
 	"golang.org/x/net/context"
+	"github.com/warmans/fakt-api/server/data/service/user"
 )
 
-func AddCtx(nextHandler ctxhandler.CtxHandler, sess sessions.Store, users *store.UserStore, restrict bool) http.Handler {
+func AddCtx(nextHandler ctxhandler.CtxHandler, sess sessions.Store, users *user.UserStore, restrict bool) http.Handler {
 	return &CtxMiddleware{next: nextHandler, sessions: sess, users: users, restrict: restrict}
 }
 
 type CtxMiddleware struct {
 	next     ctxhandler.CtxHandler
 	sessions sessions.Store
-	users    *store.UserStore
+	users    *user.UserStore
 	restrict bool
 }
 

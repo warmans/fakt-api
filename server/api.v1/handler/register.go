@@ -8,11 +8,11 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/warmans/ctxhandler"
 	"github.com/warmans/fakt-api/server/api.v1/common"
-	"github.com/warmans/fakt-api/server/data/store"
 	"golang.org/x/net/context"
+	"github.com/warmans/fakt-api/server/data/service/user"
 )
 
-func NewRegisterHandler(users *store.UserStore, sess sessions.Store) ctxhandler.CtxHandler {
+func NewRegisterHandler(users *user.UserStore, sess sessions.Store) ctxhandler.CtxHandler {
 	return &RegisterHandler{users: users, sessions: sess}
 }
 
@@ -22,7 +22,7 @@ type RegisterPayload struct {
 }
 
 type RegisterHandler struct {
-	users    *store.UserStore
+	users    *user.UserStore
 	sessions sessions.Store
 }
 

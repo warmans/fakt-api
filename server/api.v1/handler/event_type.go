@@ -6,16 +6,16 @@ import (
 
 	"github.com/warmans/ctxhandler"
 	"github.com/warmans/fakt-api/server/api.v1/common"
-	"github.com/warmans/fakt-api/server/data/store"
 	"golang.org/x/net/context"
+	"github.com/warmans/fakt-api/server/data/service/event"
 )
 
-func NewEventTypeHandler(ds *store.Store) ctxhandler.CtxHandler {
+func NewEventTypeHandler(ds *event.EventService) ctxhandler.CtxHandler {
 	return &EventTypeHandler{ds: ds}
 }
 
 type EventTypeHandler struct {
-	ds *store.Store
+	ds *event.EventService
 }
 
 func (h *EventTypeHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {

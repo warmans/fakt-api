@@ -8,22 +8,22 @@ import (
 
 	"github.com/warmans/ctxhandler"
 	"github.com/warmans/fakt-api/server/api.v1/common"
-	"github.com/warmans/fakt-api/server/data/store"
 	"golang.org/x/net/context"
+	"github.com/warmans/fakt-api/server/data/service/performer"
 )
 
-func NewPerformerHandler(ds *store.Store) ctxhandler.CtxHandler {
+func NewPerformerHandler(ds *performer.PerformerService) ctxhandler.CtxHandler {
 	return &PerformerHandler{ds: ds}
 }
 
 type PerformerHandler struct {
-	ds *store.Store
+	ds *performer.PerformerService
 }
 
 func (h *PerformerHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
 
 	//query to filter
-	filter := &store.PerformerFilter{PerformerID: make([]int, 0)}
+	filter := &performer.PerformerFilter{PerformerID: make([]int, 0)}
 	if venue := r.Form.Get("performer"); venue != "" {
 		for _, idStr := range strings.Split(venue, ",") {
 			if idInt, err := strconv.Atoi(idStr); err == nil {

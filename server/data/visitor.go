@@ -1,14 +1,12 @@
-package store
+package data
 
 import (
 	"log"
 
+	"github.com/warmans/fakt-api/server/data/service/common"
+	"github.com/warmans/fakt-api/server/data/service/performer"
 	"github.com/warmans/go-bandcamp-search/bcamp"
 )
-
-type EventVisitor interface {
-	Visit(event *Event)
-}
 
 // BandcampVisitor embellishes event with data from Bandcamp
 type BandcampVisitor struct {
@@ -16,7 +14,7 @@ type BandcampVisitor struct {
 	VerboseLogging bool
 }
 
-func (v *BandcampVisitor) Visit(e *Event) {
+func (v *BandcampVisitor) Visit(e *common.Event) {
 
 	for k, performer := range e.Performers {
 		if performer.ID > 0 || performer.ListenURL != "" {
@@ -32,6 +30,7 @@ func (v *BandcampVisitor) Visit(e *Event) {
 			//todo: IMPORTANT mirror images locally rather than hotlinking
 			e.Performers[k].ListenURL = results[0].URL
 			e.Performers[k].Img = results[0].Art
+			e.Performers[k].Tags = results[0].Tags
 
 			//get some more data
 			artistInfo, err := v.Bandcamp.GetArtistPageInfo(results[0].URL)
@@ -42,9 +41,9 @@ func (v *BandcampVisitor) Visit(e *Event) {
 			e.Performers[k].Info = artistInfo.Bio
 			for _, link := range artistInfo.Links {
 				if e.Performers[k].Links == nil {
-					e.Performers[k].Links = make([]*Link, 0)
+					e.Performers[k].Links = make([]*common.Link, 0)
 				}
-				e.Performers[k].Links = append(e.Performers[k].Links, &Link{URI: link.URI, Text: link.Text})
+				e.Performers[k].Links = append(e.Performers[k].Links, &common.Link{URI: link.URI, Text: link.Text})
 			}
 			if v.VerboseLogging {
 				log.Printf("Search Result: %+v", results[0])
@@ -57,14 +56,14 @@ func (v *BandcampVisitor) Visit(e *Event) {
 // EventStoreVisitor embellishes event with data from local event store
 // this essentially just adds data we have already found in a previous
 // update to the incoming record so we can avoid re-fetching stuff.
-type EventStoreVisitor struct {
-	Store *Store
+type PerformerServiceVisitor struct {
+	PerformerService *performer.PerformerService
 }
 
-func (v *EventStoreVisitor) Visit(e *Event) {
+func (v *PerformerServiceVisitor) Visit(e *common.Event) {
 	//just replace whole performer if an existing one is found
-	for k, performer := range e.Performers {
-		existing, err := v.Store.FindPerformers(&PerformerFilter{Name: performer.Name, Genre: performer.Genre})
+	for k, perf := range e.Performers {
+		existing, err := v.PerformerService.FindPerformers(&performer.PerformerFilter{Name: perf.Name, Genre: perf.Genre})
 		if err != nil {
 			log.Print("failed to find perfomer visiting event: %s", err.Error())
 			return

@@ -8,22 +8,22 @@ import (
 
 	"github.com/warmans/ctxhandler"
 	"github.com/warmans/fakt-api/server/api.v1/common"
-	"github.com/warmans/fakt-api/server/data/store"
 	"golang.org/x/net/context"
+	"github.com/warmans/fakt-api/server/data/service/venue"
 )
 
-func NewVenueHandler(ds *store.Store) ctxhandler.CtxHandler {
+func NewVenueHandler(ds *venue.VenueService) ctxhandler.CtxHandler {
 	return &VenueHandler{ds: ds}
 }
 
 type VenueHandler struct {
-	ds *store.Store
+	ds *venue.VenueService
 }
 
 func (h *VenueHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
 
 	//query to filter
-	filter := &store.VenueFilter{VenueIDs: make([]int, 0)}
+	filter := &venue.VenueFilter{VenueIDs: make([]int, 0)}
 	if venue := r.Form.Get("venue"); venue != "" {
 		for _, idStr := range strings.Split(venue, ",") {
 			if idInt, err := strconv.Atoi(idStr); err == nil {

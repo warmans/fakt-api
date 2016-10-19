@@ -9,13 +9,18 @@ import (
 
 	"github.com/gorilla/sessions"
 	"github.com/warmans/dbr"
-	"github.com/warmans/go-bandcamp-search/bcamp"
 	v1 "github.com/warmans/fakt-api/server/api.v1"
 	"github.com/warmans/fakt-api/server/data"
+	"github.com/warmans/fakt-api/server/data/service/common"
+	"github.com/warmans/fakt-api/server/data/service/event"
+	"github.com/warmans/fakt-api/server/data/service/performer"
+	"github.com/warmans/fakt-api/server/data/service/user"
+	"github.com/warmans/fakt-api/server/data/service/utag"
+	"github.com/warmans/fakt-api/server/data/service/venue"
 	"github.com/warmans/fakt-api/server/data/source"
 	"github.com/warmans/fakt-api/server/data/source/k9"
-	"github.com/warmans/fakt-api/server/data/store"
 	"github.com/warmans/fakt-api/server/data/source/sfaktor"
+	"github.com/warmans/go-bandcamp-search/bcamp"
 )
 
 // VERSION is used in packaging
@@ -47,12 +52,15 @@ func (s *Server) Start() error {
 	defer db.Close()
 
 	//setup database (if required)
-	if err := store.InitializeSchema(db.NewSession(nil)); err != nil {
+	if err := data.InitializeSchema(db.NewSession(nil)); err != nil {
 		log.Fatalf("Failed to initialize local DB: %s", err.Error())
 	}
 
-	dataStore := &store.Store{DB: db.NewSession(nil)}
-	userStore := &store.UserStore{DB: db.NewSession(nil)}
+	utagStore := &utag.UTagService{DB: db.NewSession(nil)}
+	eventStore := &event.EventService{DB: db.NewSession(nil)}
+	performerStore := &performer.PerformerService{DB: db.NewSession(nil), UTagService: utagStore}
+	venueStore := &venue.VenueService{DB: db.NewSession(nil)}
+	userStore := &user.UserStore{DB: db.NewSession(nil)}
 
 	if s.conf.CrawlerRun {
 		dataIngest := data.Ingest{
@@ -62,10 +70,13 @@ func (s *Server) Start() error {
 				&sfaktor.Crawler{TermineURI: s.conf.CrawlerStressfaktorURI},
 				&k9.Crawler{},
 			},
-			EventVisitors: []store.EventVisitor{
-				&store.EventStoreVisitor{Store: dataStore},
-				&store.BandcampVisitor{Bandcamp: &bcamp.Bandcamp{HTTP: http.DefaultClient}, VerboseLogging: s.conf.VerboseLogging},
+			EventVisitors: []common.EventVisitor{
+				&data.PerformerServiceVisitor{PerformerService: performerStore},
+				&data.BandcampVisitor{Bandcamp: &bcamp.Bandcamp{HTTP: http.DefaultClient}, VerboseLogging: s.conf.VerboseLogging},
 			},
+			EventService:     eventStore,
+			PerformerService: performerStore,
+			VenueService:     venueStore,
 		}
 		go dataIngest.Run()
 	}
@@ -76,10 +87,13 @@ func (s *Server) Start() error {
 	}
 
 	API := v1.API{
-		AppVersion:   Version,
-		DataStore:    dataStore,
-		UserStore:    userStore,
-		SessionStore: sessions.NewCookieStore([]byte(s.conf.EncryptionKey)),
+		AppVersion:       Version,
+		UserService:      userStore,
+		EventService:     eventStore,
+		VenueService:     venueStore,
+		PerformerService: performerStore,
+		UTagService:      utagStore,
+		SessionStore:     sessions.NewCookieStore([]byte(s.conf.EncryptionKey)),
 	}
 
 	mux := http.NewServeMux()

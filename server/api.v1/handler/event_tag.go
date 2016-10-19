@@ -9,16 +9,18 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/warmans/ctxhandler"
 	"github.com/warmans/fakt-api/server/api.v1/common"
-	"github.com/warmans/fakt-api/server/data/store"
 	"golang.org/x/net/context"
+	"github.com/warmans/fakt-api/server/data/service/user"
+	"github.com/warmans/fakt-api/server/data/service/utag"
+	dcom "github.com/warmans/fakt-api/server/data/service/common"
 )
 
-func NewEventTagHandler(ds *store.Store) ctxhandler.CtxHandler {
-	return &EventTagHandler{ds: ds}
+func NewEventTagHandler(uts *utag.UTagService) ctxhandler.CtxHandler {
+	return &EventTagHandler{uts: uts}
 }
 
 type EventTagHandler struct {
-	ds *store.Store
+	uts  *utag.UTagService
 }
 
 func (h *EventTagHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
@@ -29,7 +31,7 @@ func (h *EventTagHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx
 		common.SendError(rw, common.HTTPError{"Invalid eventID", http.StatusBadRequest, err}, false)
 	}
 
-	user := ctx.Value("user").(*store.User)
+	user := ctx.Value("user").(*user.User)
 	if user == nil {
 		common.SendError(rw, common.HTTPError{"Not logged in", http.StatusForbidden, nil}, false)
 		return
@@ -43,20 +45,20 @@ func (h *EventTagHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx
 
 	//store any submitted tags
 	if r.Method == "POST" {
-		if err := h.ds.StoreEventUTags(int64(eventId), user.ID, payload); err != nil {
+		if err := h.uts.StoreEventUTags(int64(eventId), user.ID, payload); err != nil {
 			common.SendError(rw, common.HTTPError{"Failed to save tags", http.StatusInternalServerError, err}, true)
 			return
 		}
 	}
 	if r.Method == "DELETE" {
-		if err := h.ds.RemoveEventUTags(int64(eventId), user.ID, payload); err != nil {
+		if err := h.uts.RemoveEventUTags(int64(eventId), user.ID, payload); err != nil {
 			common.SendError(rw, common.HTTPError{"Failed to save tags", http.StatusInternalServerError, err}, true)
 			return
 		}
 	}
 
 	//then get all tags for the event
-	tags, err := h.ds.FindEventUTags(int64(eventId), &store.UTagsFilter{Username: r.Form.Get("username")})
+	tags, err := h.uts.FindEventUTags(int64(eventId), &dcom.UTagsFilter{Username: r.Form.Get("username")})
 	if err != nil && err != sql.ErrNoRows {
 		common.SendError(rw, common.HTTPError{"Failed to get tags", http.StatusInternalServerError, err}, true)
 		return

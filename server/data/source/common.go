@@ -3,12 +3,13 @@ package source
 import (
 	"time"
 
-	"github.com/warmans/fakt-api/server/data/store"
 	"log"
+
+	"github.com/warmans/fakt-api/server/data/service/common"
 )
 
 type Crawler interface {
-	Crawl(localTime *time.Location) ([]*store.Event, error)
+	Crawl(localTime *time.Location) ([]*common.Event, error)
 	Name() string
 }
 

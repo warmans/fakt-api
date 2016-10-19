@@ -8,8 +8,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/warmans/fakt-api/server/data/store"
 	"github.com/ungerik/go-rss"
+	"github.com/warmans/fakt-api/server/data/service/common"
 )
 
 var dateRegex = regexp.MustCompile(`[^0-9]+([0-9]{2})\.([0-9]{2})\.([0-9]{4})[^0-9]+([0-9]{2})\.([0-9]{2})`)
@@ -26,8 +26,8 @@ func (c *Crawler) Name() string {
 	return "k9"
 }
 
-func (c *Crawler) Crawl(localTime *time.Location) ([]*store.Event, error) {
-	events := make([]*store.Event, 0)
+func (c *Crawler) Crawl(localTime *time.Location) ([]*common.Event, error) {
+	events := make([]*common.Event, 0)
 
 	channel, err := rss.Read(K9FeedURI)
 	if err != nil {
@@ -42,7 +42,7 @@ func (c *Crawler) Crawl(localTime *time.Location) ([]*store.Event, error) {
 	return events, nil
 }
 
-func eventFromFeedItem(item rss.Item, localTime *time.Location) *store.Event {
+func eventFromFeedItem(item rss.Item, localTime *time.Location) *common.Event {
 
 	date, err := dateFromTitle(item.Title, localTime)
 	if err != nil {
@@ -50,9 +50,9 @@ func eventFromFeedItem(item rss.Item, localTime *time.Location) *store.Event {
 		return nil
 	}
 
-	return &store.Event{
+	return &common.Event{
 		Date: date,
-		Venue: &store.Venue{
+		Venue: &common.Venue{
 			Name:    K9Name,
 			Address: K9Address,
 		},

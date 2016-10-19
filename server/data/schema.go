@@ -1,4 +1,4 @@
-package store
+package data
 
 import (
 	"github.com/warmans/dbr"
@@ -44,11 +44,18 @@ func InitializeSchema(sess *dbr.Session) error {
 			link_type TEXT NULL,
 			link_description TEXT NULL
 		);`,
+		//a user tag is just a "reaction" e.g. like, dislike
 		`CREATE TABLE IF NOT EXISTS performer_user_tag (
 			performer_id INTEGER,
 			user_id INTEGER,
 			tag TEXT,
 			PRIMARY KEY (performer_id, user_id, tag)
+		);`,
+		//a tag is a random attribute to associate performers
+		`CREATE TABLE IF NOT EXISTS performer_tag (
+			performer_id INTEGER,
+			tag_id INTEGER,
+			PRIMARY KEY (performer_id, tag_id)
 		);`,
 		`CREATE TABLE IF NOT EXISTS event_performer (
 			event_id INTEGER,
@@ -67,6 +74,11 @@ func InitializeSchema(sess *dbr.Session) error {
 			password TEXT,
 			admin BOOLEAN DEFAULT 0,
 			CONSTRAINT username_uniq UNIQUE (username)
+		);`,
+		`CREATE TABLE IF NOT EXISTS tag (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			tag TEXT,
+			CONSTRAINT tag_uniq UNIQUE (tag)
 		);`,
 	}
 
