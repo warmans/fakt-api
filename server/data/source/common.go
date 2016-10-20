@@ -3,21 +3,21 @@ package source
 import (
 	"time"
 
-	"log"
+	"fmt"
 
 	"github.com/warmans/fakt-api/server/data/service/common"
 )
 
 type Crawler interface {
-	Crawl(localTime *time.Location) ([]*common.Event, error)
+	Crawl() ([]*common.Event, error)
 	Name() string
 }
 
-func MustMakeTimeLocation(locationName string) *time.Location {
+func MustMakeTimeLocation(locationName string) (*time.Location, error) {
 	var err error
 	localTime, err := time.LoadLocation(locationName)
 	if err != nil {
-		log.Printf("Cannot load localtime (%s). Event times may be wrong.", err.Error())
+		return nil, fmt.Errorf("Failed to create time location %s because %s", locationName, err.Error())
 	}
-	return localTime
+	return localTime, nil
 }

@@ -1,7 +1,6 @@
 package data
 
 import (
-	"log"
 	"time"
 
 	"sync"
@@ -9,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/go-kit/kit/log"
 	"github.com/warmans/dbr"
 	"github.com/warmans/fakt-api/server/data/service/common"
 	"github.com/warmans/fakt-api/server/data/service/event"
@@ -18,14 +18,17 @@ import (
 )
 
 type Ingest struct {
-	DB              *dbr.Session
-	UpdateFrequency time.Duration
-	EventVisitors   []common.EventVisitor
-	Crawlers        []source.Crawler
+	DB               *dbr.Session
+	UpdateFrequency  time.Duration
+	EventVisitors    []common.EventVisitor
+	Crawlers         []source.Crawler
+	timezone         *time.Location
 
 	EventService     *event.EventService
 	VenueService     *venue.VenueService
 	PerformerService *performer.PerformerService
+
+	Logger           log.Logger
 }
 
 func (i *Ingest) Run() {
@@ -36,19 +39,21 @@ func (i *Ingest) Run() {
 			go func(c source.Crawler) {
 
 				defer wg.Done()
-				log.Printf("%T | Crawling...", c)
-				events, err := c.Crawl(source.MustMakeTimeLocation("Europe/Berlin"))
+				logger := log.NewContext(i.Logger).With("crawler", fmt.Sprintf("%T", c))
+
+				logger.Log("msg", "crawling")
+				events, err := c.Crawl()
 				if err != nil {
-					log.Printf("%T | Failed failed crawling: %s", c, err.Error())
+					logger.Log("msg", fmt.Sprintf("Failed failed crawling: %s", err.Error()))
 					return
 				}
 
-				log.Printf("%T | Discovered %d events", c, len(events))
+				logger.Log("msg", fmt.Sprintf("Discovered %d events", len(events)))
 				for _, event := range events {
 					//append the source to all events
 					event.Source = c.Name()
 					if err := i.Ingest(event); err != nil {
-						log.Printf("%T | Failed to ingest event: %s", c, err.Error())
+						logger.Log("msg", fmt.Sprintf("Failed to ingest event: %s", err.Error()))
 					}
 				}
 			}(c)
@@ -106,10 +111,10 @@ func (i *Ingest) Ingest(event *common.Event) error {
 func (s *Ingest) Cleanup() {
 	res, err := s.DB.Exec(`UPDATE event SET deleted=1 WHERE date(date) < date('now') AND deleted=0`)
 	if err != nil {
-		log.Printf("Cleaned failed: %s", err.Error())
+		s.Logger.Log("msg", "Cleaned failed "+err.Error())
 		return
 	}
 
 	affected, _ := res.RowsAffected()
-	log.Printf("Cleaned up %d rows", affected)
+	s.Logger.Log(fmt.Sprintf("Cleaned up %d rows", affected))
 }

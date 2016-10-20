@@ -1,10 +1,18 @@
-hash: c321e333321d876c4eee5a2896c3b78b62230c92b3f9607721358155d2fc6bc4
-updated: 2016-09-28T20:42:36.14654575+02:00
+hash: beb6528454c4777e85aad235258f82dd42378f3b0476a88e43f10be364bdd743
+updated: 2016-10-20T21:14:44.344912349+02:00
 imports:
 - name: github.com/andybalholm/cascadia
   version: 3ad29d1ad1c4f2023e355603324348cf1f4b2d48
 - name: github.com/djimenez/iconv-go
   version: 8960e66bd3dacbc8773962b40eb82fc18c63c127
+- name: github.com/go-kit/kit
+  version: 05d576d792f0917676597bf6b3ac5054eb4e679a
+  subpackages:
+  - log
+- name: github.com/go-logfmt/logfmt
+  version: d4327190ff838312623b09bfeb50d7c93c8d9c1d
+- name: github.com/go-stack/stack
+  version: 100eb0c0a9c5b306ca2fb4f165df21d80ada4b82
 - name: github.com/gorilla/context
   version: 1ea25387ff6f684839d82767c1733ff4d4d15d0a
 - name: github.com/gorilla/mux
@@ -13,6 +21,8 @@ imports:
   version: 8dacca26977607e637262eb66b15b7d39f2d3009
 - name: github.com/gorilla/sessions
   version: a1216e0aed834aa9074063dd4085f5c3df8d1fab
+- name: github.com/kr/logfmt
+  version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
 - name: github.com/mattn/go-sqlite3
   version: 37aa7c6f5bc95b7264de70cd1f0ca1d39228ebd6
 - name: github.com/paulrosania/go-charset
@@ -34,6 +44,25 @@ imports:
   version: 3c1c54f637871b1b2513b2737d80d79ba7d40376
   subpackages:
   - dialect
+- name: github.com/warmans/fakt-api
+  version: 35777cabc31ca45c37a486cebc0458f742598434
+  subpackages:
+  - server
+  - server/api.v1
+  - server/data
+  - server/data/service/common
+  - server/data/service/event
+  - server/data/service/performer
+  - server/data/service/user
+  - server/data/service/utag
+  - server/data/service/venue
+  - server/data/source
+  - server/data/source/k9
+  - server/data/source/sfaktor
+  - server/api.v1/handler
+  - server/api.v1/middleware
+  - server/api.v1/common
+  - server/data/service/tag
 - name: github.com/warmans/go-bandcamp-search
   version: bf1aefe60d892be9d9caf5098f0fc4260dade9d3
   subpackages:
@@ -52,7 +81,11 @@ imports:
   - html
   - html/atom
 - name: golang.org/x/text
-  version: a7c023693a94aedd6b6df43ae7526bfe9d2b7d22
+  version: 5a42fa2464759cbb7ee0af9de00b54d69f09a29c
   subpackages:
   - transform
+  - encoding/charmap
+  - encoding
+  - encoding/internal
+  - encoding/internal/identifier
 devImports: []

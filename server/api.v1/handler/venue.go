@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -10,6 +9,7 @@ import (
 	"github.com/warmans/fakt-api/server/api.v1/common"
 	"golang.org/x/net/context"
 	"github.com/warmans/fakt-api/server/data/service/venue"
+	"github.com/go-kit/kit/log"
 )
 
 func NewVenueHandler(ds *venue.VenueService) ctxhandler.CtxHandler {
@@ -22,8 +22,13 @@ type VenueHandler struct {
 
 func (h *VenueHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
 
+	logger, ok := ctx.Value("logger").(log.Logger)
+	if !ok {
+		panic("Context must contain a logger")
+	}
+
 	//query to filter
-	filter := &venue.VenueFilter{VenueIDs: make([]int, 0)}
+	filter := &venue.VenueFilter{VenueIDs: make([]int, 0), Name: r.Form.Get("name")}
 	if venue := r.Form.Get("venue"); venue != "" {
 		for _, idStr := range strings.Split(venue, ",") {
 			if idInt, err := strconv.Atoi(idStr); err == nil {
@@ -32,12 +37,9 @@ func (h *VenueHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx co
 		}
 	}
 
-	filter.Name = r.Form.Get("name")
-
 	venues, err := h.ds.FindVenues(filter)
 	if err != nil {
-		log.Print(err.Error())
-		common.SendResponse(rw, &common.Response{Status: http.StatusInternalServerError, Payload: nil})
+		common.SendError(rw, err, logger)
 		return
 	}
 

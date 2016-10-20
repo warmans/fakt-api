@@ -2,12 +2,14 @@ package performer
 
 import (
 	"database/sql"
-	"log"
+
+	"fmt"
+	"strings"
 
 	"github.com/warmans/dbr"
 	"github.com/warmans/fakt-api/server/data/service/common"
-	"github.com/warmans/fakt-api/server/data/service/tag"
 	"github.com/warmans/fakt-api/server/data/service/utag"
+	"github.com/go-kit/kit/log"
 )
 
 type PerformerFilter struct {
@@ -20,7 +22,7 @@ type PerformerFilter struct {
 type PerformerService struct {
 	DB          *dbr.Session
 	UTagService *utag.UTagService
-	TagService  *tag.TagService
+	Logger      log.Logger
 }
 
 func (ps *PerformerService) PerformerMustExist(tr *dbr.Tx, performer *common.Performer) error {
@@ -81,13 +83,13 @@ func (ps *PerformerService) PerformerMustExist(tr *dbr.Tx, performer *common.Per
 			link.Text,
 		)
 		if err != nil {
-			log.Print("Failed to insert performer_extra: %s", err.Error())
+			ps.Logger.Log("msg", fmt.Sprintf("Failed to insert performer_extra: %s", err.Error()))
 			continue
 		}
 	}
 
 	//try and store tags but if it fails it's not the end of the world
-	ps.TagService.StorePerformerTags(tr, performer.ID, performer.Tags)
+	ps.StorePerformerTags(tr, performer.ID, performer.Tags)
 
 	return nil
 }
@@ -122,12 +124,14 @@ func (s *PerformerService) FindPerformers(filter *PerformerFilter) ([]*common.Pe
 		}
 		performers[k].Links = links
 
-		//append the tags
+		//append the utags
 		tags, err := s.UTagService.FindPerformerUTags(performer.ID, &common.UTagsFilter{})
 		if err != nil {
 			return nil, err
 		}
 		performers[k].UTags = tags
+
+		//todo add tags
 	}
 
 	return performers, nil
@@ -145,3 +149,51 @@ func (s *PerformerService) FindPerformerLinks(performerId int64) ([]*common.Link
 	}
 	return links, nil
 }
+
+func (s *PerformerService) StorePerformerTags(tr *dbr.Tx, performerID int64, tags []string) {
+	//handle tags
+	if _, err := tr.Exec("DELETE FROM performer_tag WHERE performer_id = ?", performerID); err != nil {
+		s.Logger.Log("msg", fmt.Sprintf("Failed to insert performer_extra: %s", err.Error()))
+		s.Logger.Log("msg", fmt.Sprintf("Failed to delete existing performer_tag relationships (perfomer: %d) because %s", performerID, err.Error()))
+	}
+
+	//todo: move this into new tag service
+	for _, tag := range tags {
+
+		var tagId int64
+		tag = strings.ToLower(tag)
+
+		err := s.DB.QueryRow("SELECT id FROM tag WHERE tag = ?", tag).Scan(&tagId)
+		if err != nil && err != sql.ErrNoRows {
+			s.Logger.Log("msg", fmt.Sprintf("Failed to find tag id for %s because %s", tag, err.Error()))
+			continue
+		}
+		if tagId == 0 {
+			res, err := tr.Exec("INSERT OR IGNORE INTO tag (tag) VALUES (?)", tag)
+			if err != nil {
+				s.Logger.Log("msg", fmt.Sprintf("Failed to insert tag %s because %s", tag, err.Error()))
+				continue
+			}
+			//todo: does this work with OR IGNORE?
+			tagId, err = res.LastInsertId()
+			if err != nil {
+				s.Logger.Log("msg", fmt.Sprintf("Failed to get inserted tag id because %s", err.Error()))
+				continue
+			}
+		}
+
+		if _, err := tr.Exec("INSERT OR IGNORE INTO performer_tag (performer_id, tag_id) VALUES (?, ?)", performerID, tagId); err != nil {
+			s.Logger.Log("msg", fmt.Sprintf("Failed to insert performer_tag relationship (perfomer: %d, tag: %s, tagId: %d) because %s", performerID, tag, tagId, err.Error()))
+			continue
+		}
+	}
+}
+//
+//func (ts *PerformerService) FindPerformerTags(tr *dbr.Tx, performerID int64) ([]string, error) {
+//
+//	res, err := tr.Query("SELECT t.tag FROM performer_tag pt LEFT JOIN t tag ON pt.tag_id = tag.id WHERE pt.performer_id = ?", performerID)
+//	if err != nil {
+//		return []string{}, fmt.Errorf("Failed to fetch tags at query")
+//	}
+//
+//}

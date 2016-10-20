@@ -1,12 +1,14 @@
 package server
 
 import (
-	"log"
 	"net/http"
 	"time"
 
 	"fmt"
 
+	"os"
+
+	"github.com/go-kit/kit/log"
 	"github.com/gorilla/sessions"
 	"github.com/warmans/dbr"
 	v1 "github.com/warmans/fakt-api/server/api.v1"
@@ -21,7 +23,6 @@ import (
 	"github.com/warmans/fakt-api/server/data/source/k9"
 	"github.com/warmans/fakt-api/server/data/source/sfaktor"
 	"github.com/warmans/go-bandcamp-search/bcamp"
-	"github.com/warmans/fakt-api/server/data/service/tag"
 )
 
 // VERSION is used in packaging
@@ -37,8 +38,13 @@ type Config struct {
 	VerboseLogging         bool
 }
 
+func NewServer(conf *Config, logger log.Logger) *Server {
+	return &Server{conf: conf, logger: logger}
+}
+
 type Server struct {
-	conf *Config
+	conf   *Config
+	logger log.Logger
 }
 
 func (s *Server) Start() error {
@@ -48,30 +54,35 @@ func (s *Server) Start() error {
 
 	db, err := dbr.Open("sqlite3", s.conf.DbPath, nil)
 	if err != nil {
-		log.Fatalf("Failed to open DB: %s", err.Error())
+		s.logger.Log("msg", fmt.Sprintf("Failed to open DB: %s", err.Error()))
+		os.Exit(1)
 	}
 	defer db.Close()
 
 	//setup database (if required)
 	if err := data.InitializeSchema(db.NewSession(nil)); err != nil {
-		log.Fatalf("Failed to initialize local DB: %s", err.Error())
+		s.logger.Log("msg", fmt.Sprintf("Failed to initialize local DB: %s", err.Error()))
+		os.Exit(1)
 	}
 
 	utagService := &utag.UTagService{DB: db.NewSession(nil)}
-	tagService := &tag.TagService{DB: db.NewSession(nil)}
 	eventService := &event.EventService{DB: db.NewSession(nil)}
-	performerService := &performer.PerformerService{DB: db.NewSession(nil), UTagService: utagService, TagService: tagService}
+	performerService := &performer.PerformerService{DB: db.NewSession(nil), UTagService: utagService, Logger: s.logger}
 	venueService := &venue.VenueService{DB: db.NewSession(nil)}
 	userService := &user.UserStore{DB: db.NewSession(nil)}
 
-
 	if s.conf.CrawlerRun {
+		tz, err := source.MustMakeTimeLocation("Europe/Berlin")
+		if err != nil {
+			panic(err.Error())
+		}
+
 		dataIngest := data.Ingest{
 			DB:              db.NewSession(nil),
 			UpdateFrequency: time.Duration(1) * time.Hour,
 			Crawlers: []source.Crawler{
-				&sfaktor.Crawler{TermineURI: s.conf.CrawlerStressfaktorURI},
-				&k9.Crawler{},
+				&sfaktor.Crawler{TermineURI: s.conf.CrawlerStressfaktorURI, Timezone: tz},
+				&k9.Crawler{Timezone: tz, Logger: log.NewContext(s.logger).With("component", "k9crawler")},
 			},
 			EventVisitors: []common.EventVisitor{
 				&data.PerformerServiceVisitor{PerformerService: performerService},
@@ -80,6 +91,7 @@ func (s *Server) Start() error {
 			EventService:     eventService,
 			PerformerService: performerService,
 			VenueService:     venueService,
+			Logger:           log.NewContext(s.logger).With("component", "ingest"),
 		}
 		go dataIngest.Run()
 	}
@@ -97,15 +109,12 @@ func (s *Server) Start() error {
 		PerformerService: performerService,
 		UTagService:      utagService,
 		SessionStore:     sessions.NewCookieStore([]byte(s.conf.EncryptionKey)),
+		Logger:           s.logger,
 	}
 
 	mux := http.NewServeMux()
 	mux.Handle("/api/v1/", http.StripPrefix("/api/v1", API.NewServeMux()))
 
-	log.Printf("API listening on %s", s.conf.ServerBind)
+	s.logger.Log("msg", fmt.Sprintf("API listening on %s", s.conf.ServerBind))
 	return http.ListenAndServe(s.conf.ServerBind, mux)
-}
-
-func NewServer(conf *Config) *Server {
-	return &Server{conf: conf}
 }

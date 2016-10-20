@@ -24,3 +24,6 @@ import:
 - package: golang.org/x/text
   subpackages:
   - transform
+- package: github.com/go-kit/kit
+  subpackages:
+  - log

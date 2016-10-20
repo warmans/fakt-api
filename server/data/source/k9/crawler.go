@@ -5,9 +5,9 @@ import (
 	"regexp"
 	"time"
 
-	"log"
 	"strings"
 
+	"github.com/go-kit/kit/log"
 	"github.com/ungerik/go-rss"
 	"github.com/warmans/fakt-api/server/data/service/common"
 )
@@ -20,13 +20,16 @@ const (
 	K9Address = "Kinzigstr. 9, 10247 Berlin"
 )
 
-type Crawler struct{}
+type Crawler struct {
+	Timezone *time.Location
+	Logger   log.Logger
+}
 
 func (c *Crawler) Name() string {
 	return "k9"
 }
 
-func (c *Crawler) Crawl(localTime *time.Location) ([]*common.Event, error) {
+func (c *Crawler) Crawl() ([]*common.Event, error) {
 	events := make([]*common.Event, 0)
 
 	channel, err := rss.Read(K9FeedURI)
@@ -35,18 +38,18 @@ func (c *Crawler) Crawl(localTime *time.Location) ([]*common.Event, error) {
 	}
 
 	for _, itm := range channel.Item {
-		if event := eventFromFeedItem(itm, localTime); event != nil {
+		if event := c.eventFromFeedItem(itm, c.Timezone); event != nil {
 			events = append(events, event)
 		}
 	}
 	return events, nil
 }
 
-func eventFromFeedItem(item rss.Item, localTime *time.Location) *common.Event {
+func (c *Crawler) eventFromFeedItem(item rss.Item, localTime *time.Location) *common.Event {
 
 	date, err := dateFromTitle(item.Title, localTime)
 	if err != nil {
-		log.Print("Failed to parse date in K9 RSS: %s", err.Error())
+		c.Logger.Log("msg", fmt.Sprintf("Failed to parse date in K9 RSS: %s", err.Error()))
 		return nil
 	}
 

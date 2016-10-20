@@ -18,7 +18,7 @@ func (h *MeHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx conte
 
 	user := ctx.Value("user")
 	if user == nil {
-		common.SendError(rw, common.HTTPError{"Not logged in", http.StatusForbidden, nil}, false)
+		common.SendError(rw, common.HTTPError{"Not logged in", http.StatusForbidden, nil}, nil)
 		return
 	}
 

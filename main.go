@@ -3,12 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/warmans/fakt-api/server"
+	"github.com/go-kit/kit/log"
 )
 
 var (
@@ -41,5 +41,7 @@ func main() {
 		VerboseLogging:         *verbose,
 	}
 
-	log.Fatal(server.NewServer(config).Start())
+	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout))
+	logger = log.NewContext(logger).With("ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
+	logger.Log(server.NewServer(config, logger).Start())
 }

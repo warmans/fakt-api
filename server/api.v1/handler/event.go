@@ -1,18 +1,18 @@
 package handler
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/warmans/resty"
 	"github.com/warmans/fakt-api/server/api.v1/common"
+	"github.com/warmans/resty"
 
-	"golang.org/x/net/context"
-	"github.com/warmans/fakt-api/server/data/service/event"
+	"github.com/go-kit/kit/log"
 	"github.com/warmans/fakt-api/server/data"
+	"github.com/warmans/fakt-api/server/data/service/event"
+	"golang.org/x/net/context"
 )
 
 func NewEventHandler(ds *event.EventService) resty.RESTHandler {
@@ -26,10 +26,15 @@ type EventHandler struct {
 }
 
 func (h *EventHandler) HandleGet(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
+
+	logger, ok := ctx.Value("logger").(log.Logger)
+	if !ok {
+		panic("Context must contain a logger")
+	}
+
 	events, err := h.es.FindEvents(h.filterFromRequest(r, ctx))
 	if err != nil {
-		log.Print(err.Error())
-		common.SendResponse(rw, &common.Response{Status: http.StatusInternalServerError, Payload: nil})
+		common.SendError(rw, err, logger)
 		return
 	}
 	common.SendResponse(rw, &common.Response{Status: http.StatusOK, Payload: events})

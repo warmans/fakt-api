@@ -3,8 +3,8 @@ package common
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
+	"github.com/go-kit/kit/log"
 )
 
 type Response struct {
@@ -31,9 +31,10 @@ func (e HTTPError) Error() string {
 	return fmt.Sprintf("%s (caused by: %s)", e.Msg, e.LastErr.Error())
 }
 
-func SendError(rw http.ResponseWriter, err error, writeToLog bool) {
-	if writeToLog {
-		log.Print(err.Error())
+func SendError(rw http.ResponseWriter, err error, logger log.Logger) {
+
+	if logger != nil {
+		logger.Log("msg", err)
 	}
 
 	code := 500

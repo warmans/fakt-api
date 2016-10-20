@@ -1,7 +1,6 @@
 package common
 
 import (
-	"log"
 	"regexp"
 	"strings"
 	"time"
@@ -35,7 +34,6 @@ func (e *Event) GuessPerformers() {
 	for _, raw := range result {
 		parts := spaceRe.Split(raw, -1)
 		if len(parts) != 2 {
-			log.Printf("%s did not have enough parts", raw)
 			continue
 		}
 

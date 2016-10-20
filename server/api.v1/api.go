@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 
+	"github.com/go-kit/kit/log"
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -24,7 +25,8 @@ type API struct {
 	UserService      *user.UserStore
 	UTagService      *utag.UTagService
 
-	SessionStore sessions.Store
+	SessionStore     sessions.Store
+	Logger           log.Logger
 }
 
 func (a *API) NewServeMux() http.Handler {
@@ -36,7 +38,7 @@ func (a *API) NewServeMux() http.Handler {
 	)
 	mux.Handle(
 		"/event/{id:[0-9]+}/tag",
-		mw.AddCtx(handler.NewEventTagHandler(a.UTagService), a.SessionStore, a.UserService, false),
+		mw.AddCtx(handler.NewEventTagHandler(a.UTagService, a.Logger), a.SessionStore, a.UserService, false),
 	)
 	mux.Handle(
 		"/event_type",
@@ -52,13 +54,13 @@ func (a *API) NewServeMux() http.Handler {
 	)
 	mux.Handle(
 		"/performer/{id:[0-9]+}/tag",
-		mw.AddCtx(handler.NewPerformerTagHandler(a.UTagService), a.SessionStore, a.UserService, false),
+		mw.AddCtx(handler.NewPerformerTagHandler(a.UTagService, a.Logger), a.SessionStore, a.UserService, false),
 	)
 
 	//user
 	mux.Handle(
 		"/login",
-		mw.AddCtx(handler.NewLoginHandler(a.UserService, a.SessionStore), a.SessionStore, a.UserService, false),
+		mw.AddCtx(handler.NewLoginHandler(a.UserService, a.SessionStore, a.Logger), a.SessionStore, a.UserService, false),
 	)
 	mux.Handle(
 		"/logout",
@@ -67,7 +69,7 @@ func (a *API) NewServeMux() http.Handler {
 
 	mux.Handle(
 		"/register",
-		mw.AddCtx(handler.NewRegisterHandler(a.UserService, a.SessionStore), a.SessionStore, a.UserService, false),
+		mw.AddCtx(handler.NewRegisterHandler(a.UserService, a.SessionStore, a.Logger), a.SessionStore, a.UserService, false),
 	)
 	mux.Handle(
 		"/me",
@@ -92,10 +94,4 @@ func (a *API) NewServeMux() http.Handler {
 	)
 
 	return mw.AddSetup(handler)
-}
-
-func handleAll(mux *mux.Router, handler http.Handler, routes ...string) {
-	for _, route := range routes {
-		mux.Handle(route, handler)
-	}
 }

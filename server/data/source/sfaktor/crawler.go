@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"html"
-	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -15,6 +14,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/warmans/fakt-api/server/data/service/common"
 	"golang.org/x/text/encoding/charmap"
+	"github.com/go-kit/kit/log"
 )
 
 var validDate = regexp.MustCompile(`^[A-Za-z]+, [0-9]{2}\.[0-9]{2}\.[0-9]{4}$`)
@@ -22,13 +22,15 @@ var validTime = regexp.MustCompile(`^[0-9]{2}\.[0-9]{2}$`)
 
 type Crawler struct {
 	TermineURI string
+	Timezone   *time.Location
+	Logger     log.Logger
 }
 
 func (c *Crawler) Name() string {
 	return "stressfaktor"
 }
 
-func (c *Crawler) Crawl(localTime *time.Location) ([]*common.Event, error) {
+func (c *Crawler) Crawl() ([]*common.Event, error) {
 
 	events := make([]*common.Event, 0)
 
@@ -48,7 +50,7 @@ func (c *Crawler) Crawl(localTime *time.Location) ([]*common.Event, error) {
 
 	//select the main data column and handle all the sub-tables
 	doc.Find("body > table:nth-child(4) > tbody > tr > td:nth-child(2) > table").Each(func(i int, sel *goquery.Selection) {
-		events = append(events, c.HandleDateTable(i, sel, localTime)...)
+		events = append(events, c.HandleDateTable(i, sel, c.Timezone)...)
 	})
 
 	return events, nil
@@ -71,7 +73,7 @@ func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection, localTime *time
 		if dateStr == "" {
 			dateStr = strings.TrimSpace(tr.Find("td > span").First().Text())
 			if !validDate.MatchString(dateStr) {
-				log.Printf("Invalid date string: %s", dateStr)
+				c.Logger.Log("msg", fmt.Sprintf("Invalid date string: %s", dateStr))
 				failed = true
 			}
 			return //move on
@@ -80,20 +82,20 @@ func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection, localTime *time
 		//each row has a time
 		timeStr := strings.TrimSpace(tr.Find("td > span").First().Text())
 		if validTime.MatchString(timeStr) {
-			log.Printf("Invalid time string: %s", timeStr)
+			c.Logger.Log("msg", fmt.Sprintf("Invalid time string: %s", timeStr))
 			return //don't fail
 		}
 
 		var err error
 		time, err = ParseTime(dateStr, timeStr, localTime)
 		if err != nil {
-			log.Printf("Failed to parse date: %s %s (%s)", dateStr, timeStr, err.Error())
+			c.Logger.Log("msg", fmt.Sprintf("Failed to parse date: %s %s (%s)", dateStr, timeStr, err.Error()))
 			return
 		}
 
 		event, err := c.CreateEvent(time, tr.Find("td").Last())
 		if err != nil {
-			log.Printf("Failed to create event: %s", err.Error())
+			c.Logger.Log("msg", fmt.Sprintf("Failed to create event: %s", err.Error()))
 			return
 		}
 

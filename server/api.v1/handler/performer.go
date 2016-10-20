@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -10,6 +9,7 @@ import (
 	"github.com/warmans/fakt-api/server/api.v1/common"
 	"golang.org/x/net/context"
 	"github.com/warmans/fakt-api/server/data/service/performer"
+	"github.com/go-kit/kit/log"
 )
 
 func NewPerformerHandler(ds *performer.PerformerService) ctxhandler.CtxHandler {
@@ -21,6 +21,11 @@ type PerformerHandler struct {
 }
 
 func (h *PerformerHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
+
+	logger, ok := ctx.Value("logger").(log.Logger)
+	if !ok {
+		panic("Context must contain a logger")
+	}
 
 	//query to filter
 	filter := &performer.PerformerFilter{PerformerID: make([]int, 0)}
@@ -37,8 +42,7 @@ func (h *PerformerHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ct
 
 	performers, err := h.ds.FindPerformers(filter)
 	if err != nil {
-		log.Print(err.Error())
-		common.SendResponse(rw, &common.Response{Status: http.StatusInternalServerError, Payload: nil})
+		common.SendError(rw, err, logger)
 		return
 	}
 
