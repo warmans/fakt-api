@@ -11,8 +11,8 @@ import (
 	"github.com/go-kit/kit/log"
 )
 
-func AddCtx(nextHandler ctxhandler.CtxHandler, sess sessions.Store, users *user.UserStore, restrict bool) http.Handler {
-	return &CtxMiddleware{next: nextHandler, sessions: sess, users: users, restrict: restrict}
+func AddCtx(nextHandler ctxhandler.CtxHandler, sess sessions.Store, users *user.UserStore, restrict bool, logger log.Logger) http.Handler {
+	return &CtxMiddleware{next: nextHandler, sessions: sess, users: users, restrict: restrict, logger: logger}
 }
 
 type CtxMiddleware struct {

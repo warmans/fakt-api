@@ -13,7 +13,7 @@ import (
 type BandcampVisitor struct {
 	Bandcamp       *bcamp.Bandcamp
 	VerboseLogging bool
-	logger         log.Logger
+	Logger         log.Logger
 }
 
 func (v *BandcampVisitor) Visit(e *common.Event) {
@@ -25,7 +25,7 @@ func (v *BandcampVisitor) Visit(e *common.Event) {
 		//update listen URLs with bandcamp
 		results, err := v.Bandcamp.Search(performer.Name, performer.Home, 1)
 		if err != nil {
-			v.logger.Log("msg", fmt.Sprintf("Failed to query bandcamp: %s", err.Error()))
+			v.Logger.Log("msg", fmt.Sprintf("Failed to query bandcamp: %s", err.Error()))
 			return
 		}
 		if len(results) > 0 {
@@ -37,7 +37,7 @@ func (v *BandcampVisitor) Visit(e *common.Event) {
 			//get some more data
 			artistInfo, err := v.Bandcamp.GetArtistPageInfo(results[0].URL)
 			if err != nil {
-				v.logger.Log("msg", fmt.Sprintf("Failed to get artist info: %s", err.Error()))
+				v.Logger.Log("msg", fmt.Sprintf("Failed to get artist info: %s", err.Error()))
 				//don't return - use blank info
 			}
 			e.Performers[k].Info = artistInfo.Bio
@@ -48,8 +48,8 @@ func (v *BandcampVisitor) Visit(e *common.Event) {
 				e.Performers[k].Links = append(e.Performers[k].Links, &common.Link{URI: link.URI, Text: link.Text})
 			}
 			if v.VerboseLogging {
-				v.logger.Log("msg", fmt.Sprintf("Search Result: %+v", results[0]))
-				v.logger.Log("msg", fmt.Sprintf("Arist Info: %+v", artistInfo))
+				v.Logger.Log("msg", fmt.Sprintf("Search Result: %+v", results[0]))
+				v.Logger.Log("msg", fmt.Sprintf("Arist Info: %+v", artistInfo))
 			}
 		}
 	}
@@ -60,7 +60,7 @@ func (v *BandcampVisitor) Visit(e *common.Event) {
 // update to the incoming record so we can avoid re-fetching stuff.
 type PerformerServiceVisitor struct {
 	PerformerService *performer.PerformerService
-	logger         log.Logger
+	Logger           log.Logger
 }
 
 func (v *PerformerServiceVisitor) Visit(e *common.Event) {
@@ -68,7 +68,7 @@ func (v *PerformerServiceVisitor) Visit(e *common.Event) {
 	for k, perf := range e.Performers {
 		existing, err := v.PerformerService.FindPerformers(&performer.PerformerFilter{Name: perf.Name, Genre: perf.Genre})
 		if err != nil {
-			v.logger.Log("msg", fmt.Sprintf("failed to find perfomer visiting event: %s", err.Error()))
+			v.Logger.Log("msg", fmt.Sprintf("failed to find perfomer visiting event: %s", err.Error()))
 			return
 		}
 		if len(existing) > 0 {

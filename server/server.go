@@ -85,8 +85,8 @@ func (s *Server) Start() error {
 				&k9.Crawler{Timezone: tz, Logger: log.NewContext(s.logger).With("component", "k9crawler")},
 			},
 			EventVisitors: []common.EventVisitor{
-				&data.PerformerServiceVisitor{PerformerService: performerService},
-				&data.BandcampVisitor{Bandcamp: &bcamp.Bandcamp{HTTP: http.DefaultClient}, VerboseLogging: s.conf.VerboseLogging},
+				&data.PerformerServiceVisitor{PerformerService: performerService, Logger: s.logger},
+				&data.BandcampVisitor{Bandcamp: &bcamp.Bandcamp{HTTP: http.DefaultClient}, VerboseLogging: s.conf.VerboseLogging, Logger: s.logger},
 			},
 			EventService:     eventService,
 			PerformerService: performerService,

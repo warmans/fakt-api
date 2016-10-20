@@ -131,7 +131,10 @@ func (s *PerformerService) FindPerformers(filter *PerformerFilter) ([]*common.Pe
 		}
 		performers[k].UTags = tags
 
-		//todo add tags
+		//append normal tags
+		if performers[k].Tags, err = s.FindPerformerTags(performer.ID); err != nil {
+			return nil, err
+		}
 	}
 
 	return performers, nil
@@ -188,12 +191,23 @@ func (s *PerformerService) StorePerformerTags(tr *dbr.Tx, performerID int64, tag
 		}
 	}
 }
-//
-//func (ts *PerformerService) FindPerformerTags(tr *dbr.Tx, performerID int64) ([]string, error) {
-//
-//	res, err := tr.Query("SELECT t.tag FROM performer_tag pt LEFT JOIN t tag ON pt.tag_id = tag.id WHERE pt.performer_id = ?", performerID)
-//	if err != nil {
-//		return []string{}, fmt.Errorf("Failed to fetch tags at query")
-//	}
-//
-//}
+
+func (ts *PerformerService) FindPerformerTags(performerID int64) ([]string, error) {
+
+	tags := []string{}
+
+	res, err := ts.DB.Query("SELECT t.tag FROM performer_tag pt LEFT JOIN tag t ON pt.tag_id = t.id WHERE pt.performer_id = ?", performerID)
+	if err != nil {
+		return tags, fmt.Errorf("Failed to fetch tags at query because %s", err.Error())
+	}
+
+	for res.Next() {
+		tag := ""
+		if err := res.Scan(&tag); err != nil {
+			return tags, err
+		}
+		tags = append(tags, tag)
+	}
+
+	return tags, nil
+}
