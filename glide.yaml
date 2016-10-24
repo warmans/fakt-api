@@ -27,3 +27,6 @@ import:
 - package: github.com/go-kit/kit
   subpackages:
   - log
+- package: github.com/urfave/cli
+- package: github.com/NYTimes/gziphandler
+- package: github.com/warmans/coldlink

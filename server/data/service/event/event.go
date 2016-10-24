@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"time"
 
+	"strings"
+
 	"github.com/warmans/dbr"
 	"github.com/warmans/dbr/dialect"
 	"github.com/warmans/fakt-api/server/data/service/common"
+	"github.com/warmans/fakt-api/server/data/service/performer"
 	"github.com/warmans/fakt-api/server/data/service/utag"
+	"strconv"
 )
 
 type EventFilter struct {
@@ -25,8 +29,9 @@ type EventFilter struct {
 }
 
 type EventService struct {
-	DB          *dbr.Session
-	UTagService *utag.UTagService
+	DB               *dbr.Session
+	UTagService      *utag.UTagService
+	PerformerService *performer.PerformerService
 }
 
 func (es *EventService) EventMustExist(tr *dbr.Tx, event *common.Event) error {
@@ -125,19 +130,14 @@ func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) 
 		"coalesce(venue.id, 0)",
 		"venue.name",
 		"venue.address",
-		"coalesce(performer.id, 0)",
-		"coalesce(performer.name, '')",
-		"coalesce(performer.info, '')",
-		"coalesce(performer.genre, '')",
-		"coalesce(performer.home, '')",
-		"coalesce(performer.img, '')",
-		"coalesce(performer.listen_url, '')",
+		"coalesce(group_concat(performer.id), '')",
 	)
 	q.From("event")
 	q.LeftJoin("venue", "event.venue_id = venue.id")
 	q.LeftJoin("event_performer", "event.id = event_performer.event_id")
 	q.LeftJoin("performer", "event_performer.performer_id = performer.id")
-	q.OrderBy("event.date").OrderBy("event.id").OrderBy("venue.id").OrderBy("performer.id")
+	q.OrderBy("event.date").OrderBy("event.id").OrderBy("venue.id")
+	q.GroupBy("event.id")
 
 	if len(filter.EventIDs) > 0 {
 		q.Where("event.id IN ?", filter.EventIDs)
@@ -180,11 +180,11 @@ func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) 
 			return nil, err
 		}
 
-		var eID, vID, pID int
-		var eType, eDescription, eSource, vName, vAddress, pName, pInfo, pGenre, pHome, pImg, pListen string
+		var eID, vID int
+		var eType, eDescription, eSource, vName, vAddress, pIDs string
 		var eDate time.Time
 
-		err := result.Scan(&eID, &eDate, &eType, &eDescription, &eSource, &vID, &vName, &vAddress, &pID, &pName, &pInfo, &pGenre, &pHome, &pImg, &pListen)
+		err := result.Scan(&eID, &eDate, &eType, &eDescription, &eSource, &vID, &vName, &vAddress, &pIDs)
 		if err != nil {
 			return nil, err
 		}
@@ -209,8 +209,21 @@ func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) 
 					Name:    vName,
 					Address: vAddress,
 				},
-				Performers: make([]*common.Performer, 0),
 				Source:     eSource,
+			}
+
+			//get the perfomerIDs as ints
+			performerIDs := []int{}
+			for _, pidStr := range strings.Split(pIDs, ",") {
+				if pidInt, _ := strconv.Atoi(pidStr); pidInt != 0 {
+					performerIDs = append(performerIDs, pidInt)
+				}
+			}
+
+			//append the performers
+			curEvent.Performers, err = s.PerformerService.FindPerformers(&performer.PerformerFilter{PerformerID: performerIDs})
+			if err != nil {
+				return nil, err
 			}
 
 			//append the tags
@@ -221,27 +234,6 @@ func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) 
 			curEvent.UTags = tags
 		}
 
-		curPerformer := &common.Performer{
-			ID:        int64(pID),
-			Name:      pName,
-			Info:      pInfo,
-			Genre:     pGenre,
-			Home:      pHome,
-			Img:       pImg,
-			ListenURL: pListen,
-		}
-		if curPerformer.ID != 0 {
-
-			//add user tags
-			tags, err := s.UTagService.FindPerformerUTags(curPerformer.ID, &common.UTagsFilter{})
-			if err != nil {
-				return nil, err
-			}
-			curPerformer.UTags = tags
-
-			//append to event
-			curEvent.Performers = append(curEvent.Performers, curPerformer)
-		}
 	}
 
 	if curEvent.ID != 0 {

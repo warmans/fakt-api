@@ -8,6 +8,7 @@ import (
 
 	"os"
 
+	"github.com/NYTimes/gziphandler"
 	"github.com/go-kit/kit/log"
 	"github.com/gorilla/sessions"
 	"github.com/warmans/dbr"
@@ -35,6 +36,7 @@ type Config struct {
 	DbPath                 string
 	EncryptionKey          string
 	CrawlerRun             bool
+	StaticFilesPath        string
 	VerboseLogging         bool
 }
 
@@ -66,8 +68,8 @@ func (s *Server) Start() error {
 	}
 
 	utagService := &utag.UTagService{DB: db.NewSession(nil)}
-	eventService := &event.EventService{DB: db.NewSession(nil)}
 	performerService := &performer.PerformerService{DB: db.NewSession(nil), UTagService: utagService, Logger: s.logger}
+	eventService := &event.EventService{DB: db.NewSession(nil), UTagService: utagService, PerformerService: performerService}
 	venueService := &venue.VenueService{DB: db.NewSession(nil)}
 	userService := &user.UserStore{DB: db.NewSession(nil)}
 
@@ -114,6 +116,9 @@ func (s *Server) Start() error {
 
 	mux := http.NewServeMux()
 	mux.Handle("/api/v1/", http.StripPrefix("/api/v1", API.NewServeMux()))
+
+	staticFileServer := http.FileServer(http.Dir("static"))
+	mux.Handle("/static/", http.StripPrefix("/static", gziphandler.GzipHandler(staticFileServer)))
 
 	s.logger.Log("msg", fmt.Sprintf("API listening on %s", s.conf.ServerBind))
 	return http.ListenAndServe(s.conf.ServerBind, mux)

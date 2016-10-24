@@ -7,8 +7,8 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 
-	"github.com/warmans/fakt-api/server"
 	"github.com/go-kit/kit/log"
+	"github.com/warmans/fakt-api/server"
 )
 
 var (
@@ -19,6 +19,7 @@ var (
 	crawlerRun             = flag.Bool("crawler.run", true, "Periodically ingest new data")
 	dbPath                 = flag.String("db.path", "./db.sqlite3", "Location of DB file")
 	verbose                = flag.Bool("log.verbose", false, "Verbose logging")
+	staticFilesPath        = flag.String("static.path", "static", "Location to store static files")
 	ver                    = flag.Bool("v", false, "Print version and exit")
 )
 
@@ -39,6 +40,7 @@ func main() {
 		CrawlerRun:             *crawlerRun,
 		EncryptionKey:          *serverEncryptionKey,
 		VerboseLogging:         *verbose,
+		StaticFilesPath:        *staticFilesPath,
 	}
 
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout))

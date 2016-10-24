@@ -16,6 +16,10 @@ build:
 	GOOS=linux \
 	go build -ldflags "-X github.com/warmans/fakt-api/server.Version=$(PROJECT_VERSION)" -o .build/$(PROJECT_NAME)
 
+.PHONY: build-cli
+build-cli:
+	go build -o .build/fakt-maint github.com/warmans/fakt-api/cmd/maint
+
 # Packaging
 #-----------------------------------------------------------------------
 

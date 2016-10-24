@@ -57,6 +57,13 @@ func InitializeSchema(sess *dbr.Session) error {
 			tag_id INTEGER,
 			PRIMARY KEY (performer_id, tag_id)
 		);`,
+		`CREATE TABLE IF NOT EXISTS performer_image (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			performer_id INTEGER,
+			usage TEXT,
+			src TEXT,
+			CONSTRAINT image_uniq UNIQUE (performer_id, usage)
+		);`,
 		`CREATE TABLE IF NOT EXISTS event_performer (
 			event_id INTEGER,
 			performer_id INTEGER,
