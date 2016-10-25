@@ -28,7 +28,7 @@ type PerformerService struct {
 func (s *PerformerService) FindPerformers(filter *PerformerFilter) ([]*common.Performer, error) {
 
 	q := s.DB.
-		Select("id", "name", "info", "genre", "home", "img", "listen_url").
+		Select("id", "name", "info", "genre", "home", "listen_url").
 		From("performer p").
 		OrderBy("p.name")
 
@@ -94,7 +94,7 @@ func (ts *PerformerService) FindPerformerTags(performerID int64) ([]string, erro
 
 	tags := []string{}
 
-	res, err := ts.DB.Query("SELECT t.tag FROM performer_tag pt LEFT JOIN tag t ON pt.tag_id = t.id WHERE pt.performer_id = ?", performerID)
+	res, err := ts.DB.Query("SELECT coalesce(t.tag, '') FROM performer_tag pt LEFT JOIN tag t ON pt.tag_id = t.id WHERE pt.performer_id = ?", performerID)
 	if err != nil {
 		return tags, fmt.Errorf("Failed to fetch tags at query because %s", err.Error())
 	}
@@ -116,13 +116,13 @@ func (ts *PerformerService) FindPerformerImages(performerID int64) (map[string]s
 
 	res, err := ts.DB.Query("SELECT pi.usage, pi.src FROM performer_image pi WHERE pi.performer_id = ?", performerID)
 	if err != nil {
-		return tags, fmt.Errorf("Failed to fetch tags at query because %s", err.Error())
+		return tags, fmt.Errorf("Failed performer images query: %s", err.Error())
 	}
 
 	for res.Next() {
 		var usage, src string
 		if err := res.Scan(&usage, &src); err != nil {
-			return tags, err
+			return tags, fmt.Errorf("Failed performer image scan: %s", err.Error())
 		}
 		tags[usage] = src
 	}
@@ -145,12 +145,11 @@ func (ps *PerformerService) PerformerMustExist(tr *dbr.Tx, performer *common.Per
 	}
 	if performer.ID == 0 {
 		res, err := tr.Exec(
-			"INSERT INTO performer (name, info, genre, home, img, listen_url) VALUES (?, ?, ?, ?, ?, ?)",
+			"INSERT INTO performer (name, info, genre, home, listen_url) VALUES (?, ?, ?, ?, ?)",
 			performer.Name,
 			performer.Info,
 			performer.Genre,
 			performer.Home,
-			performer.Img,
 			performer.ListenURL,
 		)
 		if err != nil {
@@ -162,10 +161,9 @@ func (ps *PerformerService) PerformerMustExist(tr *dbr.Tx, performer *common.Per
 		}
 	} else {
 		_, err := tr.Exec(
-			"UPDATE performer SET info=?, home=?, img=?, listen_url=? WHERE id=?",
+			"UPDATE performer SET info=?, home=?, listen_url=? WHERE id=?",
 			performer.Info,
 			performer.Home,
-			performer.Img,
 			performer.ListenURL,
 			performer.ID,
 		)

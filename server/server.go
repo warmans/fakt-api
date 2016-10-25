@@ -14,6 +14,7 @@ import (
 	"github.com/warmans/dbr"
 	v1 "github.com/warmans/fakt-api/server/api.v1"
 	"github.com/warmans/fakt-api/server/data"
+	"github.com/warmans/fakt-api/server/data/media"
 	"github.com/warmans/fakt-api/server/data/service/common"
 	"github.com/warmans/fakt-api/server/data/service/event"
 	"github.com/warmans/fakt-api/server/data/service/performer"
@@ -73,6 +74,8 @@ func (s *Server) Start() error {
 	venueService := &venue.VenueService{DB: db.NewSession(nil)}
 	userService := &user.UserStore{DB: db.NewSession(nil)}
 
+	imageMirror := media.NewImageMirror(s.conf.StaticFilesPath)
+
 	if s.conf.CrawlerRun {
 		tz, err := source.MustMakeTimeLocation("Europe/Berlin")
 		if err != nil {
@@ -88,7 +91,7 @@ func (s *Server) Start() error {
 			},
 			EventVisitors: []common.EventVisitor{
 				&data.PerformerServiceVisitor{PerformerService: performerService, Logger: s.logger},
-				&data.BandcampVisitor{Bandcamp: &bcamp.Bandcamp{HTTP: http.DefaultClient}, VerboseLogging: s.conf.VerboseLogging, Logger: s.logger},
+				&data.BandcampVisitor{Bandcamp: &bcamp.Bandcamp{HTTP: http.DefaultClient}, VerboseLogging: s.conf.VerboseLogging, Logger: s.logger, ImageMirror: imageMirror},
 			},
 			EventService:     eventService,
 			PerformerService: performerService,

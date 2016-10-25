@@ -4,9 +4,11 @@ import (
 	"fmt"
 
 	"github.com/go-kit/kit/log"
+	"github.com/warmans/fakt-api/server/data/media"
 	"github.com/warmans/fakt-api/server/data/service/common"
 	"github.com/warmans/fakt-api/server/data/service/performer"
 	"github.com/warmans/go-bandcamp-search/bcamp"
+	"time"
 )
 
 // BandcampVisitor embellishes event with data from Bandcamp
@@ -14,11 +16,13 @@ type BandcampVisitor struct {
 	Bandcamp       *bcamp.Bandcamp
 	VerboseLogging bool
 	Logger         log.Logger
+	ImageMirror    *media.ImageMirror
 }
 
 func (v *BandcampVisitor) Visit(e *common.Event) {
 
 	for k, performer := range e.Performers {
+
 		if performer.ID > 0 || performer.ListenURL != "" {
 			continue //don't re-fetch data for existing performer or performer with existing listen URL
 		}
@@ -29,10 +33,21 @@ func (v *BandcampVisitor) Visit(e *common.Event) {
 			return
 		}
 		if len(results) > 0 {
-			//todo: IMPORTANT mirror images locally rather than hotlinking
-			e.Performers[k].ListenURL = results[0].URL
-			e.Performers[k].Img = results[0].Art
-			e.Performers[k].Tags = results[0].Tags
+
+			imageName := performer.GetNameHash()
+			if imageName == "" {
+				//name was blank store images with some other hopefully unique enough number
+				imageName = fmt.Sprintf("%d%d", k, time.Now().UnixNano())
+			}
+			//store various sized images locally instead of hot-linking original
+			images, err := v.ImageMirror.Mirror(results[0].Art, imageName)
+			if err != nil {
+				v.Logger.Log("msg", fmt.Sprintf("Failed to mirror artist images: %s", err.Error()))
+			} else {
+				e.Performers[k].Images = images
+			}
+			performer.ListenURL = results[0].URL
+			performer.Tags = results[0].Tags
 
 			//get some more data
 			artistInfo, err := v.Bandcamp.GetArtistPageInfo(results[0].URL)
@@ -43,9 +58,9 @@ func (v *BandcampVisitor) Visit(e *common.Event) {
 			e.Performers[k].Info = artistInfo.Bio
 			for _, link := range artistInfo.Links {
 				if e.Performers[k].Links == nil {
-					e.Performers[k].Links = make([]*common.Link, 0)
+					performer.Links = make([]*common.Link, 0)
 				}
-				e.Performers[k].Links = append(e.Performers[k].Links, &common.Link{URI: link.URI, Text: link.Text})
+				performer.Links = append(performer.Links, &common.Link{URI: link.URI, Text: link.Text})
 			}
 			if v.VerboseLogging {
 				v.Logger.Log("msg", fmt.Sprintf("Search Result: %+v", results[0]))

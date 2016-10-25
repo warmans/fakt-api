@@ -5,14 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"strings"
-
 	"github.com/warmans/dbr"
 	"github.com/warmans/dbr/dialect"
 	"github.com/warmans/fakt-api/server/data/service/common"
 	"github.com/warmans/fakt-api/server/data/service/performer"
 	"github.com/warmans/fakt-api/server/data/service/utag"
-	"strconv"
 )
 
 type EventFilter struct {
@@ -209,29 +206,20 @@ func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) 
 					Name:    vName,
 					Address: vAddress,
 				},
-				Source:     eSource,
-			}
-
-			//get the perfomerIDs as ints
-			performerIDs := []int{}
-			for _, pidStr := range strings.Split(pIDs, ",") {
-				if pidInt, _ := strconv.Atoi(pidStr); pidInt != 0 {
-					performerIDs = append(performerIDs, pidInt)
-				}
+				Source: eSource,
 			}
 
 			//append the performers
-			curEvent.Performers, err = s.PerformerService.FindPerformers(&performer.PerformerFilter{PerformerID: performerIDs})
-			if err != nil {
-				return nil, err
+			if performerIDs := common.SplitConcatIDs(pIDs, ","); len(performerIDs) > 0 {
+				if curEvent.Performers, err = s.PerformerService.FindPerformers(&performer.PerformerFilter{PerformerID: performerIDs}); err != nil {
+					return nil, err
+				}
 			}
 
 			//append the tags
-			tags, err := s.UTagService.FindEventUTags(curEvent.ID, &common.UTagsFilter{})
-			if err != nil {
+			if curEvent.UTags, err = s.UTagService.FindEventUTags(curEvent.ID, &common.UTagsFilter{}); err != nil {
 				return nil, err
 			}
-			curEvent.UTags = tags
 		}
 
 	}

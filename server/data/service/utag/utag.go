@@ -91,7 +91,7 @@ func (s *UTagService) RemovePerformerUTags(performerID int64, userID int64, tags
 }
 
 func (s *UTagService) FindPerformerUTags(performerID int64, filter *common.UTagsFilter) ([]common.UTags, error) {
-	q := s.DB.Select("user.username", "GROUP_CONCAT(performer_user_tag.tag, ';')").
+	q := s.DB.Select("coalesce(user.username, '')", "GROUP_CONCAT(performer_user_tag.tag, ';')").
 	From("performer_user_tag").
 	Where("performer_id = ?", performerID).
 	LeftJoin("user", "performer_user_tag.user_id = user.id").
