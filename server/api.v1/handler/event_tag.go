@@ -6,14 +6,14 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
 	"github.com/warmans/ctxhandler"
 	"github.com/warmans/fakt-api/server/api.v1/common"
-	"golang.org/x/net/context"
+	dcom "github.com/warmans/fakt-api/server/data/service/common"
 	"github.com/warmans/fakt-api/server/data/service/user"
 	"github.com/warmans/fakt-api/server/data/service/utag"
-	dcom "github.com/warmans/fakt-api/server/data/service/common"
-	"github.com/go-kit/kit/log"
+	"golang.org/x/net/context"
 )
 
 func NewEventTagHandler(uts *utag.UTagService, logger log.Logger) ctxhandler.CtxHandler {
@@ -21,7 +21,7 @@ func NewEventTagHandler(uts *utag.UTagService, logger log.Logger) ctxhandler.Ctx
 }
 
 type EventTagHandler struct {
-	uts  *utag.UTagService
+	uts    *utag.UTagService
 	logger log.Logger
 }
 
@@ -33,8 +33,8 @@ func (h *EventTagHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx
 		common.SendError(rw, common.HTTPError{"Invalid eventID", http.StatusBadRequest, err}, nil)
 	}
 
-	user := ctx.Value("user").(*user.User)
-	if user == nil {
+	user, ok := ctx.Value("user").(*user.User)
+	if user == nil || !ok {
 		common.SendError(rw, common.HTTPError{"Not logged in", http.StatusForbidden, nil}, nil)
 		return
 	}
