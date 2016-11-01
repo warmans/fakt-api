@@ -25,8 +25,8 @@ type API struct {
 	UserService      *user.UserStore
 	UTagService      *utag.UTagService
 
-	SessionStore     sessions.Store
-	Logger           log.Logger
+	SessionStore sessions.Store
+	Logger       log.Logger
 }
 
 func (a *API) NewServeMux() http.Handler {
@@ -73,7 +73,7 @@ func (a *API) NewServeMux() http.Handler {
 	)
 	mux.Handle(
 		"/me",
-		mw.AddCtx(handler.NewMeHandler(), a.SessionStore, a.UserService, true, a.Logger),
+		mw.AddCtx(handler.NewMeHandler(), a.SessionStore, a.UserService, false, a.Logger),
 	)
 
 	//meta

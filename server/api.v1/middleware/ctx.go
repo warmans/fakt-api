@@ -3,12 +3,12 @@ package middleware
 import (
 	"net/http"
 
+	"github.com/go-kit/kit/log"
 	"github.com/gorilla/sessions"
 	"github.com/warmans/ctxhandler"
 	"github.com/warmans/fakt-api/server/api.v1/common"
-	"golang.org/x/net/context"
 	"github.com/warmans/fakt-api/server/data/service/user"
-	"github.com/go-kit/kit/log"
+	"golang.org/x/net/context"
 )
 
 func AddCtx(nextHandler ctxhandler.CtxHandler, sess sessions.Store, users *user.UserStore, restrict bool, logger log.Logger) http.Handler {
@@ -20,7 +20,7 @@ type CtxMiddleware struct {
 	sessions sessions.Store
 	users    *user.UserStore
 	restrict bool
-	logger log.Logger
+	logger   log.Logger
 }
 
 func (m *CtxMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
@@ -41,7 +41,7 @@ func (m *CtxMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	userId, found := sess.Values["userId"]
 	if found == false || userId == nil || userId.(int64) < 1 {
 		if m.restrict {
-			common.SendError(rw, common.HTTPError{"Access Denied", http.StatusForbidden, nil}, nil)
+			common.SendError(rw, common.HTTPError{"Access Denied", http.StatusUnauthorized, nil}, nil)
 			return
 		}
 		m.next.ServeHTTP(rw, r, ctx)
@@ -53,7 +53,7 @@ func (m *CtxMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		ctx = context.WithValue(ctx, "user", user)
 	} else {
 		if m.restrict {
-			common.SendError(rw, common.HTTPError{"Access Denied", http.StatusForbidden, nil}, nil)
+			common.SendError(rw, common.HTTPError{"Access Denied", http.StatusUnauthorized, nil}, nil)
 			return
 		}
 	}
