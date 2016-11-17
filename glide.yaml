@@ -30,3 +30,4 @@ import:
 - package: github.com/urfave/cli
 - package: github.com/NYTimes/gziphandler
 - package: github.com/warmans/coldlink
+- package: github.com/jinzhu/now

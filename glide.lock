@@ -1,5 +1,5 @@
-hash: c06e5c5215bcfda266f252f1e1e599f7014d5abeaa9e599dfd84450f15c30eda
-updated: 2016-10-24T20:56:29.020021846+02:00
+hash: 9796bf9b6acb6ea38ac3248287a5916cf1a9329b8876883032fa2ec1777d66e5
+updated: 2016-11-17T21:37:22.881574931+01:00
 imports:
 - name: github.com/andybalholm/cascadia
   version: 3ad29d1ad1c4f2023e355603324348cf1f4b2d48
@@ -8,11 +8,11 @@ imports:
 - name: github.com/djimenez/iconv-go
   version: 8960e66bd3dacbc8773962b40eb82fc18c63c127
 - name: github.com/go-kit/kit
-  version: 05d576d792f0917676597bf6b3ac5054eb4e679a
+  version: ad9aac100349c5c09800d63ba83aaf62668e48b1
   subpackages:
   - log
 - name: github.com/go-logfmt/logfmt
-  version: d4327190ff838312623b09bfeb50d7c93c8d9c1d
+  version: 390ab7935ee28ec6b286364bba9b4dd6410cb3d5
 - name: github.com/go-stack/stack
   version: 100eb0c0a9c5b306ca2fb4f165df21d80ada4b82
 - name: github.com/gorilla/context
@@ -23,6 +23,8 @@ imports:
   version: 8dacca26977607e637262eb66b15b7d39f2d3009
 - name: github.com/gorilla/sessions
   version: a1216e0aed834aa9074063dd4085f5c3df8d1fab
+- name: github.com/jinzhu/now
+  version: d9861969c7a7e84746d341c09020c2ef8a617f8f
 - name: github.com/kr/logfmt
   version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
 - name: github.com/mattn/go-sqlite3
@@ -43,7 +45,7 @@ imports:
 - name: github.com/ungerik/go-rss
   version: bb39c3b1f3e47e671d97a593c98170ff4b44af06
 - name: github.com/urfave/cli
-  version: 6f2647a880e25bd7178ab4bbf1f4045ac256cc57
+  version: b4f4786f378c0c1d3336b5bb798094b166edf5a9
 - name: github.com/warmans/coldlink
   version: 70d533e07b6922effdb532322e810fb3126ccb88
 - name: github.com/warmans/ctxhandler
@@ -64,7 +66,7 @@ imports:
   - bcrypt
   - blowfish
 - name: golang.org/x/image
-  version: 93fad3647fcda43e12f413a6dd7568896dc06ba9
+  version: b7f8df6bc082334698d4505fb85fa05e99156b72
   subpackages:
   - bmp
   - tiff
@@ -76,7 +78,7 @@ imports:
   - html
   - html/atom
 - name: golang.org/x/text
-  version: 2556e8494a202e0b4008f70eda8cdb089b03fa50
+  version: a263ba8db058568bb9beba166777d9c9dbe75d68
   subpackages:
   - transform
   - encoding/charmap

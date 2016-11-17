@@ -16,6 +16,7 @@ type EventFilter struct {
 	EventIDs          []int     `json:"events"`
 	DateFrom          time.Time `json:"from_date"`
 	DateTo            time.Time `json:"to_date"`
+	DateRelative      string    `json:"date_relative"`
 	VenueIDs          []int64   `json:"venues"`
 	Types             []string  `json:"types"`
 	ShowDeleted       bool      `json:"show_deleted"`

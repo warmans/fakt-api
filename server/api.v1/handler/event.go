@@ -67,6 +67,9 @@ func (h *EventHandler) filterFromRequest(r *http.Request, ctx context.Context) *
 			filter.DateTo = dateTo
 		}
 	}
+	if dateRelative := r.Form.Get("date_relative"); dateRelative != "" {
+		filter.DateFrom, filter.DateTo = common.GetRelativeDateRange(dateRelative)
+	}
 	if venue := r.Form.Get("venue"); venue != "" {
 		for _, idStr := range strings.Split(venue, ",") {
 			if idInt, err := strconv.Atoi(idStr); err == nil {
