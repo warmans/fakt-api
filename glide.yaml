@@ -31,3 +31,4 @@ import:
 - package: github.com/NYTimes/gziphandler
 - package: github.com/warmans/coldlink
 - package: github.com/jinzhu/now
+- package: github.com/warmans/go-bandcamp-search

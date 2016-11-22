@@ -1,84 +1,84 @@
-hash: 9796bf9b6acb6ea38ac3248287a5916cf1a9329b8876883032fa2ec1777d66e5
-updated: 2016-11-17T21:37:22.881574931+01:00
+hash: a4f7bc72d878dc6f253361e6f7dcc012c83c286b848a5768f6c51065792c9872
+updated: 2016-11-22T20:38:35.025528132+01:00
 imports:
 - name: github.com/andybalholm/cascadia
-  version: 3ad29d1ad1c4f2023e355603324348cf1f4b2d48
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
 - name: github.com/disintegration/imaging
-  version: 5b7e22645c93e3f3911b36b7d66bf8799f3eddfd
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
 - name: github.com/djimenez/iconv-go
-  version: 8960e66bd3dacbc8773962b40eb82fc18c63c127
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
 - name: github.com/go-kit/kit
-  version: ad9aac100349c5c09800d63ba83aaf62668e48b1
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
   subpackages:
   - log
 - name: github.com/go-logfmt/logfmt
-  version: 390ab7935ee28ec6b286364bba9b4dd6410cb3d5
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
 - name: github.com/go-stack/stack
-  version: 100eb0c0a9c5b306ca2fb4f165df21d80ada4b82
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
 - name: github.com/gorilla/context
-  version: 1ea25387ff6f684839d82767c1733ff4d4d15d0a
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
 - name: github.com/gorilla/mux
-  version: 0eeaf8392f5b04950925b8a69fe70f110fa7cbfc
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
 - name: github.com/gorilla/securecookie
-  version: 8dacca26977607e637262eb66b15b7d39f2d3009
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
 - name: github.com/gorilla/sessions
-  version: a1216e0aed834aa9074063dd4085f5c3df8d1fab
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
 - name: github.com/jinzhu/now
-  version: d9861969c7a7e84746d341c09020c2ef8a617f8f
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
 - name: github.com/kr/logfmt
-  version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
 - name: github.com/mattn/go-sqlite3
-  version: 37aa7c6f5bc95b7264de70cd1f0ca1d39228ebd6
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
 - name: github.com/NYTimes/gziphandler
-  version: 172fbbbb329cf7e031dd3ab35766186fc2081eab
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
 - name: github.com/paulrosania/go-charset
-  version: 621bb39fcc835dce592e682f5073025d0169587b
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
   subpackages:
   - charset
   - data
 - name: github.com/PuerkitoBio/goquery
-  version: 2e29ea41f0d13f4a303c75553f4eeadddc7a4c56
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
 - name: github.com/texttheater/golang-levenshtein
-  version: 14026fface0cb806188c85e792a93d625dc37d0f
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
   subpackages:
   - levenshtein
 - name: github.com/ungerik/go-rss
-  version: bb39c3b1f3e47e671d97a593c98170ff4b44af06
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
 - name: github.com/urfave/cli
-  version: b4f4786f378c0c1d3336b5bb798094b166edf5a9
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
 - name: github.com/warmans/coldlink
-  version: 70d533e07b6922effdb532322e810fb3126ccb88
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
 - name: github.com/warmans/ctxhandler
-  version: d3d30f2ff86c9c41130b74ef5690e2c50ac83028
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
 - name: github.com/warmans/dbr
-  version: 3c1c54f637871b1b2513b2737d80d79ba7d40376
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
   subpackages:
   - dialect
 - name: github.com/warmans/go-bandcamp-search
-  version: bf1aefe60d892be9d9caf5098f0fc4260dade9d3
+  version: 8a6175298c3e44ae8ac1522a98cbc99a57340cd8
   subpackages:
   - bcamp
 - name: github.com/warmans/resty
-  version: c8f477f16b0985bb7571e6f7209605040c2b7611
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
 - name: golang.org/x/crypto
-  version: 1777f3ba8c1fed80fcaec3317e3aaa4f627764d2
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
   subpackages:
   - bcrypt
   - blowfish
 - name: golang.org/x/image
-  version: b7f8df6bc082334698d4505fb85fa05e99156b72
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
   subpackages:
   - bmp
   - tiff
   - tiff/lzw
 - name: golang.org/x/net
-  version: fb93926129b8ec0056f2f458b1f519654814edf0
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
   subpackages:
   - context
   - html
   - html/atom
 - name: golang.org/x/text
-  version: a263ba8db058568bb9beba166777d9c9dbe75d68
+  version: 1c4aa0be99d2a01480a091a09bc2501768f72136
   subpackages:
   - transform
   - encoding/charmap
