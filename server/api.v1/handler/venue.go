@@ -5,14 +5,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/warmans/ctxhandler"
-	"github.com/warmans/fakt-api/server/api.v1/common"
-	"golang.org/x/net/context"
-	"github.com/warmans/fakt-api/server/data/service/venue"
 	"github.com/go-kit/kit/log"
+	"github.com/warmans/fakt-api/server/api.v1/common"
+	"github.com/warmans/fakt-api/server/data/service/venue"
 )
 
-func NewVenueHandler(ds *venue.VenueService) ctxhandler.CtxHandler {
+func NewVenueHandler(ds *venue.VenueService) http.Handler {
 	return &VenueHandler{ds: ds}
 }
 
@@ -20,17 +18,17 @@ type VenueHandler struct {
 	ds *venue.VenueService
 }
 
-func (h *VenueHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
+func (h *VenueHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
-	logger, ok := ctx.Value("logger").(log.Logger)
+	logger, ok := r.Context().Value("logger").(log.Logger)
 	if !ok {
 		panic("Context must contain a logger")
 	}
 
 	//query to filter
 	filter := &venue.VenueFilter{VenueIDs: make([]int, 0), Name: r.Form.Get("name")}
-	if venue := r.Form.Get("venue"); venue != "" {
-		for _, idStr := range strings.Split(venue, ",") {
+	if ven := r.Form.Get("venue"); ven != "" {
+		for _, idStr := range strings.Split(ven, ",") {
 			if idInt, err := strconv.Atoi(idStr); err == nil {
 				filter.VenueIDs = append(filter.VenueIDs, idInt)
 			}

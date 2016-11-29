@@ -35,6 +35,12 @@ FAQ
 
     Use `go build --tags "libsqlite3 linux"`
 
+* Want to build go-sqlite3 with libsqlite3 on OS X.
+
+    Install sqlite3 from homebrew: `brew install sqlite3`
+
+    Use `go build --tags "libsqlite3 darwin"`
+
 * Want to build go-sqlite3 with icu extension.
 
    Use `go build --tags "icu"`
@@ -57,6 +63,10 @@ FAQ
 * Want to get time.Time with current locale
 
     Use `loc=auto` in SQLite3 filename schema like `file:foo.db?loc=auto`.
+
+* Can use this in multiple routines concurrently?
+
+    Yes for readonly. But, No for writable. See #50, #51, #209.
 
 License
 -------

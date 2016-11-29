@@ -5,15 +5,13 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/sessions"
-	"github.com/warmans/ctxhandler"
-	"github.com/warmans/fakt-api/server/api.v1/common"
-	"golang.org/x/net/context"
-	"github.com/warmans/fakt-api/server/data/service/user"
 	"github.com/go-kit/kit/log"
+	"github.com/gorilla/sessions"
+	"github.com/warmans/fakt-api/server/api.v1/common"
+	"github.com/warmans/fakt-api/server/data/service/user"
 )
 
-func NewRegisterHandler(users *user.UserStore, sess sessions.Store, logger log.Logger) ctxhandler.CtxHandler {
+func NewRegisterHandler(users *user.UserStore, sess sessions.Store) http.Handler {
 	return &RegisterHandler{users: users, sessions: sess}
 }
 
@@ -27,9 +25,9 @@ type RegisterHandler struct {
 	sessions sessions.Store
 }
 
-func (h *RegisterHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
+func (h *RegisterHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
-	logger, ok := ctx.Value("logger").(log.Logger)
+	logger, ok := r.Context().Value("logger").(log.Logger)
 	if !ok {
 		panic("Context must contain a logger")
 	}
@@ -42,19 +40,19 @@ func (h *RegisterHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx
 		return
 	}
 
-	user, err := h.users.Register(payload.Username, payload.Password)
+	usr, err := h.users.Register(payload.Username, payload.Password)
 	if err != nil {
 		common.SendError(rw, common.HTTPError{"Registration failed due to an internal error", http.StatusInternalServerError, err}, logger)
 		return
 	}
-	if user == nil {
+	if usr == nil {
 		common.SendError(rw, common.HTTPError{"Unknown error", http.StatusInternalServerError, nil}, nil)
 		return
 	}
 
 	//user is authenticated but double check they have an ID in case some return is missed above
-	if user.ID < 1 {
-		common.SendError(rw, common.HTTPError{"Unkonwn error", http.StatusOK, fmt.Errorf("User had a zero ID. This should not happen: %+v", user)}, logger)
+	if usr.ID < 1 {
+		common.SendError(rw, common.HTTPError{"Unkonwn error", http.StatusOK, fmt.Errorf("User had a zero ID. This should not happen: %+v", usr)}, logger)
 		return
 	}
 
@@ -65,14 +63,14 @@ func (h *RegisterHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx
 		return
 	}
 
-	sess.Values["user"] = user.ID
+	sess.Values["user"] = usr.ID
 	sess.Save(r, rw)
 
 	common.SendResponse(
 		rw,
 		&common.Response{
 			Status:  http.StatusOK,
-			Payload: user,
+			Payload: usr,
 			Message: "Registration Successful",
 		},
 	)

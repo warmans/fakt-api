@@ -9,58 +9,56 @@ import (
 	"net/http/httptest"
 
 	"strings"
-
-	"golang.org/x/net/context"
 )
 
 type TestRestHandler struct {
 	DefaultRESTHandler
 }
 
-func (h *TestRestHandler) HandleGet(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	fmt.Fprintf(rw, "GET")
+func (h *TestRestHandler) HandleGet(rw http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(rw, "GET")
 }
-func (h *TestRestHandler) HandlePost(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	fmt.Fprintf(rw, "POST")
+func (h *TestRestHandler) HandlePost(rw http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(rw, "POST")
 }
-func (h *TestRestHandler) HandlePut(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	fmt.Fprintf(rw, "PUT")
+func (h *TestRestHandler) HandlePut(rw http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(rw, "PUT")
 }
-func (h *TestRestHandler) HandlePatch(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	fmt.Fprintf(rw, "PATCH")
+func (h *TestRestHandler) HandlePatch(rw http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(rw, "PATCH")
 }
-func (h *TestRestHandler) HandleDelete(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	fmt.Fprintf(rw, "DELETE")
+func (h *TestRestHandler) HandleDelete(rw http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(rw, "DELETE")
 }
-func (h *TestRestHandler) HandleCopy(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	fmt.Fprintf(rw, "COPY")
+func (h *TestRestHandler) HandleCopy(rw http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(rw, "COPY")
 }
-func (h *TestRestHandler) HandleHead(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	fmt.Fprintf(rw, "HEAD")
+func (h *TestRestHandler) HandleHead(rw http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(rw, "HEAD")
 }
-func (h *TestRestHandler) HandleOptions(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	fmt.Fprintf(rw, "OPTIONS")
+func (h *TestRestHandler) HandleOptions(rw http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(rw, "OPTIONS")
 }
-func (h *TestRestHandler) HandleLink(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	fmt.Fprintf(rw, "LINK")
+func (h *TestRestHandler) HandleLink(rw http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(rw, "LINK")
 }
-func (h *TestRestHandler) HandleUnlink(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	fmt.Fprintf(rw, "UNLINK")
+func (h *TestRestHandler) HandleUnlink(rw http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(rw, "UNLINK")
 }
-func (h *TestRestHandler) HandlePurge(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	fmt.Fprintf(rw, "PURGE")
+func (h *TestRestHandler) HandlePurge(rw http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(rw, "PURGE")
 }
-func (h *TestRestHandler) HandleLock(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	fmt.Fprintf(rw, "LOCK")
+func (h *TestRestHandler) HandleLock(rw http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(rw, "LOCK")
 }
-func (h *TestRestHandler) HandleUnlock(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	fmt.Fprintf(rw, "UNLOCK")
+func (h *TestRestHandler) HandleUnlock(rw http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(rw, "UNLOCK")
 }
-func (h *TestRestHandler) HandlePropFind(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	fmt.Fprintf(rw, "PROPFIND")
+func (h *TestRestHandler) HandlePropFind(rw http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(rw, "PROPFIND")
 }
-func (h *TestRestHandler) HandleView(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
-	fmt.Fprintf(rw, "VIEW")
+func (h *TestRestHandler) HandleView(rw http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(rw, "VIEW")
 }
 
 func TestRestfulConvertMiddleware(t *testing.T) {
@@ -100,7 +98,7 @@ func TestRestfulConvertMiddleware(t *testing.T) {
 		}
 
 		//execute the handler
-		Restful(handler).ServeHTTP(rw, r, context.Background())
+		Restful(handler).ServeHTTP(rw, r)
 
 		if res := strings.TrimSpace(rw.Body.String()); res != test.ExpectedBody {
 			t.Errorf("Unexpected response body! Expected '%s' got '%s'", test.ExpectedBody, res)
@@ -125,7 +123,7 @@ func TestDefaultRESTHandler(t *testing.T) {
 		}
 
 		//execute the handler
-		Restful(handler).ServeHTTP(rw, r, context.Background())
+		Restful(handler).ServeHTTP(rw, r)
 
 		if res := strings.TrimSpace(rw.Body.String()); res != "Not Implemented" {
 			t.Errorf("Unexpected response body!Default should always return 'Not Implemented' actually: '%s'", res)

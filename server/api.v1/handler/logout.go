@@ -4,12 +4,10 @@ import (
 	"net/http"
 
 	"github.com/gorilla/sessions"
-	"github.com/warmans/ctxhandler"
 	"github.com/warmans/fakt-api/server/api.v1/common"
-	"golang.org/x/net/context"
 )
 
-func NewLogoutHandler(sess sessions.Store) ctxhandler.CtxHandler {
+func NewLogoutHandler(sess sessions.Store) http.Handler {
 	return &LogoutHandler{sessions: sess}
 }
 
@@ -17,7 +15,7 @@ type LogoutHandler struct {
 	sessions sessions.Store
 }
 
-func (h *LogoutHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
+func (h *LogoutHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	//create their session
 	sess, err := h.sessions.Get(r, "login")

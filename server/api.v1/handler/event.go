@@ -12,7 +12,7 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/warmans/fakt-api/server/data"
 	"github.com/warmans/fakt-api/server/data/service/event"
-	"golang.org/x/net/context"
+	"context"
 )
 
 func NewEventHandler(ds *event.EventService) resty.RESTHandler {
@@ -25,14 +25,14 @@ type EventHandler struct {
 	ingest *data.Ingest
 }
 
-func (h *EventHandler) HandleGet(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
+func (h *EventHandler) HandleGet(rw http.ResponseWriter, r *http.Request) {
 
-	logger, ok := ctx.Value("logger").(log.Logger)
+	logger, ok := r.Context().Value("logger").(log.Logger)
 	if !ok {
 		panic("Context must contain a logger")
 	}
 
-	events, err := h.es.FindEvents(h.filterFromRequest(r, ctx))
+	events, err := h.es.FindEvents(h.filterFromRequest(r, r.Context()))
 	if err != nil {
 		common.SendError(rw, err, logger)
 		return
@@ -70,6 +70,18 @@ func (h *EventHandler) filterFromRequest(r *http.Request, ctx context.Context) *
 	if dateRelative := r.Form.Get("date_relative"); dateRelative != "" {
 		filter.DateFrom, filter.DateTo = common.GetRelativeDateRange(dateRelative)
 	}
+
+	//if nodate range is specified limit 1 month
+	if filter.DateFrom.IsZero() && filter.DateTo.IsZero() {
+		filter.DateTo = time.Now().Add(time.Hour * 24 * 7 * 4)
+	}
+
+	//only allow max 3 months of data to be returned
+	maxDate := time.Now().Add(time.Hour * 24 * 7 * 4 * 3)
+	if filter.DateTo.After(maxDate) {
+		filter.DateTo = maxDate
+	}
+
 	if venue := r.Form.Get("venue"); venue != "" {
 		for _, idStr := range strings.Split(venue, ",") {
 			if idInt, err := strconv.Atoi(idStr); err == nil {

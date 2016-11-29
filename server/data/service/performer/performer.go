@@ -28,7 +28,7 @@ type PerformerService struct {
 func (s *PerformerService) FindPerformers(filter *PerformerFilter) ([]*common.Performer, error) {
 
 	q := s.DB.
-		Select("id", "name", "info", "genre", "home", "listen_url").
+		Select("id", "name", "info", "genre", "home", "listen_url", "embed_url").
 		From("performer p").
 		OrderBy("p.name")
 
@@ -145,12 +145,13 @@ func (ps *PerformerService) PerformerMustExist(tr *dbr.Tx, performer *common.Per
 	}
 	if performer.ID == 0 {
 		res, err := tr.Exec(
-			"INSERT INTO performer (name, info, genre, home, listen_url) VALUES (?, ?, ?, ?, ?)",
+			"INSERT INTO performer (name, info, genre, home, listen_url, embed_url) VALUES (?, ?, ?, ?, ?, ?)",
 			performer.Name,
 			performer.Info,
 			performer.Genre,
 			performer.Home,
 			performer.ListenURL,
+			performer.EmbedURL,
 		)
 		if err != nil {
 			return err

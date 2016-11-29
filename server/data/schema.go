@@ -34,7 +34,8 @@ func InitializeSchema(sess *dbr.Session) error {
 			info TEXT,
 			genre TEXT,
 			home TEXT,
-			listen_url TEXT
+			listen_url TEXT,
+			embed_url TEXT
 		);`,
 		`CREATE TABLE IF NOT EXISTS performer_extra (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,

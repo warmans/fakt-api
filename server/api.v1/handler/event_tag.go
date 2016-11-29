@@ -8,15 +8,13 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
-	"github.com/warmans/ctxhandler"
 	"github.com/warmans/fakt-api/server/api.v1/common"
 	dcom "github.com/warmans/fakt-api/server/data/service/common"
 	"github.com/warmans/fakt-api/server/data/service/user"
 	"github.com/warmans/fakt-api/server/data/service/utag"
-	"golang.org/x/net/context"
 )
 
-func NewEventTagHandler(uts *utag.UTagService, logger log.Logger) ctxhandler.CtxHandler {
+func NewEventTagHandler(uts *utag.UTagService, logger log.Logger) http.Handler {
 	return &EventTagHandler{uts: uts, logger: logger}
 }
 
@@ -25,7 +23,7 @@ type EventTagHandler struct {
 	logger log.Logger
 }
 
-func (h *EventTagHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx context.Context) {
+func (h *EventTagHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	eventId, err := strconv.Atoi(vars["id"])
@@ -33,8 +31,8 @@ func (h *EventTagHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx
 		common.SendError(rw, common.HTTPError{"Invalid eventID", http.StatusBadRequest, err}, nil)
 	}
 
-	user, ok := ctx.Value("user").(*user.User)
-	if user == nil || !ok {
+	usr, ok := r.Context().Value("user").(*user.User)
+	if usr == nil || !ok {
 		common.SendError(rw, common.HTTPError{"Not logged in", http.StatusForbidden, nil}, nil)
 		return
 	}
@@ -47,13 +45,13 @@ func (h *EventTagHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request, ctx
 
 	//store any submitted tags
 	if r.Method == "POST" {
-		if err := h.uts.StoreEventUTags(int64(eventId), user.ID, payload); err != nil {
+		if err := h.uts.StoreEventUTags(int64(eventId), usr.ID, payload); err != nil {
 			common.SendError(rw, common.HTTPError{"Failed to save tags", http.StatusInternalServerError, err}, h.logger)
 			return
 		}
 	}
 	if r.Method == "DELETE" {
-		if err := h.uts.RemoveEventUTags(int64(eventId), user.ID, payload); err != nil {
+		if err := h.uts.RemoveEventUTags(int64(eventId), usr.ID, payload); err != nil {
 			common.SendError(rw, common.HTTPError{"Failed to save tags", http.StatusInternalServerError, err}, h.logger)
 			return
 		}

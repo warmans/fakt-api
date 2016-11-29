@@ -55,7 +55,12 @@ func (v *BandcampVisitor) Visit(e *common.Event) {
 				v.Logger.Log("msg", fmt.Sprintf("Failed to get artist info: %s", err.Error()))
 				//don't return - use blank info
 			}
+
 			e.Performers[k].Info = artistInfo.Bio
+
+			//embeddable player URL
+			e.Performers[k].EmbedURL = bcamp.TransformEmbed(artistInfo.Embed, map[string]string{"size":"small", "bgcol": "ffffff", "linkcol": "333333", "artwork": "none", "transparent": "true"})
+
 			for _, link := range artistInfo.Links {
 				if e.Performers[k].Links == nil {
 					performer.Links = make([]*common.Link, 0)

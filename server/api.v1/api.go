@@ -69,7 +69,7 @@ func (a *API) NewServeMux() http.Handler {
 
 	mux.Handle(
 		"/register",
-		mw.AddCtx(handler.NewRegisterHandler(a.UserService, a.SessionStore, a.Logger), a.SessionStore, a.UserService, false, a.Logger),
+		mw.AddCtx(handler.NewRegisterHandler(a.UserService, a.SessionStore), a.SessionStore, a.UserService, false, a.Logger),
 	)
 	mux.Handle(
 		"/me",
