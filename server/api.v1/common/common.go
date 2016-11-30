@@ -7,8 +7,11 @@ import (
 	"strings"
 	"time"
 
+	"context"
+
 	"github.com/go-kit/kit/log"
 	"github.com/jinzhu/now"
+	"github.com/warmans/fakt-api/server/data/service/user"
 )
 
 type Response struct {
@@ -68,4 +71,16 @@ func GetRelativeDateRange(name string) (time.Time, time.Time) {
 		//unknown values including "today" get today-ish
 		return now.BeginningOfDay(), now.EndOfDay().Add(time.Hour * 4)
 	}
+}
+
+func Restrict(ctx context.Context) (*user.User, error) {
+	usr := ctx.Value("user")
+	if usr != nil {
+		return nil, HTTPError{"Access Denied", http.StatusUnauthorized, nil}
+	}
+	usrType, ok := usr.(*user.User)
+	if !ok {
+		return nil, HTTPError{"Access Denied", http.StatusUnauthorized, nil}
+	}
+	return usrType, nil
 }

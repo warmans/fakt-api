@@ -7,19 +7,17 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/gorilla/sessions"
-	"github.com/warmans/fakt-api/server/api.v1/common"
 	"github.com/warmans/fakt-api/server/data/service/user"
 )
 
-func AddCtx(nextHandler http.Handler, sess sessions.Store, users *user.UserStore, restrict bool, logger log.Logger) http.Handler {
-	return &CtxMiddleware{next: nextHandler, sessions: sess, users: users, restrict: restrict, logger: logger}
+func AddCtx(nextHandler http.Handler, sess sessions.Store, users *user.UserStore, logger log.Logger) http.Handler {
+	return &CtxMiddleware{next: nextHandler, sessions: sess, users: users, logger: logger}
 }
 
 type CtxMiddleware struct {
 	next     http.Handler
 	sessions sessions.Store
 	users    *user.UserStore
-	restrict bool
 	logger   log.Logger
 }
 
@@ -40,10 +38,6 @@ func (m *CtxMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	userId, found := sess.Values["userId"]
 	if found == false || userId == nil || userId.(int64) < 1 {
-		if m.restrict {
-			common.SendError(rw, common.HTTPError{"Access Denied", http.StatusUnauthorized, nil}, nil)
-			return
-		}
 		m.next.ServeHTTP(rw, r.WithContext(ctx))
 		return
 	}
@@ -52,10 +46,7 @@ func (m *CtxMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if err == nil && usr != nil {
 		ctx = context.WithValue(ctx, "user", usr)
 	} else {
-		if m.restrict {
-			common.SendError(rw, common.HTTPError{"Access Denied", http.StatusUnauthorized, nil}, nil)
-			return
-		}
+		ctx = context.WithValue(ctx, "user", nil)
 	}
 
 	m.next.ServeHTTP(rw, r.WithContext(ctx))

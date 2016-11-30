@@ -5,7 +5,6 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/gorilla/context"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/warmans/fakt-api/server/api.v1/handler"
 	mw "github.com/warmans/fakt-api/server/api.v1/middleware"
@@ -14,7 +13,7 @@ import (
 	"github.com/warmans/fakt-api/server/data/service/user"
 	"github.com/warmans/fakt-api/server/data/service/utag"
 	"github.com/warmans/fakt-api/server/data/service/venue"
-	"github.com/warmans/resty"
+	"github.com/warmans/route-rest/routes"
 )
 
 type API struct {
@@ -30,61 +29,79 @@ type API struct {
 }
 
 func (a *API) NewServeMux() http.Handler {
-	mux := mux.NewRouter()
 
-	mux.Handle(
-		"/event",
-		mw.AddCtx(resty.Restful(handler.NewEventHandler(a.EventService)), a.SessionStore, a.UserService, false, a.Logger),
-	)
-	mux.Handle(
-		"/event/{id:[0-9]+}/tag",
-		mw.AddCtx(handler.NewEventTagHandler(a.UTagService, a.Logger), a.SessionStore, a.UserService, false, a.Logger),
-	)
-	mux.Handle(
-		"/event_type",
-		mw.AddCtx(handler.NewEventTypeHandler(a.EventService), a.SessionStore, a.UserService, false, a.Logger),
-	)
-	mux.Handle(
-		"/venue",
-		mw.AddCtx(handler.NewVenueHandler(a.VenueService), a.SessionStore, a.UserService, false, a.Logger),
-	)
-	mux.Handle(
-		"/performer",
-		mw.AddCtx(handler.NewPerformerHandler(a.PerformerService), a.SessionStore, a.UserService, false, a.Logger),
-	)
-	mux.Handle(
-		"/performer/{id:[0-9]+}/tag",
-		mw.AddCtx(handler.NewPerformerTagHandler(a.UTagService, a.Logger), a.SessionStore, a.UserService, false, a.Logger),
+	//entities
+	restRouter := routes.GetRouter(
+		[]*routes.Route{
+			routes.NewRoute(
+				"event",
+				"{event_id:[0-9]+}",
+				handler.NewEventHandler(a.EventService),
+				[]*routes.Route{
+					routes.NewRoute(
+						"tag",
+						"{tag_id:[0-9]]+",
+						handler.NewEventTagHandler(a.UTagService, a.Logger),
+						[]*routes.Route{},
+					),
+				},
+			),
+			routes.NewRoute(
+				"event_type",
+				"{event_type_id:[0-9]]+",
+				handler.NewEventTypeHandler(a.EventService),
+				[]*routes.Route{},
+			),
+			routes.NewRoute(
+				"venue",
+				"{venue_id:[0-9]]+",
+				handler.NewVenueHandler(a.VenueService),
+				[]*routes.Route{},
+			),
+			routes.NewRoute(
+				"performer",
+				"{performer_id:[0-9]]+",
+				handler.NewPerformerHandler(a.PerformerService),
+				[]*routes.Route{
+					routes.NewRoute(
+						"tag",
+						"{tag_id:[0-9]]+",
+						handler.NewPerformerTagHandler(a.UTagService, a.Logger),
+						[]*routes.Route{},
+					),
+				},
+			),
+		},
+		[]string{""}, //no prefix on root resource
 	)
 
 	//user
-	mux.Handle(
+	restRouter.Handle(
 		"/login",
-		mw.AddCtx(handler.NewLoginHandler(a.UserService, a.SessionStore, a.Logger), a.SessionStore, a.UserService, false, a.Logger),
+		handler.NewLoginHandler(a.UserService, a.SessionStore, a.Logger),
 	)
-	mux.Handle(
+	restRouter.Handle(
 		"/logout",
-		mw.AddCtx(handler.NewLogoutHandler(a.SessionStore), a.SessionStore, a.UserService, false, a.Logger),
+		handler.NewLogoutHandler(a.SessionStore),
 	)
-
-	mux.Handle(
+	restRouter.Handle(
 		"/register",
-		mw.AddCtx(handler.NewRegisterHandler(a.UserService, a.SessionStore), a.SessionStore, a.UserService, false, a.Logger),
+		handler.NewRegisterHandler(a.UserService, a.SessionStore),
 	)
-	mux.Handle(
+	restRouter.Handle(
 		"/me",
-		mw.AddCtx(handler.NewMeHandler(), a.SessionStore, a.UserService, false, a.Logger),
+		handler.NewMeHandler(),
 	)
 
 	//meta
-	mux.Handle("/version", handler.NewVersionHandler(a.AppVersion))
+	restRouter.Handle("/version", handler.NewVersionHandler(a.AppVersion))
 
 	//additional middlewares
 
-	handler := context.ClearHandler(mux)
+	finalHandler := context.ClearHandler(restRouter)
 
-	handler = mw.AddCommonHeaders(
-		handler,
+	finalHandler = mw.AddCommonHeaders(
+		finalHandler,
 		map[string]string{
 			"Access-Control-Allow-Origin":      "*",
 			"Access-Control-Allow-Credentials": "true",
@@ -93,5 +110,5 @@ func (a *API) NewServeMux() http.Handler {
 		},
 	)
 
-	return mw.AddSetup(handler)
+	return mw.AddSetup(mw.AddCtx(finalHandler, a.SessionStore, a.UserService, a.Logger))
 }

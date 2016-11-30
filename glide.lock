@@ -1,5 +1,5 @@
-hash: a4f7bc72d878dc6f253361e6f7dcc012c83c286b848a5768f6c51065792c9872
-updated: 2016-11-29T20:55:01.534103767+01:00
+hash: 7986d010969e634ab6ddd6f735c9cd5e4b4a3b0ae0035e42a69b86444df09d62
+updated: 2016-11-30T19:59:07.34125586+01:00
 imports:
 - name: github.com/andybalholm/cascadia
   version: 65919c611220063037b1db8eb334acaf17a6d8ea
@@ -60,6 +60,10 @@ imports:
   - bcamp
 - name: github.com/warmans/resty
   version: 27304b400efb8d5728801588267982159718bf9c
+- name: github.com/warmans/route-rest
+  version: 3d72d40efc06104b24ce0ba9a8e1f03c0a70b358
+  subpackages:
+  - routes
 - name: golang.org/x/crypto
   version: ede567c8e044a5913dad1d1af3696d9da953104c
   subpackages:
@@ -78,7 +82,7 @@ imports:
   - html
   - html/atom
 - name: golang.org/x/text
-  version: 4ea6c073aae78d08c7e95e95aa7f55b888287d6f
+  version: 5c6cf4f9a2357d38515014cea8c488ed22bdab90
   subpackages:
   - transform
   - encoding/charmap

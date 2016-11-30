@@ -32,3 +32,4 @@ import:
 - package: github.com/warmans/coldlink
 - package: github.com/jinzhu/now
 - package: github.com/warmans/go-bandcamp-search
+- package: github.com/warmans/route-rest

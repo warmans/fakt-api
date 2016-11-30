@@ -8,17 +8,19 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/warmans/fakt-api/server/api.v1/common"
 	"github.com/warmans/fakt-api/server/data/service/performer"
+	"github.com/warmans/route-rest/routes"
 )
 
-func NewPerformerHandler(ds *performer.PerformerService) http.Handler {
+func NewPerformerHandler(ds *performer.PerformerService) routes.RESTHandler {
 	return &PerformerHandler{ds: ds}
 }
 
 type PerformerHandler struct {
+	routes.DefaultRESTHandler
 	ds *performer.PerformerService
 }
 
-func (h *PerformerHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (h *PerformerHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
 
 	logger, ok := r.Context().Value("logger").(log.Logger)
 	if !ok {
@@ -26,17 +28,19 @@ func (h *PerformerHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	//query to filter
-	filter := &performer.PerformerFilter{PerformerID: make([]int, 0)}
-	if venue := r.Form.Get("performer"); venue != "" {
-		for _, idStr := range strings.Split(venue, ",") {
+	filter := &performer.PerformerFilter{
+		Name: r.Form.Get("name"),
+		Genre: r.Form.Get("genre"),
+		Home: r.Form.Get("home"),
+		PerformerID: make([]int, 0),
+	}
+	if ids := r.Form.Get("ids"); ids != "" {
+		for _, idStr := range strings.Split(ids, ",") {
 			if idInt, err := strconv.Atoi(idStr); err == nil {
 				filter.PerformerID = append(filter.PerformerID, idInt)
 			}
 		}
 	}
-	filter.Name = r.Form.Get("name")
-	filter.Genre = r.Form.Get("genre")
-	filter.Home = r.Form.Get("home")
 
 	performers, err := h.ds.FindPerformers(filter)
 	if err != nil {
