@@ -40,7 +40,7 @@ func (a *API) NewServeMux() http.Handler {
 				[]*routes.Route{
 					routes.NewRoute(
 						"tag",
-						"{tag_id:[0-9]]+",
+						"{tag_id:[0-9]]+}",
 						handler.NewEventTagHandler(a.UTagService, a.Logger),
 						[]*routes.Route{},
 					),
@@ -48,24 +48,24 @@ func (a *API) NewServeMux() http.Handler {
 			),
 			routes.NewRoute(
 				"event_type",
-				"{event_type_id:[0-9]]+",
+				"{event_type_id:[0-9]]+}",
 				handler.NewEventTypeHandler(a.EventService),
 				[]*routes.Route{},
 			),
 			routes.NewRoute(
 				"venue",
-				"{venue_id:[0-9]]+",
+				"{venue_id:[0-9]]+}",
 				handler.NewVenueHandler(a.VenueService),
 				[]*routes.Route{},
 			),
 			routes.NewRoute(
 				"performer",
-				"{performer_id:[0-9]]+",
+				"{performer_id:[0-9]]+}",
 				handler.NewPerformerHandler(a.PerformerService),
 				[]*routes.Route{
 					routes.NewRoute(
 						"tag",
-						"{tag_id:[0-9]]+",
+						"{tag_id:[0-9]]+}",
 						handler.NewPerformerTagHandler(a.UTagService, a.Logger),
 						[]*routes.Route{},
 					),
