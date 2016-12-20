@@ -9,6 +9,7 @@ import (
 	"github.com/warmans/fakt-api/server/api.v1/common"
 	"github.com/warmans/fakt-api/server/data/service/performer"
 	"github.com/warmans/route-rest/routes"
+	"github.com/gorilla/mux"
 )
 
 func NewPerformerHandler(ds *performer.PerformerService) routes.RESTHandler {
@@ -43,6 +44,34 @@ func (h *PerformerHandler) HandleGetList(rw http.ResponseWriter, r *http.Request
 	}
 
 	performers, err := h.ds.FindPerformers(filter)
+	if err != nil {
+		common.SendError(rw, err, logger)
+		return
+	}
+
+	common.SendResponse(rw, &common.Response{Status: http.StatusOK, Payload: performers})
+}
+
+
+func (h *PerformerHandler) HandleGet(rw http.ResponseWriter, r *http.Request) {
+
+	logger, ok := r.Context().Value("logger").(log.Logger)
+	if !ok {
+		panic("Context must contain a logger")
+	}
+
+	vars := mux.Vars(r)
+	performerID, err := strconv.Atoi(vars["performer_id"])
+	if err != nil {
+		common.SendError(rw, common.HTTPError{"Invalid performerID", http.StatusBadRequest, err}, nil)
+		return
+	}
+	if performerID == 0 {
+		common.SendError(rw, common.HTTPError{"Invalid performerID", http.StatusBadRequest, err}, nil)
+		return
+	}
+
+	performers, err := h.ds.FindPerformers(&performer.PerformerFilter{PerformerID: []int{performerID}})
 	if err != nil {
 		common.SendError(rw, err, logger)
 		return

@@ -19,7 +19,8 @@ func InitializeSchema(sess *dbr.Session) error {
 		`CREATE TABLE IF NOT EXISTS venue (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT,
-			address TEXT NULL
+			address TEXT NULL,
+			activity REAL
 		);`,
 		`CREATE TABLE IF NOT EXISTS venue_extra (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,6 +36,8 @@ func InitializeSchema(sess *dbr.Session) error {
 			genre TEXT,
 			home TEXT,
 			listen_url TEXT,
+			activity REAL,
+			popularity REAL,
 			embed_url TEXT
 		);`,
 		`CREATE TABLE IF NOT EXISTS performer_extra (

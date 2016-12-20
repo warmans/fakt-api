@@ -45,5 +45,5 @@ func main() {
 
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout))
 	logger = log.NewContext(logger).With("ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
-	logger.Log(server.NewServer(config, logger).Start())
+	logger.Log("msg", server.NewServer(config, logger).Start())
 }

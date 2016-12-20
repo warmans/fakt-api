@@ -25,6 +25,7 @@ import (
 	"github.com/warmans/fakt-api/server/data/source/k9"
 	"github.com/warmans/fakt-api/server/data/source/sfaktor"
 	"github.com/warmans/go-bandcamp-search/bcamp"
+	"github.com/warmans/fakt-api/server/data/process"
 )
 
 // VERSION is used in packaging
@@ -99,6 +100,12 @@ func (s *Server) Start() error {
 			Logger:           log.NewContext(s.logger).With("component", "ingest"),
 		}
 		go dataIngest.Run()
+
+		//pre-calculate some stats when the ingestor is running
+
+		//performer activity
+		activityRunner := process.GetActivityRunner(time.Minute * 10, s.logger)
+		go activityRunner.Run(db.NewSession(nil))
 	}
 
 	//sessions

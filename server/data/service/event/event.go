@@ -10,7 +10,18 @@ import (
 	"github.com/warmans/fakt-api/server/data/service/common"
 	"github.com/warmans/fakt-api/server/data/service/performer"
 	"github.com/warmans/fakt-api/server/data/service/utag"
+	"net/http"
+	"strings"
+	"strconv"
 )
+
+const PageSize = 50
+
+func EventFilterFromRequest(r *http.Request) *EventFilter {
+	f := &EventFilter{}
+	f.Populate(r)
+	return f
+}
 
 type EventFilter struct {
 	EventIDs          []int     `json:"events"`
@@ -24,6 +35,74 @@ type EventFilter struct {
 	TagUser           string    `json:"tag_user"`
 	LoadPerformerTags bool      `json:"load_performer_tags"`
 	Source            string    `json:"source"`
+	Page              int64     `json:"page"`
+}
+
+func (f *EventFilter) Populate(r *http.Request) {
+
+	f.EventIDs = make([]int, 0)
+	f.VenueIDs = make([]int64, 0)
+	f.Types = make([]string, 0)
+
+	if eventIds := r.Form.Get("ids"); eventIds != "" {
+		for _, idStr := range strings.Split(eventIds, ",") {
+			if idInt, err := strconv.Atoi(idStr); err == nil {
+				f.EventIDs = append(f.EventIDs, idInt)
+			}
+		}
+	}
+	if from := r.Form.Get("from"); from != "" {
+		if dateFrom, err := time.Parse("2006-01-02", from); err == nil {
+			f.DateFrom = dateFrom
+		}
+	}
+	if to := r.Form.Get("to"); to != "" {
+		if dateTo, err := time.Parse("2006-01-02", to); err == nil {
+			f.DateTo = dateTo
+		}
+	}
+	if dateRelative := r.Form.Get("date_relative"); dateRelative != "" {
+		f.DateFrom, f.DateTo = common.GetRelativeDateRange(dateRelative)
+	}
+
+	//only allow max 3 months of data to be returned
+	maxDate := time.Now().Add(time.Hour * 24 * 7 * 4 * 3)
+	if f.DateTo.After(maxDate) {
+		f.DateTo = maxDate
+	}
+
+	if venue := r.Form.Get("venue"); venue != "" {
+		for _, idStr := range strings.Split(venue, ",") {
+			if idInt, err := strconv.Atoi(idStr); err == nil {
+				f.VenueIDs = append(f.VenueIDs, int64(idInt))
+			}
+		}
+	}
+	if tpe := r.Form.Get("type"); tpe != "" {
+		for _, typeStr := range strings.Split(tpe, ",") {
+			f.Types = append(f.Types, typeStr)
+		}
+	}
+
+	if deleted := r.Form.Get("deleted"); deleted == "1" || deleted == "true" {
+		f.ShowDeleted = true
+	}
+
+	if perfTags := r.Form.Get("performer_tags"); perfTags == "1" || perfTags == "true" {
+		f.LoadPerformerTags = true
+	}
+
+	//limit to events with only these tags
+	f.Tag = r.Form.Get("tag")
+
+	//additionally only look for tags from a specific user
+	f.TagUser = r.Form.Get("tag_user")
+
+	if page := r.Form.Get("page"); page  != "" {
+		if pageInt, err := strconv.Atoi(page); err == nil {
+			f.Page = int64(pageInt)
+		}
+	}
 }
 
 type EventService struct {
@@ -119,6 +198,12 @@ func (s *EventService) FindEventTypes() ([]string, error) {
 //FindEvents is a slightly elaborate method to more efficiently fetch the majority of related event data
 func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) {
 
+	//if no page is specified assume the first page
+	page := filter.Page
+	if page == 0 {
+		page = 1;
+	}
+
 	q := s.DB.Select(
 		"event.id",
 		"event.date",
@@ -128,14 +213,15 @@ func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) 
 		"coalesce(venue.id, 0)",
 		"venue.name",
 		"venue.address",
-		"coalesce(group_concat(performer.id), '')",
+		"coalesce(group_concat(event_performer.performer_id), '')",
 	)
 	q.From("event")
 	q.LeftJoin("venue", "event.venue_id = venue.id")
 	q.LeftJoin("event_performer", "event.id = event_performer.event_id")
-	q.LeftJoin("performer", "event_performer.performer_id = performer.id")
 	q.OrderBy("event.date").OrderBy("event.id").OrderBy("venue.id")
 	q.GroupBy("event.id")
+	q.Limit(uint64(PageSize))
+	q.Offset(uint64((page * PageSize) - PageSize))
 
 	if len(filter.EventIDs) > 0 {
 		q.Where("event.id IN ?", filter.EventIDs)
@@ -155,10 +241,10 @@ func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) 
 	if filter.Source != "" {
 		q.Where("event.source = ?", filter.Source)
 	}
-	q.Where("event.deleted <= ?", common.IfOrInt(filter.ShowDeleted, 1, 0))
+	q.Where("event.deleted = ?", common.IfOrInt(filter.ShowDeleted, 1, 0))
 
-	sql, vals := q.ToSql()
-	interpolated, err := dbr.InterpolateForDialect(sql, vals, dialect.SQLite3)
+	sqlString, vals := q.ToSql()
+	interpolated, err := dbr.InterpolateForDialect(sqlString, vals, dialect.SQLite3)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +308,6 @@ func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) 
 				return nil, err
 			}
 		}
-
 	}
 
 	if curEvent.ID != 0 {

@@ -12,8 +12,8 @@ type Performer struct {
 	Genre      string            `json:"genre"`
 	Home       string            `json:"home"`
 	ListenURL  string            `json:"listen_url"`
-	Activity   string            `json:"activity"`   //todo: e.g. high/medium/low based on number of gigs within last X days
-	Popularity float64           `json:"popularity"` //todo:figure out based on banccamp downloads etc?
+	Activity   float64           `json:"activity"`   //todo: e.g. high/medium/low based on number of gigs within last X days
+	Popularity float64           `json:"popularity"` //todo: figure out based on bandcamp downloads etc?
 	Events     []*Event          `json:"event,omitempty"`
 	Links      []*Link           `json:"link,omitempty"`
 	Tags       []string          `json:"tag"`

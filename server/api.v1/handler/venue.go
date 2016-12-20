@@ -3,13 +3,12 @@ package handler
 import (
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/go-kit/kit/log"
+	"github.com/gorilla/mux"
 	"github.com/warmans/fakt-api/server/api.v1/common"
 	"github.com/warmans/fakt-api/server/data/service/venue"
 	"github.com/warmans/route-rest/routes"
-	"github.com/gorilla/mux"
 )
 
 func NewVenueHandler(ds *venue.VenueService) routes.RESTHandler {
@@ -28,17 +27,7 @@ func (h *VenueHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
 		panic("Context must contain a logger")
 	}
 
-	//query to filter
-	filter := &venue.VenueFilter{VenueIDs: make([]int, 0), Name: r.Form.Get("name")}
-	if ven := r.Form.Get("ids"); ven != "" {
-		for _, idStr := range strings.Split(ven, ",") {
-			if idInt, err := strconv.Atoi(idStr); err == nil {
-				filter.VenueIDs = append(filter.VenueIDs, idInt)
-			}
-		}
-	}
-
-	venues, err := h.ds.FindVenues(filter)
+	venues, err := h.ds.FindVenues(venue.VenueFilterFromRequest(r))
 	if err != nil {
 		common.SendError(rw, err, logger)
 		return

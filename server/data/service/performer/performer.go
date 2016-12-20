@@ -90,11 +90,11 @@ func (s *PerformerService) FindPerformerLinks(performerId int64) ([]*common.Link
 	return links, nil
 }
 
-func (ts *PerformerService) FindPerformerTags(performerID int64) ([]string, error) {
+func (s *PerformerService) FindPerformerTags(performerID int64) ([]string, error) {
 
 	tags := []string{}
 
-	res, err := ts.DB.Query("SELECT coalesce(t.tag, '') FROM performer_tag pt LEFT JOIN tag t ON pt.tag_id = t.id WHERE pt.performer_id = ?", performerID)
+	res, err := s.DB.Query("SELECT coalesce(t.tag, '') FROM performer_tag pt LEFT JOIN tag t ON pt.tag_id = t.id WHERE pt.performer_id = ?", performerID)
 	if err != nil {
 		return tags, fmt.Errorf("Failed to fetch tags at query because %s", err.Error())
 	}
@@ -110,11 +110,11 @@ func (ts *PerformerService) FindPerformerTags(performerID int64) ([]string, erro
 	return tags, nil
 }
 
-func (ts *PerformerService) FindPerformerImages(performerID int64) (map[string]string, error) {
+func (s *PerformerService) FindPerformerImages(performerID int64) (map[string]string, error) {
 
 	tags := make(map[string]string)
 
-	res, err := ts.DB.Query("SELECT pi.usage, pi.src FROM performer_image pi WHERE pi.performer_id = ?", performerID)
+	res, err := s.DB.Query("SELECT pi.usage, pi.src FROM performer_image pi WHERE pi.performer_id = ?", performerID)
 	if err != nil {
 		return tags, fmt.Errorf("Failed performer images query: %s", err.Error())
 	}
@@ -128,6 +128,26 @@ func (ts *PerformerService) FindPerformerImages(performerID int64) (map[string]s
 	}
 
 	return tags, nil
+}
+
+func (s *PerformerService) FindPerformerEventIDs(performerID int64) ([]int, error) {
+
+	eventIDs := make([]int, 0)
+
+	res, err := s.DB.Query("SELECT event_id FROM event_performer WHERE performer_id = ?", performerID)
+	if err != nil {
+		return eventIDs, fmt.Errorf("Failed to fetch performer events because of SQL error %s", err.Error())
+	}
+
+	for res.Next() {
+		var eventID int
+		if err := res.Scan(&eventID); err != nil {
+			return eventIDs, fmt.Errorf("Failed to fetch performer events because of scan error %s", err.Error())
+		}
+		eventIDs = append(eventIDs, eventID)
+	}
+
+	return eventIDs, nil
 }
 
 func (ps *PerformerService) PerformerMustExist(tr *dbr.Tx, performer *common.Performer) error {
