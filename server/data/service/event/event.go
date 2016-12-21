@@ -5,17 +5,18 @@ import (
 	"fmt"
 	"time"
 
+	"net/http"
+	"strconv"
+	"strings"
+
 	"github.com/warmans/dbr"
 	"github.com/warmans/dbr/dialect"
 	"github.com/warmans/fakt-api/server/data/service/common"
 	"github.com/warmans/fakt-api/server/data/service/performer"
 	"github.com/warmans/fakt-api/server/data/service/utag"
-	"net/http"
-	"strings"
-	"strconv"
 )
 
-const PageSize = 50
+const DefaultPageSize = 50
 
 func EventFilterFromRequest(r *http.Request) *EventFilter {
 	f := &EventFilter{}
@@ -36,6 +37,7 @@ type EventFilter struct {
 	LoadPerformerTags bool      `json:"load_performer_tags"`
 	Source            string    `json:"source"`
 	Page              int64     `json:"page"`
+	PageSize          int64     `json:"page_size"`
 }
 
 func (f *EventFilter) Populate(r *http.Request) {
@@ -98,9 +100,18 @@ func (f *EventFilter) Populate(r *http.Request) {
 	//additionally only look for tags from a specific user
 	f.TagUser = r.Form.Get("tag_user")
 
-	if page := r.Form.Get("page"); page  != "" {
+	if page := r.Form.Get("page"); page != "" {
 		if pageInt, err := strconv.Atoi(page); err == nil {
 			f.Page = int64(pageInt)
+		}
+	}
+
+	f.PageSize = DefaultPageSize
+	if pageSize := r.Form.Get("page_size"); pageSize != "" {
+		if pageSizeInt, err := strconv.Atoi(pageSize); err == nil {
+			if pageSizeInt > 0 {
+				f.PageSize = int64(pageSizeInt)
+			}
 		}
 	}
 }
@@ -201,7 +212,7 @@ func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) 
 	//if no page is specified assume the first page
 	page := filter.Page
 	if page == 0 {
-		page = 1;
+		page = 1
 	}
 
 	q := s.DB.Select(
@@ -220,8 +231,8 @@ func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) 
 	q.LeftJoin("event_performer", "event.id = event_performer.event_id")
 	q.OrderBy("event.date").OrderBy("event.id").OrderBy("venue.id")
 	q.GroupBy("event.id")
-	q.Limit(uint64(PageSize))
-	q.Offset(uint64((page * PageSize) - PageSize))
+	q.Limit(uint64(filter.PageSize))
+	q.Offset(uint64((page * filter.PageSize) - filter.PageSize))
 
 	if len(filter.EventIDs) > 0 {
 		q.Where("event.id IN ?", filter.EventIDs)
