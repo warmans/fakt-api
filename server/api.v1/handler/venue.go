@@ -50,7 +50,12 @@ func (h *VenueHandler) HandleGet(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	venues, err := h.ds.FindVenues(&venue.VenueFilter{VenueIDs: []int{venueID}})
+	f := &venue.VenueFilter{}
+	f.IDs = []int64{int64(venueID)}
+	f.PageSize = 1
+	f.Page = 1
+
+	venues, err := h.ds.FindVenues(f)
 	if err != nil {
 		common.SendError(rw, err, logger)
 		return

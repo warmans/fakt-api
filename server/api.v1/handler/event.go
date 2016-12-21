@@ -35,7 +35,12 @@ func (h *EventHandler) HandleGet(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	events, err := h.es.FindEvents(&event.EventFilter{EventIDs: []int{eventId}})
+	f := &event.EventFilter{}
+	f.IDs = []int64{int64(eventId)}
+	f.PageSize = 1
+	f.Page = 1
+
+	events, err := h.es.FindEvents(f)
 	if err != nil {
 		common.SendError(rw, err, logger)
 		return

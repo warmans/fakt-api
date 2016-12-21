@@ -55,7 +55,7 @@ func (h *PerformerEventHandler) HandleGetList(rw http.ResponseWriter, r *http.Re
 	}
 
 	filter := event.EventFilterFromRequest(r)
-	filter.EventIDs = eventIDs
+	filter.IDs = eventIDs
 
 	events, err := h.events.FindEvents(filter)
 	if err != nil {

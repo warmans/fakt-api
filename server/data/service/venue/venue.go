@@ -4,14 +4,10 @@ import (
 	"database/sql"
 
 	"net/http"
-	"strconv"
-	"strings"
 
 	"github.com/warmans/dbr"
 	"github.com/warmans/fakt-api/server/data/service/common"
 )
-
-const DefaultPageSize = 50
 
 func VenueFilterFromRequest(r *http.Request) *VenueFilter {
 	f := &VenueFilter{}
@@ -20,42 +16,19 @@ func VenueFilterFromRequest(r *http.Request) *VenueFilter {
 }
 
 type VenueFilter struct {
-	VenueIDs []int  `json:"venues"`
-	Name     string `json:"name"`
-	Page     int64  `json:"page"`
-	PageSize int64  `json:"page_size"`
-	SortCol  string `json:"sort_col"`
-	SortAsc  bool   `json:"sort_asc"`
+	common.CommonFilter
+
+	Name    string `json:"name"`
+	SortCol string `json:"sort_col"`
+	SortAsc bool   `json:"sort_asc"`
 }
 
 func (f *VenueFilter) Populate(r *http.Request) {
 
+	f.CommonFilter.Populate(r)
+
 	//query to filter
-	f.VenueIDs = make([]int, 0)
 	f.Name = r.Form.Get("name")
-
-	if ven := r.Form.Get("ids"); ven != "" {
-		for _, idStr := range strings.Split(ven, ",") {
-			if idInt, err := strconv.Atoi(idStr); err == nil {
-				f.VenueIDs = append(f.VenueIDs, idInt)
-			}
-		}
-	}
-
-	if page := r.Form.Get("page"); page != "" {
-		if pageInt, err := strconv.Atoi(page); err == nil {
-			f.Page = int64(pageInt)
-		}
-	}
-
-	f.PageSize = DefaultPageSize
-	if pageSize := r.Form.Get("page_size"); pageSize != "" {
-		if pageSizeInt, err := strconv.Atoi(pageSize); err == nil {
-			if pageSizeInt > 0 {
-				f.PageSize = int64(pageSizeInt)
-			}
-		}
-	}
 
 	validSortColumns := map[string]bool{"name": true, "activity": true}
 	if sortCol := r.Form.Get("sort_col"); sortCol != "" {
@@ -123,8 +96,8 @@ func (s *VenueService) FindVenues(filter *VenueFilter) ([]*common.Venue, error) 
 		Limit(uint64(filter.PageSize)).
 		Offset(uint64((filter.PageSize * page) - filter.PageSize))
 
-	if len(filter.VenueIDs) > 0 {
-		q.Where("id IN ?", filter.VenueIDs)
+	if len(filter.IDs) > 0 {
+		q.Where("id IN ?", filter.IDs)
 	}
 	if filter.Name != "" {
 		q.Where("name = ?", filter.Name)

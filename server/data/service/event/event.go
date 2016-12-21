@@ -25,7 +25,9 @@ func EventFilterFromRequest(r *http.Request) *EventFilter {
 }
 
 type EventFilter struct {
-	EventIDs          []int     `json:"events"`
+
+	common.CommonFilter
+
 	DateFrom          time.Time `json:"from_date"`
 	DateTo            time.Time `json:"to_date"`
 	DateRelative      string    `json:"date_relative"`
@@ -36,23 +38,12 @@ type EventFilter struct {
 	UTagUser          string    `json:"utag_user"`
 	LoadPerformerTags bool      `json:"load_performer_tags"`
 	Source            string    `json:"source"`
-	Page              int64     `json:"page"`
-	PageSize          int64     `json:"page_size"`
 }
 
 func (f *EventFilter) Populate(r *http.Request) {
 
-	f.EventIDs = make([]int, 0)
-	f.VenueIDs = make([]int64, 0)
-	f.Types = make([]string, 0)
+	f.CommonFilter.Populate(r)
 
-	if eventIds := r.Form.Get("ids"); eventIds != "" {
-		for _, idStr := range strings.Split(eventIds, ",") {
-			if idInt, err := strconv.Atoi(idStr); err == nil {
-				f.EventIDs = append(f.EventIDs, idInt)
-			}
-		}
-	}
 	if from := r.Form.Get("from"); from != "" {
 		if dateFrom, err := time.Parse("2006-01-02", from); err == nil {
 			f.DateFrom = dateFrom
@@ -73,6 +64,7 @@ func (f *EventFilter) Populate(r *http.Request) {
 		f.DateTo = maxDate
 	}
 
+	f.VenueIDs = make([]int64, 0)
 	if venue := r.Form.Get("venue"); venue != "" {
 		for _, idStr := range strings.Split(venue, ",") {
 			if idInt, err := strconv.Atoi(idStr); err == nil {
@@ -80,6 +72,8 @@ func (f *EventFilter) Populate(r *http.Request) {
 			}
 		}
 	}
+
+	f.Types = make([]string, 0)
 	if tpe := r.Form.Get("type"); tpe != "" {
 		for _, typeStr := range strings.Split(tpe, ",") {
 			f.Types = append(f.Types, typeStr)
@@ -99,21 +93,6 @@ func (f *EventFilter) Populate(r *http.Request) {
 
 	//additionally only look for tags from a specific user
 	f.UTagUser = r.Form.Get("tag_user")
-
-	if page := r.Form.Get("page"); page != "" {
-		if pageInt, err := strconv.Atoi(page); err == nil {
-			f.Page = int64(pageInt)
-		}
-	}
-
-	f.PageSize = DefaultPageSize
-	if pageSize := r.Form.Get("page_size"); pageSize != "" {
-		if pageSizeInt, err := strconv.Atoi(pageSize); err == nil {
-			if pageSizeInt > 0 {
-				f.PageSize = int64(pageSizeInt)
-			}
-		}
-	}
 }
 
 type EventService struct {
@@ -133,7 +112,7 @@ func (es *EventService) EventMustExist(tr *dbr.Tx, event *common.Event) error {
 		// if no ID was supplied try and find one based on the venue and date. i.e. assume two events cannot occur at the
 		// same venue at the same time. Note that if either of these fields has been updated there will be no match
 		// and the row will be processed as though it is a new record.
-		err := tr.QueryRow("SELECT id FROM event WHERE venue_id=? AND date=?", event.Venue.ID, event.Date.Format(common.DATE_FORMAT_SQL)).Scan(&event.ID)
+		err := tr.QueryRow("SELECT id FROM event WHERE venue_id=? AND date=?", event.Venue.ID, event.Date.Format(common.DateFormatSQL)).Scan(&event.ID)
 		if err != nil && err != sql.ErrNoRows {
 			return err
 		}
@@ -144,7 +123,7 @@ func (es *EventService) EventMustExist(tr *dbr.Tx, event *common.Event) error {
 
 		res, err := tr.Exec(
 			"INSERT INTO event (date, venue_id, type, description) VALUES (?, ?, ?, ?)",
-			event.Date.Format(common.DATE_FORMAT_SQL),
+			event.Date.Format(common.DateFormatSQL),
 			event.Venue.ID,
 			event.Type,
 			event.Description,
@@ -234,8 +213,8 @@ func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) 
 	q.Limit(uint64(filter.PageSize))
 	q.Offset(uint64((page * filter.PageSize) - filter.PageSize))
 
-	if len(filter.EventIDs) > 0 {
-		q.Where("event.id IN ?", filter.EventIDs)
+	if len(filter.IDs) > 0 {
+		q.Where("event.id IN ?", filter.IDs)
 	}
 	if len(filter.Types) > 0 {
 		q.Where("event.type IN ?", filter.Types)

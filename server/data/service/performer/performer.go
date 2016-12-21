@@ -130,9 +130,9 @@ func (s *PerformerService) FindPerformerImages(performerID int64) (map[string]st
 	return tags, nil
 }
 
-func (s *PerformerService) FindPerformerEventIDs(performerID int64) ([]int, error) {
+func (s *PerformerService) FindPerformerEventIDs(performerID int64) ([]int64, error) {
 
-	eventIDs := make([]int, 0)
+	eventIDs := make([]int64, 0)
 
 	res, err := s.DB.Query("SELECT event_id FROM event_performer WHERE performer_id = ?", performerID)
 	if err != nil {
@@ -140,7 +140,7 @@ func (s *PerformerService) FindPerformerEventIDs(performerID int64) ([]int, erro
 	}
 
 	for res.Next() {
-		var eventID int
+		var eventID int64
 		if err := res.Scan(&eventID); err != nil {
 			return eventIDs, fmt.Errorf("Failed to fetch performer events because of scan error %s", err.Error())
 		}
