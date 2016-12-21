@@ -67,7 +67,7 @@ func (e *Event) Accept(visitor EventVisitor) {
 	visitor.Visit(e)
 }
 
-func (e *Event) HasTag(tag string, username string) bool {
+func (e *Event) HasUTag(tag string, username string) bool {
 	if tag == "" {
 		return true
 	}

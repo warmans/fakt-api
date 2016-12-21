@@ -32,8 +32,8 @@ type EventFilter struct {
 	VenueIDs          []int64   `json:"venues"`
 	Types             []string  `json:"types"`
 	ShowDeleted       bool      `json:"show_deleted"`
-	Tag               string    `json:"tag"`
-	TagUser           string    `json:"tag_user"`
+	UTag              string    `json:"utag"`
+	UTagUser          string    `json:"utag_user"`
 	LoadPerformerTags bool      `json:"load_performer_tags"`
 	Source            string    `json:"source"`
 	Page              int64     `json:"page"`
@@ -95,10 +95,10 @@ func (f *EventFilter) Populate(r *http.Request) {
 	}
 
 	//limit to events with only these tags
-	f.Tag = r.Form.Get("tag")
+	f.UTag = r.Form.Get("tag")
 
 	//additionally only look for tags from a specific user
-	f.TagUser = r.Form.Get("tag_user")
+	f.UTagUser = r.Form.Get("tag_user")
 
 	if page := r.Form.Get("page"); page != "" {
 		if pageInt, err := strconv.Atoi(page); err == nil {
@@ -288,7 +288,7 @@ func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) 
 
 			//append to result set
 			if curEvent.ID != 0 {
-				if curEvent.HasTag(filter.Tag, filter.TagUser) {
+				if curEvent.HasUTag(filter.UTag, filter.UTagUser) {
 					events = append(events, curEvent)
 				}
 			}
@@ -322,7 +322,7 @@ func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) 
 	}
 
 	if curEvent.ID != 0 {
-		if curEvent.HasTag(filter.Tag, filter.TagUser) {
+		if curEvent.HasUTag(filter.UTag, filter.UTagUser) {
 			events = append(events, curEvent)
 		}
 	}

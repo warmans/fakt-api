@@ -10,6 +10,7 @@ import (
 	mw "github.com/warmans/fakt-api/server/api.v1/middleware"
 	"github.com/warmans/fakt-api/server/data/service/event"
 	"github.com/warmans/fakt-api/server/data/service/performer"
+	"github.com/warmans/fakt-api/server/data/service/tag"
 	"github.com/warmans/fakt-api/server/data/service/user"
 	"github.com/warmans/fakt-api/server/data/service/utag"
 	"github.com/warmans/fakt-api/server/data/service/venue"
@@ -23,6 +24,7 @@ type API struct {
 	PerformerService *performer.PerformerService
 	UserService      *user.UserStore
 	UTagService      *utag.UTagService
+	TagService       *tag.TagService
 
 	SessionStore sessions.Store
 	Logger       log.Logger
@@ -39,9 +41,9 @@ func (a *API) NewServeMux() http.Handler {
 				handler.NewEventHandler(a.EventService),
 				[]*routes.Route{
 					routes.NewRoute(
-						"tag",
-						"{tag_id:[0-9]+}",
-						handler.NewEventTagHandler(a.UTagService, a.Logger),
+						"utag",
+						"{utag_id:[0-9]+}",
+						handler.NewEventUTagHandler(a.UTagService, a.Logger),
 						[]*routes.Route{},
 					),
 				},
@@ -71,9 +73,9 @@ func (a *API) NewServeMux() http.Handler {
 				handler.NewPerformerHandler(a.PerformerService),
 				[]*routes.Route{
 					routes.NewRoute(
-						"tag",
-						"{tag_id:[0-9]+}",
-						handler.NewPerformerTagHandler(a.UTagService, a.Logger),
+						"utag",
+						"{utag_id:[0-9]+}",
+						handler.NewPerformerUTagHandler(a.UTagService, a.Logger),
 						[]*routes.Route{},
 					),
 					routes.NewRoute(
@@ -83,6 +85,12 @@ func (a *API) NewServeMux() http.Handler {
 						[]*routes.Route{},
 					),
 				},
+			),
+			routes.NewRoute(
+				"tag",
+				"{tag_id:[0-9]+}",
+				handler.NewTagHandler(a.TagService),
+				[]*routes.Route{},
 			),
 		},
 		[]string{""}, //no prefix on root resource

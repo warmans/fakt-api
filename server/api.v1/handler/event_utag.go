@@ -14,17 +14,17 @@ import (
 	"github.com/warmans/route-rest/routes"
 )
 
-func NewEventTagHandler(uts *utag.UTagService, logger log.Logger) routes.RESTHandler {
-	return &EventTagHandler{uts: uts, logger: logger}
+func NewEventUTagHandler(uts *utag.UTagService, logger log.Logger) routes.RESTHandler {
+	return &EventUTagHandler{uts: uts, logger: logger}
 }
 
-type EventTagHandler struct {
+type EventUTagHandler struct {
 	uts    *utag.UTagService
 	logger log.Logger
 	routes.DefaultRESTHandler
 }
 
-func (h *EventTagHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
+func (h *EventUTagHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	eventId, err := strconv.Atoi(vars["event_id"])
@@ -43,7 +43,7 @@ func (h *EventTagHandler) HandleGetList(rw http.ResponseWriter, r *http.Request)
 	common.SendResponse(rw, &common.Response{Status: http.StatusOK, Payload: tags})
 }
 
-func (h *EventTagHandler) HandlePost(rw http.ResponseWriter, r *http.Request) {
+func (h *EventUTagHandler) HandlePost(rw http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	eventId, err := strconv.Atoi(vars["event_id"])
@@ -72,7 +72,7 @@ func (h *EventTagHandler) HandlePost(rw http.ResponseWriter, r *http.Request) {
 	h.HandleGetList(rw, r)
 }
 
-func (h *EventTagHandler) HandleDelete(rw http.ResponseWriter, r *http.Request) {
+func (h *EventUTagHandler) HandleDelete(rw http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	eventId, err := strconv.Atoi(vars["event_id"])

@@ -14,17 +14,17 @@ import (
 	"github.com/warmans/route-rest/routes"
 )
 
-func NewPerformerTagHandler(ds *utag.UTagService, logger log.Logger) routes.RESTHandler {
-	return &PerformerTagHandler{ds: ds, logger: logger}
+func NewPerformerUTagHandler(ds *utag.UTagService, logger log.Logger) routes.RESTHandler {
+	return &PerformerUTagHandler{ds: ds, logger: logger}
 }
 
-type PerformerTagHandler struct {
+type PerformerUTagHandler struct {
 	routes.DefaultRESTHandler
 	ds     *utag.UTagService
 	logger log.Logger
 }
 
-func (h *PerformerTagHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
+func (h *PerformerUTagHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	performerID, err := strconv.Atoi(vars["performer_id"])
@@ -49,7 +49,7 @@ func (h *PerformerTagHandler) HandleGetList(rw http.ResponseWriter, r *http.Requ
 	)
 }
 
-func (h *PerformerTagHandler) HandlePost(rw http.ResponseWriter, r *http.Request) {
+func (h *PerformerUTagHandler) HandlePost(rw http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	performerID, err := strconv.Atoi(vars["performer_id"])
@@ -78,7 +78,7 @@ func (h *PerformerTagHandler) HandlePost(rw http.ResponseWriter, r *http.Request
 	h.HandleGetList(rw, r)
 }
 
-func (h *PerformerTagHandler) HandleDelete(rw http.ResponseWriter, r *http.Request) {
+func (h *PerformerUTagHandler) HandleDelete(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	performerID, err := strconv.Atoi(vars["performer_id"])
 	if err != nil {

@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
-	"github.com/warmans/fakt-api/server/data"
 	"github.com/warmans/fakt-api/server/data/service/event"
 	"github.com/warmans/route-rest/routes"
 )
@@ -18,9 +17,7 @@ func NewEventHandler(ds *event.EventService) routes.RESTHandler {
 }
 
 type EventHandler struct {
-	es     *event.EventService
-	ingest *data.Ingest
-
+	es *event.EventService
 	routes.DefaultRESTHandler
 }
 

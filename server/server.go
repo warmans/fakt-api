@@ -15,9 +15,11 @@ import (
 	v1 "github.com/warmans/fakt-api/server/api.v1"
 	"github.com/warmans/fakt-api/server/data"
 	"github.com/warmans/fakt-api/server/data/media"
+	"github.com/warmans/fakt-api/server/data/process"
 	"github.com/warmans/fakt-api/server/data/service/common"
 	"github.com/warmans/fakt-api/server/data/service/event"
 	"github.com/warmans/fakt-api/server/data/service/performer"
+	"github.com/warmans/fakt-api/server/data/service/tag"
 	"github.com/warmans/fakt-api/server/data/service/user"
 	"github.com/warmans/fakt-api/server/data/service/utag"
 	"github.com/warmans/fakt-api/server/data/service/venue"
@@ -25,7 +27,6 @@ import (
 	"github.com/warmans/fakt-api/server/data/source/k9"
 	"github.com/warmans/fakt-api/server/data/source/sfaktor"
 	"github.com/warmans/go-bandcamp-search/bcamp"
-	"github.com/warmans/fakt-api/server/data/process"
 )
 
 // VERSION is used in packaging
@@ -74,6 +75,7 @@ func (s *Server) Start() error {
 	eventService := &event.EventService{DB: db.NewSession(nil), UTagService: utagService, PerformerService: performerService}
 	venueService := &venue.VenueService{DB: db.NewSession(nil)}
 	userService := &user.UserStore{DB: db.NewSession(nil)}
+	tagService := &tag.TagService{DB: db.NewSession(nil)}
 
 	imageMirror := media.NewImageMirror(s.conf.StaticFilesPath)
 
@@ -104,7 +106,7 @@ func (s *Server) Start() error {
 		//pre-calculate some stats when the ingestor is running
 
 		//performer activity
-		activityRunner := process.GetActivityRunner(time.Minute * 10, s.logger)
+		activityRunner := process.GetActivityRunner(time.Minute*10, s.logger)
 		go activityRunner.Run(db.NewSession(nil))
 	}
 
@@ -120,6 +122,7 @@ func (s *Server) Start() error {
 		VenueService:     venueService,
 		PerformerService: performerService,
 		UTagService:      utagService,
+		TagService:       tagService,
 		SessionStore:     sessions.NewCookieStore([]byte(s.conf.EncryptionKey)),
 		Logger:           s.logger,
 	}
