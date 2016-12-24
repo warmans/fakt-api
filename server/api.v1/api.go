@@ -46,6 +46,12 @@ func (a *API) NewServeMux() http.Handler {
 						handler.NewEventUTagHandler(a.UTagService, a.Logger),
 						[]*routes.Route{},
 					),
+					routes.NewRoute(
+						"similar",
+						"{similar_id:[0-9]+}",
+						handler.NewEventSimilarHandler(a.EventService),
+						[]*routes.Route{},
+					),
 				},
 			),
 			routes.NewRoute(
@@ -82,6 +88,12 @@ func (a *API) NewServeMux() http.Handler {
 						"event",
 						"{event_id:[0-9]+}",
 						handler.NewPerformerEventHandler(a.EventService, a.PerformerService, a.Logger),
+						[]*routes.Route{},
+					),
+					routes.NewRoute(
+						"similar",
+						"{similar_id:[0-9]+}",
+						handler.NewPerformerSimilarHandler(a.PerformerService),
 						[]*routes.Route{},
 					),
 				},

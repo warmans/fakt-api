@@ -20,11 +20,11 @@ func IfOrInt(val bool, trueVal, falseVal int) int {
 	return falseVal
 }
 
-func SplitConcatIDs(concatIDs string, delimiter string) []int {
-	performerIDs := []int{}
-	for _, pidStr := range strings.Split(concatIDs, ",") {
+func SplitConcatIDs(concatIDs string, delimiter string) []int64 {
+	performerIDs := []int64{}
+	for _, pidStr := range strings.Split(concatIDs, delimiter) {
 		if pidInt, _ := strconv.Atoi(pidStr); pidInt != 0 {
-			performerIDs = append(performerIDs, pidInt)
+			performerIDs = append(performerIDs, int64(pidInt))
 		}
 	}
 	return performerIDs

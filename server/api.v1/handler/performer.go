@@ -3,13 +3,12 @@ package handler
 import (
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/go-kit/kit/log"
+	"github.com/gorilla/mux"
 	"github.com/warmans/fakt-api/server/api.v1/common"
 	"github.com/warmans/fakt-api/server/data/service/performer"
 	"github.com/warmans/route-rest/routes"
-	"github.com/gorilla/mux"
 )
 
 func NewPerformerHandler(ds *performer.PerformerService) routes.RESTHandler {
@@ -28,22 +27,7 @@ func (h *PerformerHandler) HandleGetList(rw http.ResponseWriter, r *http.Request
 		panic("Context must contain a logger")
 	}
 
-	//query to filter
-	filter := &performer.PerformerFilter{
-		Name: r.Form.Get("name"),
-		Genre: r.Form.Get("genre"),
-		Home: r.Form.Get("home"),
-		PerformerID: make([]int, 0),
-	}
-	if ids := r.Form.Get("ids"); ids != "" {
-		for _, idStr := range strings.Split(ids, ",") {
-			if idInt, err := strconv.Atoi(idStr); err == nil {
-				filter.PerformerID = append(filter.PerformerID, idInt)
-			}
-		}
-	}
-
-	performers, err := h.ds.FindPerformers(filter)
+	performers, err := h.ds.FindPerformers(performer.PerformerFilterFromRequest(r))
 	if err != nil {
 		common.SendError(rw, err, logger)
 		return
@@ -51,7 +35,6 @@ func (h *PerformerHandler) HandleGetList(rw http.ResponseWriter, r *http.Request
 
 	common.SendResponse(rw, &common.Response{Status: http.StatusOK, Payload: performers})
 }
-
 
 func (h *PerformerHandler) HandleGet(rw http.ResponseWriter, r *http.Request) {
 
@@ -71,7 +54,12 @@ func (h *PerformerHandler) HandleGet(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	performers, err := h.ds.FindPerformers(&performer.PerformerFilter{PerformerID: []int{performerID}})
+	f := &performer.PerformerFilter{}
+	f.IDs = []int64{int64(performerID)}
+	f.PageSize = 1
+	f.Page = 1
+
+	performers, err := h.ds.FindPerformers(f)
 	if err != nil {
 		common.SendError(rw, err, logger)
 		return

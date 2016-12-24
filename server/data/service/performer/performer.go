@@ -2,6 +2,7 @@ package performer
 
 import (
 	"database/sql"
+	"net/http"
 
 	"fmt"
 	"strings"
@@ -12,11 +13,27 @@ import (
 	"github.com/warmans/fakt-api/server/data/service/utag"
 )
 
+func PerformerFilterFromRequest(r *http.Request) *PerformerFilter {
+	f := &PerformerFilter{}
+	f.Populate(r)
+	return f
+}
+
 type PerformerFilter struct {
-	PerformerID []int  `json:"performers"`
-	Name        string `json:"name"`
-	Genre       string `json:"name"`
-	Home        string `json:"name"`
+	common.CommonFilter
+
+	Name  string `json:"name"`
+	Genre string `json:"name"`
+	Home  string `json:"name"`
+}
+
+func (f *PerformerFilter) Populate(r *http.Request) {
+
+	f.CommonFilter.Populate(r)
+
+	f.Name = r.Form.Get("name")
+	f.Genre = r.Form.Get("genre")
+	f.Home = r.Form.Get("home")
 }
 
 type PerformerService struct {
@@ -27,13 +44,21 @@ type PerformerService struct {
 
 func (s *PerformerService) FindPerformers(filter *PerformerFilter) ([]*common.Performer, error) {
 
+	//if no page is specified assume the first page
+	page := filter.Page
+	if page == 0 {
+		page = 1
+	}
+
 	q := s.DB.
 		Select("id", "name", "info", "genre", "home", "listen_url", "embed_url").
 		From("performer p").
-		OrderBy("p.name")
+		OrderBy("p.name").
+		Limit(uint64(filter.PageSize)).
+		Offset(uint64((filter.PageSize * page) - filter.PageSize))
 
-	if len(filter.PerformerID) > 0 {
-		q.Where("p.id IN ?", filter.PerformerID)
+	if len(filter.IDs) > 0 {
+		q.Where("p.id IN ?", filter.IDs)
 	}
 	if filter.Name != "" {
 		q.Where("p.name = ?", filter.Name)
@@ -96,6 +121,9 @@ func (s *PerformerService) FindPerformerTags(performerID int64) ([]string, error
 
 	res, err := s.DB.Query("SELECT coalesce(t.tag, '') FROM performer_tag pt LEFT JOIN tag t ON pt.tag_id = t.id WHERE pt.performer_id = ?", performerID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return tags, nil
+		}
 		return tags, fmt.Errorf("Failed to fetch tags at query because %s", err.Error())
 	}
 
@@ -112,22 +140,25 @@ func (s *PerformerService) FindPerformerTags(performerID int64) ([]string, error
 
 func (s *PerformerService) FindPerformerImages(performerID int64) (map[string]string, error) {
 
-	tags := make(map[string]string)
+	images := make(map[string]string)
 
 	res, err := s.DB.Query("SELECT pi.usage, pi.src FROM performer_image pi WHERE pi.performer_id = ?", performerID)
 	if err != nil {
-		return tags, fmt.Errorf("Failed performer images query: %s", err.Error())
+		if err == sql.ErrNoRows {
+			return images, nil
+		}
+		return images, fmt.Errorf("Failed performer images query: %s", err.Error())
 	}
 
 	for res.Next() {
 		var usage, src string
 		if err := res.Scan(&usage, &src); err != nil {
-			return tags, fmt.Errorf("Failed performer image scan: %s", err.Error())
+			return images, fmt.Errorf("Failed performer image scan: %s", err.Error())
 		}
-		tags[usage] = src
+		images[usage] = src
 	}
 
-	return tags, nil
+	return images, nil
 }
 
 func (s *PerformerService) FindPerformerEventIDs(performerID int64) ([]int64, error) {
@@ -136,6 +167,9 @@ func (s *PerformerService) FindPerformerEventIDs(performerID int64) ([]int64, er
 
 	res, err := s.DB.Query("SELECT event_id FROM event_performer WHERE performer_id = ?", performerID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return eventIDs, nil
+		}
 		return eventIDs, fmt.Errorf("Failed to fetch performer events because of SQL error %s", err.Error())
 	}
 
@@ -148,6 +182,35 @@ func (s *PerformerService) FindPerformerEventIDs(performerID int64) ([]int64, er
 	}
 
 	return eventIDs, nil
+}
+
+func (s *PerformerService) FindSimilarPerformerIDs(performerID int64) ([]int64, error) {
+	performerIDs := make([]int64, 0)
+
+	res, err := s.DB.Query(`
+		SELECT pt2.performer_id
+		FROM performer_tag pt1
+		LEFT JOIN performer_tag pt2 ON pt1.tag_id = pt2.tag_id
+		WHERE pt1.performer_id = 7 AND pt2.performer_id != 7
+		GROUP BY pt2.performer_id
+		ORDER BY SUM(1) DESC
+	`)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return performerIDs, nil
+		}
+		return performerIDs, fmt.Errorf("Failed to fetch similar performer because of SQL error %s", err.Error())
+	}
+
+	for res.Next() {
+		var perfID int64
+		if err := res.Scan(&perfID); err != nil {
+			return performerIDs, fmt.Errorf("Failed to fetch similar performers because of scan error %s", err.Error())
+		}
+		performerIDs = append(performerIDs, perfID)
+	}
+
+	return performerIDs, nil
 }
 
 func (ps *PerformerService) PerformerMustExist(tr *dbr.Tx, performer *common.Performer) error {

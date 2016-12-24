@@ -25,7 +25,6 @@ func EventFilterFromRequest(r *http.Request) *EventFilter {
 }
 
 type EventFilter struct {
-
 	common.CommonFilter
 
 	DateFrom          time.Time `json:"from_date"`
@@ -157,12 +156,12 @@ func (es *EventService) EventMustExist(tr *dbr.Tx, event *common.Event) error {
 	}
 
 	//finally append the performers (
-	for _, performer := range event.Performers {
-		if performer.ID == 0 {
+	for _, perfs := range event.Performers {
+		if perfs.ID == 0 {
 			continue
 		}
 		//make the association
-		_, err := tr.Exec("REPLACE INTO event_performer (event_id, performer_id) VALUES (?, ?)", event.ID, performer.ID)
+		_, err := tr.Exec("REPLACE INTO event_performer (event_id, performer_id) VALUES (?, ?)", event.ID, perfs.ID)
 		if err != nil {
 			return err
 		}
@@ -183,6 +182,39 @@ func (s *EventService) FindEventTypes() ([]string, error) {
 		return nil, err
 	}
 	return types, nil
+}
+
+func (s *EventService) FindSimilarEventIDs(eventID int64) ([]int64, error) {
+
+	similarEvents := []int64{}
+
+	res, err := s.DB.Query(`
+		SELECT
+			ep2.event_id AS similar_event_id
+		FROM event_performer ep1
+		LEFT JOIN performer_tag pt1 ON ep1.performer_id = pt1.performer_id
+		LEFT JOIN performer_tag pt2 ON pt1.tag_id = pt2.tag_id
+		LEFT JOIN event_performer ep2 ON pt2.performer_id = ep2.performer_id
+		WHERE ep1.event_id = ? AND ep2.event_id != ?
+		GROUP BY ep2.event_id
+		ORDER BY SUM(1) DESC
+	`, eventID, eventID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return similarEvents, nil
+		}
+		return similarEvents, fmt.Errorf("Failed to find similar events for id %d. Reason: %s", eventID, err.Error())
+	}
+
+	for res.Next() {
+		var curEventID int64
+		if err := res.Scan(&curEventID); err != nil {
+			return similarEvents, fmt.Errorf("Failed to find similar events for id %d. Reason: %s", eventID, err.Error())
+		}
+		similarEvents = append(similarEvents, curEventID)
+	}
+
+	return similarEvents, nil
 }
 
 //FindEvents is a slightly elaborate method to more efficiently fetch the majority of related event data
@@ -288,7 +320,9 @@ func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) 
 
 			//append the performers
 			if performerIDs := common.SplitConcatIDs(pIDs, ","); len(performerIDs) > 0 {
-				if curEvent.Performers, err = s.PerformerService.FindPerformers(&performer.PerformerFilter{PerformerID: performerIDs}); err != nil {
+				pf := &performer.PerformerFilter{}
+				pf.IDs = performerIDs
+				if curEvent.Performers, err = s.PerformerService.FindPerformers(pf); err != nil {
 					return nil, err
 				}
 			}
