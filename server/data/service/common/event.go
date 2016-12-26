@@ -45,13 +45,18 @@ func (e *Event) GuessPerformers() {
 		if fromMatch := fromRe.FindStringSubmatch(genre); len(fromMatch) == 3 {
 			//e.g. from Berlin, from, Berlin
 			home = fromMatch[2]
+			//if a location was found remove it from the genre
+			genre = strings.Replace(genre, fromMatch[0], "", -1)
 		}
+
+		tags := strings.Split(genre, ",")
+		tags = append(tags, home)
 
 		perf := &Performer{
 			Name:  name,
 			Genre: genre,
 			Home:  home,
-			Tags: []string{genre, home},
+			Tags: tags,
 		}
 		e.Performers = append(e.Performers, perf)
 	}
