@@ -243,7 +243,9 @@ func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) 
 	q.OrderBy("event.date").OrderBy("event.id").OrderBy("venue.id")
 	q.GroupBy("event.id")
 	q.Limit(uint64(filter.PageSize))
-	q.Offset(uint64((page * filter.PageSize) - filter.PageSize))
+	if filter.PageSize != 0 {
+		q.Limit(uint64(filter.PageSize)).Offset(uint64((filter.PageSize * page) - filter.PageSize))
+	}
 
 	if len(filter.IDs) > 0 {
 		q.Where("event.id IN ?", filter.IDs)

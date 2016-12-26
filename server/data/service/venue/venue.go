@@ -93,8 +93,10 @@ func (s *VenueService) FindVenues(filter *VenueFilter) ([]*common.Venue, error) 
 
 	q := s.DB.Select("id", "name", "address", "COALESCE(activity, 0) AS activity").
 		From("venue").
-		Limit(uint64(filter.PageSize)).
-		Offset(uint64((filter.PageSize * page) - filter.PageSize))
+		Limit(uint64(filter.PageSize))
+	if filter.PageSize != 0 {
+		q.Limit(uint64(filter.PageSize)).Offset(uint64((filter.PageSize * page) - filter.PageSize))
+	}
 
 	if len(filter.IDs) > 0 {
 		q.Where("id IN ?", filter.IDs)

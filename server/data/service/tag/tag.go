@@ -33,8 +33,10 @@ func (s *TagService) FindTags(filter *TagFilter) ([]*common.Tag, error) {
 		From("tag t").
 		LeftJoin("performer_tag", "performer_tag.tag_id = t.id").
 		GroupBy("t.id").
-		Limit(uint64(filter.PageSize)).
-		Offset(uint64((filter.PageSize * page) - filter.PageSize))
+		Limit(uint64(filter.PageSize))
+	if filter.PageSize != 0 {
+		q.Limit(uint64(filter.PageSize)).Offset(uint64((filter.PageSize * page) - filter.PageSize))
+	}
 
 	if len(filter.IDs) > 0 {
 		q.Where("t.id IN ?", filter.IDs)

@@ -51,6 +51,7 @@ func (e *Event) GuessPerformers() {
 			Name:  name,
 			Genre: genre,
 			Home:  home,
+			Tags: []string{genre, home},
 		}
 		e.Performers = append(e.Performers, perf)
 	}

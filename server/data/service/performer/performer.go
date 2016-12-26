@@ -53,9 +53,11 @@ func (s *PerformerService) FindPerformers(filter *PerformerFilter) ([]*common.Pe
 	q := s.DB.
 		Select("id", "name", "info", "genre", "home", "listen_url", "embed_url").
 		From("performer p").
-		OrderBy("p.name").
-		Limit(uint64(filter.PageSize)).
-		Offset(uint64((filter.PageSize * page) - filter.PageSize))
+		OrderBy("p.name")
+
+	if filter.PageSize != 0 {
+		q.Limit(uint64(filter.PageSize)).Offset(uint64((filter.PageSize * page) - filter.PageSize))
+	}
 
 	if len(filter.IDs) > 0 {
 		q.Where("p.id IN ?", filter.IDs)
@@ -69,37 +71,38 @@ func (s *PerformerService) FindPerformers(filter *PerformerFilter) ([]*common.Pe
 	if filter.Genre != "" {
 		q.Where("p.genre = ?", filter.Genre)
 	}
-	performers := make([]*common.Performer, 0)
-	if _, err := q.Load(&performers); err != nil && err != dbr.ErrNotFound {
+
+	found := make([]*common.Performer, 0)
+	if _, err := q.Load(&found); err != nil && err != dbr.ErrNotFound {
 		return nil, err
 	}
 
-	for k, performer := range performers {
+	for k, performer := range found {
 		links, err := s.FindPerformerLinks(performer.ID)
 		if err != nil {
 			return nil, err
 		}
-		performers[k].Links = links
+		found[k].Links = links
 
 		//append the utags
 		tags, err := s.UTagService.FindPerformerUTags(performer.ID, &common.UTagsFilter{})
 		if err != nil {
 			return nil, err
 		}
-		performers[k].UTags = tags
+		found[k].UTags = tags
 
 		//append normal tags
-		if performers[k].Tags, err = s.FindPerformerTags(performer.ID); err != nil {
+		if found[k].Tags, err = s.FindPerformerTags(performer.ID); err != nil {
 			return nil, err
 		}
 
 		//images
-		if performers[k].Images, err = s.FindPerformerImages(performer.ID); err != nil {
+		if found[k].Images, err = s.FindPerformerImages(performer.ID); err != nil {
 			return nil, err
 		}
 	}
 
-	return performers, nil
+	return found, nil
 }
 
 func (s *PerformerService) FindPerformerLinks(performerId int64) ([]*common.Link, error) {

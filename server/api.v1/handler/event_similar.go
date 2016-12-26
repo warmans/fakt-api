@@ -39,6 +39,10 @@ func (h *EventSimilarHandler) HandleGetList(rw http.ResponseWriter, r *http.Requ
 		common.SendError(rw, err, logger)
 		return
 	}
+	if len(similarEvents) == 0 {
+		common.SendResponse(rw, &common.Response{Status: http.StatusOK, Payload: []struct{}{}})
+		return
+	}
 
 	f := event.EventFilterFromRequest(r)
 	f.IDs = similarEvents

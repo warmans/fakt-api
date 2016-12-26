@@ -40,6 +40,10 @@ func (h *PerformerSimilarHandler) HandleGetList(rw http.ResponseWriter, r *http.
 		common.SendError(rw, err, logger)
 		return
 	}
+	if len(similarPerformers) == 0 {
+		common.SendResponse(rw, &common.Response{Status: http.StatusOK, Payload: []struct{}{}})
+		return
+	}
 
 	f := performer.PerformerFilterFromRequest(r)
 	f.IDs = similarPerformers
