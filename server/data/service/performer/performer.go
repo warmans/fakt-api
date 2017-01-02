@@ -51,7 +51,7 @@ func (s *PerformerService) FindPerformers(filter *PerformerFilter) ([]*common.Pe
 	}
 
 	q := s.DB.
-		Select("id", "name", "info", "genre", "home", "listen_url", "embed_url", "activity").
+		Select("id", "name", "info", "genre", "home", "listen_url", "embed_url", "COALESCE(activity, 0) AS activity").
 		From("performer p").
 		OrderBy("p.name")
 
