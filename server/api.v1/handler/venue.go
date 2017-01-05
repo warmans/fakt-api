@@ -9,6 +9,7 @@ import (
 	"github.com/warmans/fakt-api/server/api.v1/common"
 	"github.com/warmans/fakt-api/server/data/service/venue"
 	"github.com/warmans/route-rest/routes"
+	"github.com/warmans/fakt-api/server/api.v1/middleware"
 )
 
 func NewVenueHandler(ds *venue.VenueService) routes.RESTHandler {
@@ -22,10 +23,7 @@ type VenueHandler struct {
 
 func (h *VenueHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
 
-	logger, ok := r.Context().Value("logger").(log.Logger)
-	if !ok {
-		panic("Context must contain a logger")
-	}
+	logger := middleware.MustGetLogger(r)
 
 	venues, err := h.ds.FindVenues(venue.VenueFilterFromRequest(r))
 	if err != nil {

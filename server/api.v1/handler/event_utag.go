@@ -6,25 +6,26 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
 	"github.com/warmans/fakt-api/server/api.v1/common"
 	dcom "github.com/warmans/fakt-api/server/data/service/common"
 	"github.com/warmans/fakt-api/server/data/service/utag"
 	"github.com/warmans/route-rest/routes"
+	"github.com/warmans/fakt-api/server/api.v1/middleware"
 )
 
-func NewEventUTagHandler(uts *utag.UTagService, logger log.Logger) routes.RESTHandler {
-	return &EventUTagHandler{uts: uts, logger: logger}
+func NewEventUTagHandler(uts *utag.UTagService) routes.RESTHandler {
+	return &EventUTagHandler{uts: uts}
 }
 
 type EventUTagHandler struct {
 	uts    *utag.UTagService
-	logger log.Logger
 	routes.DefaultRESTHandler
 }
 
 func (h *EventUTagHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
+
+	logger := middleware.MustGetLogger(r)
 
 	vars := mux.Vars(r)
 	eventId, err := strconv.Atoi(vars["event_id"])
@@ -36,7 +37,7 @@ func (h *EventUTagHandler) HandleGetList(rw http.ResponseWriter, r *http.Request
 	//then get all tags for the event
 	tags, err := h.uts.FindEventUTags(int64(eventId), &dcom.UTagsFilter{Username: r.Form.Get("username")})
 	if err != nil && err != sql.ErrNoRows {
-		common.SendError(rw, common.HTTPError{"Failed to get tags", http.StatusInternalServerError, err}, h.logger)
+		common.SendError(rw, common.HTTPError{"Failed to get tags", http.StatusInternalServerError, err}, logger)
 		return
 	}
 
@@ -45,6 +46,8 @@ func (h *EventUTagHandler) HandleGetList(rw http.ResponseWriter, r *http.Request
 
 func (h *EventUTagHandler) HandlePost(rw http.ResponseWriter, r *http.Request) {
 
+	logger := middleware.MustGetLogger(r)
+
 	vars := mux.Vars(r)
 	eventId, err := strconv.Atoi(vars["event_id"])
 	if err != nil {
@@ -52,7 +55,7 @@ func (h *EventUTagHandler) HandlePost(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	usr, err := common.Restrict(r.Context())
+	usr, err := middleware.Restrict(r)
 	if err != nil {
 		common.SendError(rw, err, nil)
 		return
@@ -65,7 +68,7 @@ func (h *EventUTagHandler) HandlePost(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.uts.StoreEventUTags(int64(eventId), usr.ID, payload); err != nil {
-		common.SendError(rw, common.HTTPError{"Failed to save tags", http.StatusInternalServerError, err}, h.logger)
+		common.SendError(rw, common.HTTPError{"Failed to save tags", http.StatusInternalServerError, err}, logger)
 		return
 	}
 
@@ -74,6 +77,8 @@ func (h *EventUTagHandler) HandlePost(rw http.ResponseWriter, r *http.Request) {
 
 func (h *EventUTagHandler) HandleDelete(rw http.ResponseWriter, r *http.Request) {
 
+	logger := middleware.MustGetLogger(r)
+
 	vars := mux.Vars(r)
 	eventId, err := strconv.Atoi(vars["event_id"])
 	if err != nil {
@@ -81,7 +86,7 @@ func (h *EventUTagHandler) HandleDelete(rw http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	usr, err := common.Restrict(r.Context())
+	usr, err := middleware.Restrict(r)
 	if err != nil {
 		common.SendError(rw, err, nil)
 		return
@@ -94,7 +99,7 @@ func (h *EventUTagHandler) HandleDelete(rw http.ResponseWriter, r *http.Request)
 	}
 
 	if err := h.uts.RemoveEventUTags(int64(eventId), usr.ID, payload); err != nil {
-		common.SendError(rw, common.HTTPError{"Failed to save tags", http.StatusInternalServerError, err}, h.logger)
+		common.SendError(rw, common.HTTPError{"Failed to save tags", http.StatusInternalServerError, err}, logger)
 		return
 	}
 

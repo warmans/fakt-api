@@ -3,12 +3,12 @@ package handler
 import (
 	"net/http"
 
-	"github.com/go-kit/kit/log"
 	"github.com/warmans/fakt-api/server/api.v1/common"
 	"github.com/warmans/fakt-api/server/data/service/event"
 	"github.com/warmans/route-rest/routes"
 	"github.com/gorilla/mux"
 	"strconv"
+	"github.com/warmans/fakt-api/server/api.v1/middleware"
 )
 
 func NewEventSimilarHandler(ds *event.EventService) routes.RESTHandler {
@@ -22,10 +22,7 @@ type EventSimilarHandler struct {
 
 func (h *EventSimilarHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
 
-	logger, ok := r.Context().Value("logger").(log.Logger)
-	if !ok {
-		panic("Context must contain a logger")
-	}
+	logger := middleware.MustGetLogger(r)
 
 	vars := mux.Vars(r)
 	eventId, err := strconv.Atoi(vars["event_id"])

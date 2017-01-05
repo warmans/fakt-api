@@ -5,11 +5,11 @@ import (
 
 	"strconv"
 
-	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
 	"github.com/warmans/fakt-api/server/api.v1/common"
 	"github.com/warmans/fakt-api/server/data/service/performer"
 	"github.com/warmans/route-rest/routes"
+	"github.com/warmans/fakt-api/server/api.v1/middleware"
 )
 
 func NewPerformerSimilarHandler(ds *performer.PerformerService) routes.RESTHandler {
@@ -23,10 +23,7 @@ type PerformerSimilarHandler struct {
 
 func (h *PerformerSimilarHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
 
-	logger, ok := r.Context().Value("logger").(log.Logger)
-	if !ok {
-		panic("Context must contain a logger")
-	}
+	logger := middleware.MustGetLogger(r)
 
 	vars := mux.Vars(r)
 	eventId, err := strconv.Atoi(vars["performer_id"])

@@ -43,7 +43,7 @@ func (a *API) NewServeMux() http.Handler {
 					routes.NewRoute(
 						"utag",
 						"{utag_id:[0-9]+}",
-						handler.NewEventUTagHandler(a.UTagService, a.Logger),
+						handler.NewEventUTagHandler(a.UTagService),
 						[]*routes.Route{},
 					),
 					routes.NewRoute(
@@ -68,7 +68,7 @@ func (a *API) NewServeMux() http.Handler {
 					routes.NewRoute(
 						"event",
 						"{event_id:[0-9]+}",
-						handler.NewVenueEventHandler(a.EventService, a.VenueService, a.Logger),
+						handler.NewVenueEventHandler(a.EventService, a.VenueService),
 						[]*routes.Route{},
 					),
 				},
@@ -81,13 +81,13 @@ func (a *API) NewServeMux() http.Handler {
 					routes.NewRoute(
 						"utag",
 						"{utag_id:[0-9]+}",
-						handler.NewPerformerUTagHandler(a.UTagService, a.Logger),
+						handler.NewPerformerUTagHandler(a.UTagService),
 						[]*routes.Route{},
 					),
 					routes.NewRoute(
 						"event",
 						"{event_id:[0-9]+}",
-						handler.NewPerformerEventHandler(a.EventService, a.PerformerService, a.Logger),
+						handler.NewPerformerEventHandler(a.EventService, a.PerformerService),
 						[]*routes.Route{},
 					),
 					routes.NewRoute(
@@ -111,7 +111,7 @@ func (a *API) NewServeMux() http.Handler {
 	//user
 	restRouter.Handle(
 		"/login",
-		handler.NewLoginHandler(a.UserService, a.SessionStore, a.Logger),
+		handler.NewLoginHandler(a.UserService, a.SessionStore),
 	)
 	restRouter.Handle(
 		"/logout",
@@ -143,5 +143,5 @@ func (a *API) NewServeMux() http.Handler {
 		},
 	)
 
-	return mw.AddSetup(mw.AddCtx(finalHandler, a.SessionStore, a.UserService, a.Logger))
+	return mw.AddSetup(mw.AddCommonCtx(finalHandler, a.SessionStore, a.UserService, a.Logger))
 }

@@ -5,9 +5,9 @@ import (
 
 	"github.com/warmans/fakt-api/server/api.v1/common"
 
-	"github.com/go-kit/kit/log"
 	"github.com/warmans/fakt-api/server/data/service/tag"
 	"github.com/warmans/route-rest/routes"
+	"github.com/warmans/fakt-api/server/api.v1/middleware"
 )
 
 func NewTagHandler(ts *tag.TagService) routes.RESTHandler {
@@ -21,10 +21,7 @@ type TagHandler struct {
 
 func (h *TagHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
 
-	logger, ok := r.Context().Value("logger").(log.Logger)
-	if !ok {
-		panic("Context must contain a logger")
-	}
+	logger := middleware.MustGetLogger(r)
 
 	tags, err := h.tags.FindTags(tag.TagFilterFromRequest(r))
 	if err != nil {

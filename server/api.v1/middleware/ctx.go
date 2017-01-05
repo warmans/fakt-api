@@ -8,26 +8,29 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/gorilla/sessions"
 	"github.com/warmans/fakt-api/server/data/service/user"
+	"github.com/warmans/fakt-api/server/api.v1/common"
 )
 
-func AddCtx(nextHandler http.Handler, sess sessions.Store, users *user.UserStore, logger log.Logger) http.Handler {
-	return &CtxMiddleware{next: nextHandler, sessions: sess, users: users, logger: logger}
+type commonContextKey string
+
+func AddCommonCtx(nextHandler http.Handler, sess sessions.Store, users *user.UserStore, logger log.Logger) http.Handler {
+	return &CommonCtxMiddleware{next: nextHandler, sessions: sess, users: users, logger: logger}
 }
 
-type CtxMiddleware struct {
+type CommonCtxMiddleware struct {
 	next     http.Handler
 	sessions sessions.Store
 	users    *user.UserStore
 	logger   log.Logger
 }
 
-func (m *CtxMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (m *CommonCtxMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
 	//setup logger with http context info and add to context
 	logger := log.NewContext(m.logger).With("method", r.Method, "url", r.URL.String())
-	ctx = context.WithValue(ctx, "logger", m.logger)
+	ctx = context.WithValue(ctx, commonContextKey("logger"), m.logger)
 
 	sess, err := m.sessions.Get(r, "login")
 	if err != nil {
@@ -44,10 +47,30 @@ func (m *CtxMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	usr, err := m.users.GetUser(userId.(int64))
 	if err == nil && usr != nil {
-		ctx = context.WithValue(ctx, "user", usr)
+		ctx = context.WithValue(ctx, commonContextKey("user"), usr)
 	} else {
-		ctx = context.WithValue(ctx, "user", nil)
+		ctx = context.WithValue(ctx, commonContextKey("user"), nil)
 	}
 
 	m.next.ServeHTTP(rw, r.WithContext(ctx))
+}
+
+func MustGetLogger(r *http.Request) log.Logger {
+	logger, ok := r.Context().Value(commonContextKey("logger")).(log.Logger)
+	if !ok {
+		panic("Context must contain a logger")
+	}
+	return logger
+}
+
+func GetUser(r *http.Request) *user.User{
+	return r.Context().Value(commonContextKey("user")).(*user.User)
+}
+
+func Restrict(r *http.Request) (*user.User, error) {
+	usr := GetUser(r)
+	if usr != nil {
+		return nil, common.HTTPError{Msg:"Access Denied", Status: http.StatusUnauthorized, LastErr: nil}
+	}
+	return usr, nil
 }

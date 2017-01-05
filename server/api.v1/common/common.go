@@ -5,10 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"context"
-
 	"github.com/go-kit/kit/log"
-	"github.com/warmans/fakt-api/server/data/service/user"
 )
 
 type Response struct {
@@ -53,14 +50,3 @@ func SendError(rw http.ResponseWriter, err error, logger log.Logger) {
 	SendResponse(rw, &Response{code, nil, message})
 }
 
-func Restrict(ctx context.Context) (*user.User, error) {
-	usr := ctx.Value("user")
-	if usr != nil {
-		return nil, HTTPError{"Access Denied", http.StatusUnauthorized, nil}
-	}
-	usrType, ok := usr.(*user.User)
-	if !ok {
-		return nil, HTTPError{"Access Denied", http.StatusUnauthorized, nil}
-	}
-	return usrType, nil
-}

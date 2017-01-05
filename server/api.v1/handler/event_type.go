@@ -3,10 +3,10 @@ package handler
 import (
 	"net/http"
 
-	"github.com/go-kit/kit/log"
 	"github.com/warmans/fakt-api/server/api.v1/common"
 	"github.com/warmans/fakt-api/server/data/service/event"
 	"github.com/warmans/route-rest/routes"
+	"github.com/warmans/fakt-api/server/api.v1/middleware"
 )
 
 func NewEventTypeHandler(ds *event.EventService) routes.RESTHandler {
@@ -20,10 +20,7 @@ type EventTypeHandler struct {
 
 func (h *EventTypeHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
 
-	logger, ok := r.Context().Value("logger").(log.Logger)
-	if !ok {
-		panic("Context must contain a logger")
-	}
+	logger := middleware.MustGetLogger(r)
 
 	events, err := h.ds.FindEventTypes()
 	if err != nil {

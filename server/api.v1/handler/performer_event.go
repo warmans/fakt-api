@@ -4,31 +4,27 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
 	"github.com/warmans/fakt-api/server/api.v1/common"
 	"github.com/warmans/fakt-api/server/data/service/event"
 	"github.com/warmans/fakt-api/server/data/service/performer"
 	"github.com/warmans/route-rest/routes"
+	"github.com/warmans/fakt-api/server/api.v1/middleware"
 )
 
-func NewPerformerEventHandler(es *event.EventService, ps *performer.PerformerService, logger log.Logger) routes.RESTHandler {
-	return &PerformerEventHandler{events: es, performers: ps, logger: logger}
+func NewPerformerEventHandler(es *event.EventService, ps *performer.PerformerService) routes.RESTHandler {
+	return &PerformerEventHandler{events: es, performers: ps}
 }
 
 type PerformerEventHandler struct {
 	routes.DefaultRESTHandler
-	logger     log.Logger
 	events     *event.EventService
 	performers *performer.PerformerService
 }
 
 func (h *PerformerEventHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
 
-	logger, ok := r.Context().Value("logger").(log.Logger)
-	if !ok {
-		panic("Context must contain a logger")
-	}
+	logger := middleware.MustGetLogger(r)
 
 	vars := mux.Vars(r)
 	performerID, err := strconv.Atoi(vars["performer_id"])

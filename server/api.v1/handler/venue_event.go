@@ -4,31 +4,27 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
 	"github.com/warmans/fakt-api/server/api.v1/common"
 	"github.com/warmans/fakt-api/server/data/service/event"
 	"github.com/warmans/fakt-api/server/data/service/venue"
 	"github.com/warmans/route-rest/routes"
+	"github.com/warmans/fakt-api/server/api.v1/middleware"
 )
 
-func NewVenueEventHandler(es *event.EventService, vs *venue.VenueService, logger log.Logger) routes.RESTHandler {
-	return &VenueEventHandler{events: es, venues: vs, logger: logger}
+func NewVenueEventHandler(es *event.EventService, vs *venue.VenueService) routes.RESTHandler {
+	return &VenueEventHandler{events: es, venues: vs}
 }
 
 type VenueEventHandler struct {
 	routes.DefaultRESTHandler
-	logger log.Logger
 	events *event.EventService
 	venues *venue.VenueService
 }
 
 func (h *VenueEventHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
 
-	logger, ok := r.Context().Value("logger").(log.Logger)
-	if !ok {
-		panic("Context must contain a logger")
-	}
+	logger := middleware.MustGetLogger(r)
 
 	vars := mux.Vars(r)
 	venueID, err := strconv.Atoi(vars["venue_id"])

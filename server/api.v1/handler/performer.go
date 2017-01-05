@@ -4,11 +4,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
 	"github.com/warmans/fakt-api/server/api.v1/common"
 	"github.com/warmans/fakt-api/server/data/service/performer"
 	"github.com/warmans/route-rest/routes"
+	"github.com/warmans/fakt-api/server/api.v1/middleware"
 )
 
 func NewPerformerHandler(ds *performer.PerformerService) routes.RESTHandler {
@@ -22,10 +22,7 @@ type PerformerHandler struct {
 
 func (h *PerformerHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
 
-	logger, ok := r.Context().Value("logger").(log.Logger)
-	if !ok {
-		panic("Context must contain a logger")
-	}
+	logger := middleware.MustGetLogger(r)
 
 	performers, err := h.ds.FindPerformers(performer.PerformerFilterFromRequest(r))
 	if err != nil {
@@ -38,10 +35,7 @@ func (h *PerformerHandler) HandleGetList(rw http.ResponseWriter, r *http.Request
 
 func (h *PerformerHandler) HandleGet(rw http.ResponseWriter, r *http.Request) {
 
-	logger, ok := r.Context().Value("logger").(log.Logger)
-	if !ok {
-		panic("Context must contain a logger")
-	}
+	logger := middleware.MustGetLogger(r)
 
 	vars := mux.Vars(r)
 	performerID, err := strconv.Atoi(vars["performer_id"])

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/go-kit/kit/log"
 	"github.com/gorilla/sessions"
 	"github.com/warmans/fakt-api/server/api.v1/common"
 	"github.com/warmans/fakt-api/server/data/service/user"
+	"github.com/warmans/fakt-api/server/api.v1/middleware"
 )
 
 func NewRegisterHandler(users *user.UserStore, sess sessions.Store) http.Handler {
@@ -27,10 +27,7 @@ type RegisterHandler struct {
 
 func (h *RegisterHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
-	logger, ok := r.Context().Value("logger").(log.Logger)
-	if !ok {
-		panic("Context must contain a logger")
-	}
+	logger := middleware.MustGetLogger(r)
 
 	payload := &RegisterPayload{}
 	json.NewDecoder(r.Body).Decode(payload)

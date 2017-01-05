@@ -6,10 +6,10 @@ import (
 
 	"github.com/warmans/fakt-api/server/api.v1/common"
 
-	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
 	"github.com/warmans/fakt-api/server/data/service/event"
 	"github.com/warmans/route-rest/routes"
+	"github.com/warmans/fakt-api/server/api.v1/middleware"
 )
 
 func NewEventHandler(ds *event.EventService) routes.RESTHandler {
@@ -23,10 +23,7 @@ type EventHandler struct {
 
 func (h *EventHandler) HandleGet(rw http.ResponseWriter, r *http.Request) {
 
-	logger, ok := r.Context().Value("logger").(log.Logger)
-	if !ok {
-		panic("Context must contain a logger")
-	}
+	logger := middleware.MustGetLogger(r)
 
 	vars := mux.Vars(r)
 	eventId, err := strconv.Atoi(vars["event_id"])
@@ -56,10 +53,7 @@ func (h *EventHandler) HandleGet(rw http.ResponseWriter, r *http.Request) {
 
 func (h *EventHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
 
-	logger, ok := r.Context().Value("logger").(log.Logger)
-	if !ok {
-		panic("Context must contain a logger")
-	}
+	logger := middleware.MustGetLogger(r)
 
 	events, err := h.es.FindEvents(event.EventFilterFromRequest(r))
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/warmans/fakt-api/server/api.v1/common"
+	"github.com/warmans/fakt-api/server/api.v1/middleware"
 )
 
 func NewMeHandler() http.Handler {
@@ -17,7 +18,7 @@ func (h *MeHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		rw,
 		&common.Response{
 			Status:  http.StatusOK,
-			Payload: r.Context().Value("user"),
+			Payload: middleware.GetUser(r),
 		},
 	)
 }
