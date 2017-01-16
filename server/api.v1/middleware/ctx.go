@@ -63,8 +63,12 @@ func MustGetLogger(r *http.Request) log.Logger {
 	return logger
 }
 
-func GetUser(r *http.Request) *user.User{
-	return r.Context().Value(commonContextKey("user")).(*user.User)
+func GetUser(r *http.Request) *user.User {
+	usr, ok := r.Context().Value(commonContextKey("user")).(*user.User)
+	if !ok {
+		return nil
+	}
+	return usr
 }
 
 func Restrict(r *http.Request) (*user.User, error) {
