@@ -13,12 +13,11 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/warmans/fakt-api/server/data/service/common"
-	"golang.org/x/text/encoding/charmap"
 	"github.com/go-kit/kit/log"
 )
 
-var validDate = regexp.MustCompile(`^[A-Za-z]+, [0-9]{2}\.[0-9]{2}\.[0-9]{4}$`)
-var validTime = regexp.MustCompile(`^[0-9]{2}\.[0-9]{2}$`)
+var validDate = regexp.MustCompile(`^[A-Za-z]+, [0-9]{2}\. [\p{L}]+ [0-9]{4}$`)
+var validTime = regexp.MustCompile(`^[0-9]{2}:[0-9]{2}$`)
 
 type Crawler struct {
 	TermineURI string
@@ -40,16 +39,13 @@ func (c *Crawler) Crawl() ([]*common.Event, error) {
 	}
 	defer res.Body.Close()
 
-	//we must convert to utf-8 or the special chars will be broken
-	utfBody := charmap.ISO8859_1.NewDecoder().Reader(res.Body)
-
-	doc, err := goquery.NewDocumentFromReader(utfBody)
+	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
 		return events, fmt.Errorf("SF crawler failed to parse result: %s", err.Error())
 	}
 
 	//select the main data column and handle all the sub-tables
-	doc.Find("body > table:nth-child(4) > tbody > tr > td:nth-child(2) > table").Each(func(i int, sel *goquery.Selection) {
+	doc.Find("#column_center").Each(func(i int, sel *goquery.Selection) {
 		events = append(events, c.HandleDateTable(i, sel, c.Timezone)...)
 	})
 
@@ -59,19 +55,19 @@ func (c *Crawler) Crawl() ([]*common.Event, error) {
 func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection, localTime *time.Location) []*common.Event {
 
 	var dateStr string
-	var time time.Time
+	var dateTime time.Time
 	var failed bool
 	var events []*common.Event
 
-	sel.Find("tr").Each(func(i int, tr *goquery.Selection) {
+	sel.Find(".termin_tag_titel, .termin_box").Each(func(i int, row *goquery.Selection) {
 
 		if failed {
 			return
 		}
 
 		//first row is always the date
-		if dateStr == "" {
-			dateStr = strings.TrimSpace(tr.Find("td > span").First().Text())
+		if dateStr == "" || row.HasClass("termin_tag_titel") {
+			dateStr = strings.TrimSpace(row.Text())
 			if !validDate.MatchString(dateStr) {
 				c.Logger.Log("msg", fmt.Sprintf("Invalid date string: %s", dateStr))
 				failed = true
@@ -80,20 +76,20 @@ func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection, localTime *time
 		}
 
 		//each row has a time
-		timeStr := strings.TrimSpace(tr.Find("td > span").First().Text())
-		if validTime.MatchString(timeStr) {
-			c.Logger.Log("msg", fmt.Sprintf("Invalid time string: %s", timeStr))
+		timeStr := strings.TrimSpace(row.Find(".spalte_uhrzeit > .uhrzeit2").First().Text())
+		if !validTime.MatchString(timeStr) {
+			c.Logger.Log("msg", fmt.Sprintf("Invalid time string: %s (text: %s)", timeStr, row.Text()))
 			return //don't fail
 		}
 
 		var err error
-		time, err = ParseTime(dateStr, timeStr, localTime)
+		dateTime, err = ParseTime(dateStr, timeStr, localTime)
 		if err != nil {
 			c.Logger.Log("msg", fmt.Sprintf("Failed to parse date: %s %s (%s)", dateStr, timeStr, err.Error()))
 			return
 		}
 
-		event, err := c.CreateEvent(time, tr.Find("td").Last())
+		event, err := c.CreateEvent(dateTime, row)
 		if err != nil {
 			c.Logger.Log("msg", fmt.Sprintf("Failed to create event: %s", err.Error()))
 			return
@@ -105,17 +101,18 @@ func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection, localTime *time
 	return events
 }
 
-func (c *Crawler) CreateEvent(time time.Time, body *goquery.Selection) (*common.Event, error) {
+func (c *Crawler) CreateEvent(time time.Time, terminBox *goquery.Selection) (*common.Event, error) {
 
 	//attempt to parse venue address (not always set)
-	venueEl := body.Find("b").First()
+	venueEl := terminBox.Find(".spalte_termintext > b").First()
 	addressEl := venueEl.Find("a").First()
 	venueAddress := ""
 	if addressEl.Length() != 0 {
 		venueAddress, _ = addressEl.Attr("title")
 	}
 
-	bodyStr, err := body.Html()
+	bodyText := terminBox.Find(".spalte_termintext")
+	bodyStr, err := bodyText.Html()
 	if err != nil {
 		return nil, err
 	}
@@ -130,6 +127,11 @@ func (c *Crawler) CreateEvent(time time.Time, body *goquery.Selection) (*common.
 		return nil, errors.New("invalid title line")
 	}
 
+	tags := []string{}
+	terminBox.Find(".termin_tags > .termin_tag").Each(func(i int, tag *goquery.Selection) {
+		tags = append(tags, tag.Text())
+	})
+
 	e := &common.Event{
 		Date: time,
 		Venue: &common.Venue{
@@ -137,7 +139,8 @@ func (c *Crawler) CreateEvent(time time.Time, body *goquery.Selection) (*common.
 			Address: StripHTML(html.UnescapeString(venueAddress)),
 		},
 		Type:        StripHTML(html.UnescapeString(strings.TrimSpace(strings.Split(titleLineEl.Text(), ":")[1]))),
-		Description: StripHTML(html.UnescapeString(strings.Join(bodySections[1:], "\n"))),
+		Description: strings.TrimSpace(StripHTML(html.UnescapeString(strings.Join(bodySections[1:], "\n")))),
+		Tags:        tags,
 	}
 
 	//populate performers from description

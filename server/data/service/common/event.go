@@ -18,6 +18,7 @@ type Event struct {
 	Description string       `json:"description"`
 	Performers  []*Performer `json:"performer,omitempty"`
 	UTags       []UTags      `json:"utag"`
+	Tags        []string     `json:"tag"`
 	Source      string       `json:"source"`
 }
 
@@ -56,7 +57,7 @@ func (e *Event) GuessPerformers() {
 			Name:  name,
 			Genre: genre,
 			Home:  home,
-			Tags: tags,
+			Tags:  tags,
 		}
 		e.Performers = append(e.Performers, perf)
 	}
@@ -73,16 +74,32 @@ func (e *Event) Accept(visitor EventVisitor) {
 	visitor.Visit(e)
 }
 
-func (e *Event) HasUTag(tag string, username string) bool {
-	if tag == "" {
+func (e *Event) HasUTag(tags []string, username string) bool {
+	if len(tags) == 0 {
 		return true
 	}
 	for _, utag := range e.UTags {
-		if utag.HasValue(tag) {
-			if username != "" && utag.Username != username {
-				continue
+		for _, t := range tags {
+			if utag.HasValue(t) {
+				if username != "" && utag.Username != username {
+					continue
+				}
+				return true
 			}
-			return true
+		}
+	}
+	return false
+}
+
+func (e *Event) HasTag(tags []string) bool {
+	if len(tags) == 0 {
+		return true
+	}
+	for _, etag := range e.Tags {
+		for _, t := range tags {
+			if t == etag {
+				return true
+			}
 		}
 	}
 	return false

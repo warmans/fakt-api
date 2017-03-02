@@ -17,7 +17,7 @@ func (m *CommonHeadersMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Requ
 	}
 	if r.Method == "OPTIONS" {
 		rw.WriteHeader(204)
-		return; //just send back the headers
+		return //just send back the headers
 	}
 	m.next.ServeHTTP(rw, r)
 }

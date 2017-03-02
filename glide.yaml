@@ -33,3 +33,4 @@ import:
 - package: github.com/jinzhu/now
 - package: github.com/warmans/go-bandcamp-search
 - package: github.com/warmans/route-rest
+- package: github.com/goodsign/monday

@@ -89,7 +89,7 @@ func (s *Server) Start() error {
 			DB:              db.NewSession(nil),
 			UpdateFrequency: time.Duration(1) * time.Hour,
 			Crawlers: []source.Crawler{
-				&sfaktor.Crawler{TermineURI: s.conf.CrawlerStressfaktorURI, Timezone: tz},
+				&sfaktor.Crawler{TermineURI: s.conf.CrawlerStressfaktorURI, Timezone: tz, Logger: log.NewContext(s.logger).With("component", "sfaktor crawler")},
 				&k9.Crawler{Timezone: tz, Logger: log.NewContext(s.logger).With("component", "k9crawler")},
 			},
 			EventVisitors: []common.EventVisitor{

@@ -6,18 +6,15 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"github.com/goodsign/monday"
 )
 
 //ParseTime parses times in the format e.g. "Montag, 21.12.2015", "21:00 Uhr"
 func ParseTime(dateString, timeString string, localTime *time.Location) (time.Time, error) {
 
 	if strings.Contains(dateString, ",") {
-		cleanDate := fmt.Sprintf(
-			"%s %s",
-			strings.Trim(timeString, " Uhr"),
-			strings.TrimSpace(strings.Split(dateString, ",")[1]),
-		)
-		return time.ParseInLocation("15.04 02.01.2006", cleanDate, localTime)
+		cleanDate := fmt.Sprintf("%s %s", timeString, strings.TrimSpace(strings.Split(dateString, ",")[1]))
+		return monday.ParseInLocation("15:04 02. January 2006", cleanDate, localTime, monday.LocaleDeDE)
 	}
 
 	return time.Time{}, errors.New("header date format looks wrong")

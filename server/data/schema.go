@@ -78,6 +78,11 @@ func InitializeSchema(sess *dbr.Session) error {
 			tag TEXT,
 			PRIMARY KEY (event_id, user_id, tag)
 		);`,
+		`CREATE TABLE IF NOT EXISTS event_tag (
+			event_id INTEGER,
+			tag_id INTEGER,
+			PRIMARY KEY (event_id, tag_id)
+		);`,
 		`CREATE TABLE IF NOT EXISTS user (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			username TEXT,

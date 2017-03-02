@@ -1,92 +1,92 @@
-hash: 7986d010969e634ab6ddd6f735c9cd5e4b4a3b0ae0035e42a69b86444df09d62
-updated: 2016-11-30T19:59:07.34125586+01:00
+hash: e95085baa1132f7120d6eff11ea3ab3e52841367930a2e912bca583fcbeb7694
+updated: 2017-03-02T20:44:07.066510049+01:00
 imports:
 - name: github.com/andybalholm/cascadia
-  version: 65919c611220063037b1db8eb334acaf17a6d8ea
+  version: 251e305c44dab1327190ebe919e3205482c76852
 - name: github.com/disintegration/imaging
-  version: 7cbe056568779e3d987cd1b5e3dbe12c4f79f1ff
+  version: 251e305c44dab1327190ebe919e3205482c76852
 - name: github.com/djimenez/iconv-go
-  version: 8960e66bd3dacbc8773962b40eb82fc18c63c127
+  version: 251e305c44dab1327190ebe919e3205482c76852
 - name: github.com/go-kit/kit
-  version: c369f674159e02f22ca276d8503027af2bc27246
+  version: 251e305c44dab1327190ebe919e3205482c76852
   subpackages:
   - log
 - name: github.com/go-logfmt/logfmt
-  version: 390ab7935ee28ec6b286364bba9b4dd6410cb3d5
+  version: 251e305c44dab1327190ebe919e3205482c76852
 - name: github.com/go-stack/stack
-  version: 100eb0c0a9c5b306ca2fb4f165df21d80ada4b82
+  version: 251e305c44dab1327190ebe919e3205482c76852
+- name: github.com/goodsign/monday
+  version: 251e305c44dab1327190ebe919e3205482c76852
 - name: github.com/gorilla/context
-  version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
+  version: 251e305c44dab1327190ebe919e3205482c76852
 - name: github.com/gorilla/mux
-  version: 757bef944d0f21880861c2dd9c871ca543023cba
+  version: 251e305c44dab1327190ebe919e3205482c76852
 - name: github.com/gorilla/securecookie
-  version: fa5329f913702981df43dcb2a380bac429c810b5
+  version: 251e305c44dab1327190ebe919e3205482c76852
 - name: github.com/gorilla/sessions
-  version: 52389059572b4736b2b7d899b0242ecc449c8779
+  version: 251e305c44dab1327190ebe919e3205482c76852
 - name: github.com/jinzhu/now
-  version: d9861969c7a7e84746d341c09020c2ef8a617f8f
+  version: 251e305c44dab1327190ebe919e3205482c76852
 - name: github.com/kr/logfmt
-  version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
+  version: 251e305c44dab1327190ebe919e3205482c76852
 - name: github.com/mattn/go-sqlite3
-  version: fba66eb11643069e747022997e9be3b502b2c6fb
+  version: 251e305c44dab1327190ebe919e3205482c76852
 - name: github.com/NYTimes/gziphandler
-  version: 172fbbbb329cf7e031dd3ab35766186fc2081eab
+  version: 251e305c44dab1327190ebe919e3205482c76852
 - name: github.com/paulrosania/go-charset
-  version: 621bb39fcc835dce592e682f5073025d0169587b
+  version: 251e305c44dab1327190ebe919e3205482c76852
   subpackages:
   - charset
   - data
 - name: github.com/PuerkitoBio/goquery
-  version: 152b1a2c8f5d0340f658bb656032a39b94e52958
+  version: 251e305c44dab1327190ebe919e3205482c76852
 - name: github.com/texttheater/golang-levenshtein
-  version: 1298e830a5c134c6830b6d472b7b81faa9492c0a
+  version: 251e305c44dab1327190ebe919e3205482c76852
   subpackages:
   - levenshtein
 - name: github.com/ungerik/go-rss
-  version: bb39c3b1f3e47e671d97a593c98170ff4b44af06
+  version: 251e305c44dab1327190ebe919e3205482c76852
 - name: github.com/urfave/cli
-  version: 0bdeddeeb0f650497d603c4ad7b20cfe685682f6
+  version: 251e305c44dab1327190ebe919e3205482c76852
 - name: github.com/warmans/coldlink
-  version: 70d533e07b6922effdb532322e810fb3126ccb88
+  version: 251e305c44dab1327190ebe919e3205482c76852
 - name: github.com/warmans/ctxhandler
-  version: d3d30f2ff86c9c41130b74ef5690e2c50ac83028
+  version: 251e305c44dab1327190ebe919e3205482c76852
 - name: github.com/warmans/dbr
-  version: 3c1c54f637871b1b2513b2737d80d79ba7d40376
+  version: 251e305c44dab1327190ebe919e3205482c76852
   subpackages:
   - dialect
 - name: github.com/warmans/go-bandcamp-search
-  version: 8a6175298c3e44ae8ac1522a98cbc99a57340cd8
+  version: 251e305c44dab1327190ebe919e3205482c76852
   subpackages:
   - bcamp
 - name: github.com/warmans/resty
-  version: 27304b400efb8d5728801588267982159718bf9c
+  version: 251e305c44dab1327190ebe919e3205482c76852
 - name: github.com/warmans/route-rest
-  version: 3d72d40efc06104b24ce0ba9a8e1f03c0a70b358
+  version: 251e305c44dab1327190ebe919e3205482c76852
   subpackages:
   - routes
 - name: golang.org/x/crypto
-  version: ede567c8e044a5913dad1d1af3696d9da953104c
+  version: 251e305c44dab1327190ebe919e3205482c76852
   subpackages:
   - bcrypt
   - blowfish
 - name: golang.org/x/image
-  version: c39d899a5b7c98dbf377212e2c1a6f14128054b7
+  version: 251e305c44dab1327190ebe919e3205482c76852
   subpackages:
   - bmp
   - tiff
   - tiff/lzw
 - name: golang.org/x/net
-  version: 4971afdc2f162e82d185353533d3cf16188a9f4e
+  version: 251e305c44dab1327190ebe919e3205482c76852
   subpackages:
   - context
   - html
   - html/atom
 - name: golang.org/x/text
-  version: 5c6cf4f9a2357d38515014cea8c488ed22bdab90
+  version: 251e305c44dab1327190ebe919e3205482c76852
   subpackages:
   - transform
-  - encoding/charmap
-  - encoding
-  - encoding/internal
-  - encoding/internal/identifier
+- name: gopkg.in/fatih/set.v0
+  version: 27c40922c40b43fe04554d8223a402af3ea333f3
 devImports: []

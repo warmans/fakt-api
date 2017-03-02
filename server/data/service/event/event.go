@@ -33,7 +33,8 @@ type EventFilter struct {
 	VenueIDs          []int64   `json:"venues"`
 	Types             []string  `json:"types"`
 	ShowDeleted       bool      `json:"show_deleted"`
-	UTag              string    `json:"utag"`
+	UTags             []string  `json:"utag"`
+	Tags              []string  `json:"tag"`
 	UTagUser          string    `json:"utag_user"`
 	LoadPerformerTags bool      `json:"load_performer_tags"`
 	Source            string    `json:"source"`
@@ -87,8 +88,19 @@ func (f *EventFilter) Populate(r *http.Request) {
 		f.LoadPerformerTags = true
 	}
 
-	//limit to events with only these tags
-	f.UTag = r.Form.Get("tag")
+	//limit to events with only this user tags
+	if r.Form.Get("utag") == "" {
+		f.UTags = make([]string, 0, 0)
+	} else {
+		f.UTags = strings.Split(r.Form.Get("utag"), ",")
+	}
+
+	//only this tag
+	if r.Form.Get("tag") == "" {
+		f.Tags = make([]string, 0, 0)
+	} else {
+		f.Tags = strings.Split(r.Form.Get("tag"), ",")
+	}
 
 	//additionally only look for tags from a specific user
 	f.UTagUser = r.Form.Get("tag_user")
@@ -100,7 +112,7 @@ type EventService struct {
 	PerformerService *performer.PerformerService
 }
 
-func (es *EventService) EventMustExist(tr *dbr.Tx, event *common.Event) error {
+func (s *EventService) EventMustExist(tr *dbr.Tx, event *common.Event) error {
 
 	//sanity check incoming data
 	if !event.IsValid() || event.Venue == nil || !event.Venue.IsValid() {
@@ -155,7 +167,7 @@ func (es *EventService) EventMustExist(tr *dbr.Tx, event *common.Event) error {
 		return err
 	}
 
-	//finally append the performers (
+	//finally append the performers
 	for _, perfs := range event.Performers {
 		if perfs.ID == 0 {
 			continue
@@ -166,7 +178,69 @@ func (es *EventService) EventMustExist(tr *dbr.Tx, event *common.Event) error {
 			return err
 		}
 	}
+
+	//and the tags...
+	if err := s.StoreEventTags(tr, event.ID, event.Tags); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func (s *EventService) StoreEventTags(tr *dbr.Tx, eventID int64, tags []string) error {
+	//handle tags
+	if _, err := tr.Exec("DELETE FROM event_tag WHERE event_id = ?", eventID); err != nil {
+		return fmt.Errorf("Failed to clear existing tags due to error: %s", err.Error())
+	}
+
+	for _, tag := range tags {
+
+		var tagId int64
+		tag = strings.ToLower(tag)
+
+		err := s.DB.QueryRow("SELECT id FROM tag WHERE tag = ?", tag).Scan(&tagId)
+		if err != nil && err != sql.ErrNoRows {
+			return fmt.Errorf("Failed to find tag id for %s because %s", tag, err.Error())
+		}
+		if tagId == 0 {
+			res, err := tr.Exec("INSERT OR IGNORE INTO tag (tag) VALUES (?)", tag)
+			if err != nil {
+				return fmt.Errorf("Failed to insert tag %s because %s", tag, err.Error())
+			}
+			tagId, err = res.LastInsertId()
+			if err != nil {
+				return fmt.Errorf("Failed to get inserted tag id because %s", err.Error())
+			}
+		}
+
+		if _, err := tr.Exec("INSERT OR IGNORE INTO event_tag (event_id, tag_id) VALUES (?, ?)", eventID, tagId); err != nil {
+			return fmt.Errorf("Failed to insert event_tag relationship (event: %d, tag: %s, tagId: %d) because %s", eventID, tag, tagId, err.Error())
+		}
+	}
+	return nil
+}
+
+func (s *EventService) FindEventTags(eventID int64) ([]string, error) {
+
+	tags := []string{}
+
+	res, err := s.DB.Query("SELECT coalesce(t.tag, '') FROM event_tag et LEFT JOIN tag t ON et.tag_id = t.id WHERE et.event_id = ?", eventID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return tags, nil
+		}
+		return tags, fmt.Errorf("Failed to fetch tags at query because %s", err.Error())
+	}
+
+	for res.Next() {
+		tag := ""
+		if err := res.Scan(&tag); err != nil {
+			return tags, err
+		}
+		tags = append(tags, tag)
+	}
+
+	return tags, nil
 }
 
 func (s *EventService) FindEventTypes() ([]string, error) {
@@ -301,7 +375,7 @@ func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) 
 
 			//append to result set
 			if curEvent.ID != 0 {
-				if curEvent.HasUTag(filter.UTag, filter.UTagUser) {
+				if curEvent.HasUTag(filter.UTags, filter.UTagUser) && curEvent.HasTag(filter.Tags) {
 					events = append(events, curEvent)
 				}
 			}
@@ -329,15 +403,21 @@ func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) 
 				}
 			}
 
-			//append the tags
+			//append the user tags
 			if curEvent.UTags, err = s.UTagService.FindEventUTags(curEvent.ID, &common.UTagsFilter{}); err != nil {
 				return nil, err
 			}
+
+			//append the tags
+			if curEvent.Tags, err = s.FindEventTags(curEvent.ID); err != nil {
+				return nil, err
+			}
+
 		}
 	}
 
 	if curEvent.ID != 0 {
-		if curEvent.HasUTag(filter.UTag, filter.UTagUser) {
+		if curEvent.HasUTag(filter.UTags, filter.UTagUser) && curEvent.HasTag(filter.Tags) {
 			events = append(events, curEvent)
 		}
 	}
