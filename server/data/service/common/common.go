@@ -20,6 +20,13 @@ func IfOrInt(val bool, trueVal, falseVal int) int {
 	return falseVal
 }
 
+func StringToBool(stringVal string) bool {
+	if stringVal == "true" || stringVal == "1" {
+		return true
+	}
+	return false
+}
+
 func SplitConcatIDs(concatIDs string, delimiter string) []int64 {
 	performerIDs := []int64{}
 	for _, pidStr := range strings.Split(concatIDs, delimiter) {

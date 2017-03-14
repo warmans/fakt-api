@@ -58,12 +58,6 @@ func (f *EventFilter) Populate(r *http.Request) {
 		f.DateFrom, f.DateTo = common.GetRelativeDateRange(dateRelative)
 	}
 
-	//only allow max 3 months of data to be returned
-	maxDate := time.Now().Add(time.Hour * 24 * 7 * 4 * 3)
-	if f.DateTo.After(maxDate) {
-		f.DateTo = maxDate
-	}
-
 	f.VenueIDs = make([]int64, 0)
 	if venue := r.Form.Get("venue"); venue != "" {
 		for _, idStr := range strings.Split(venue, ",") {
@@ -317,6 +311,7 @@ func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) 
 	q.OrderBy("event.date").OrderBy("event.id").OrderBy("venue.id")
 	q.GroupBy("event.id")
 	q.Limit(uint64(filter.PageSize))
+
 	if filter.PageSize != 0 {
 		q.Limit(uint64(filter.PageSize)).Offset(uint64((filter.PageSize * page) - filter.PageSize))
 	}
@@ -340,6 +335,16 @@ func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) 
 		q.Where("event.source = ?", filter.Source)
 	}
 	q.Where("event.deleted = ?", common.IfOrInt(filter.ShowDeleted, 1, 0))
+
+	if len(filter.Tags) > 0 {
+		q.LeftJoin("event_tag", "event.id = event_tag.event_id")
+		q.Where("event_tag.tag_id IN ?", filter.Tags)
+	}
+
+	if len(filter.UTags) > 0 {
+		q.LeftJoin("event_user_tag", "event.id = event_user_tag.event_id")
+		q.Where("event_user_tag.tag_id IN ?", filter.UTags)
+	}
 
 	sqlString, vals := q.ToSql()
 	interpolated, err := dbr.InterpolateForDialect(sqlString, vals, dialect.SQLite3)
@@ -375,9 +380,7 @@ func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) 
 
 			//append to result set
 			if curEvent.ID != 0 {
-				if curEvent.HasUTag(filter.UTags, filter.UTagUser) && curEvent.HasTag(filter.Tags) {
-					events = append(events, curEvent)
-				}
+				events = append(events, curEvent)
 			}
 
 			//new current event
@@ -417,9 +420,7 @@ func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) 
 	}
 
 	if curEvent.ID != 0 {
-		if curEvent.HasUTag(filter.UTags, filter.UTagUser) && curEvent.HasTag(filter.Tags) {
-			events = append(events, curEvent)
-		}
+		events = append(events, curEvent)
 	}
 	return events, nil
 }
