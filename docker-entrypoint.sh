@@ -3,7 +3,7 @@ set -e
 
 : ${SERVER_BIND:=":8080"}
 : ${SERVER_ENCRYPTION_KEY:="changeme91234567890123456789012"}
-: ${CRAWLER_STRESSFAKTOR_URI:="https://stressfaktor.squat.net/termine.php?display=30"}
+: ${CRAWLER_STRESSFAKTOR_URI:="https://stressfaktor.squat.net/termine.php?days=all"}
 : ${CRAWLER_LOCATION:="Europe/Berlin"}
 : ${DB_PATH:="/opt/fakt-api/db/db.sqlite3"}
 : ${LOG_VERBOSE:=false}
