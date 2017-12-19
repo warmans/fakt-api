@@ -8,4 +8,4 @@ Berlin event listing API/Crawler.
 
 ## UI
 
-There is also a mobile-friendly UI for this API available here: https://github.com/warmans/fakt-ui
+There is also a mobile-friendly UI for this API available here: https://github.com/warmans/fakt-uiv2
