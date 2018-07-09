@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -15,20 +16,22 @@ import (
 	"syscall"
 	"time"
 
+	consulsd "github.com/go-kit/kit/sd/consul"
 	"github.com/gorilla/mux"
 	"github.com/hashicorp/consul/api"
 	stdopentracing "github.com/opentracing/opentracing-go"
-	"golang.org/x/net/context"
+	stdzipkin "github.com/openzipkin/zipkin-go"
+	"google.golang.org/grpc"
 
 	"github.com/go-kit/kit/endpoint"
-	"github.com/go-kit/kit/examples/addsvc"
-	addsvcgrpcclient "github.com/go-kit/kit/examples/addsvc/client/grpc"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/sd"
-	consulsd "github.com/go-kit/kit/sd/consul"
 	"github.com/go-kit/kit/sd/lb"
 	httptransport "github.com/go-kit/kit/transport/http"
-	"google.golang.org/grpc"
+
+	"github.com/go-kit/kit/examples/addsvc/pkg/addendpoint"
+	"github.com/go-kit/kit/examples/addsvc/pkg/addservice"
+	"github.com/go-kit/kit/examples/addsvc/pkg/addtransport"
 )
 
 func main() {
@@ -44,8 +47,8 @@ func main() {
 	var logger log.Logger
 	{
 		logger = log.NewLogfmtLogger(os.Stderr)
-		logger = log.NewContext(logger).With("ts", log.DefaultTimestampUTC)
-		logger = log.NewContext(logger).With("caller", log.DefaultCaller)
+		logger = log.With(logger, "ts", log.DefaultTimestampUTC)
+		logger = log.With(logger, "caller", log.DefaultCaller)
 	}
 
 	// Service discovery domain. In this example we use Consul.
@@ -65,6 +68,7 @@ func main() {
 
 	// Transport domain.
 	tracer := stdopentracing.GlobalTracer() // no-op
+	zipkinTracer, _ := stdzipkin.NewTracer(nil, stdzipkin.WithNoopTracer(true))
 	ctx := context.Background()
 	r := mux.NewRouter()
 
@@ -79,23 +83,23 @@ func main() {
 		// addsvc client package to construct a complete service. We can then
 		// leverage the addsvc.Make{Sum,Concat}Endpoint constructors to convert
 		// the complete service to specific endpoint.
-
 		var (
 			tags        = []string{}
 			passingOnly = true
-			endpoints   = addsvc.Endpoints{}
+			endpoints   = addendpoint.Set{}
+			instancer   = consulsd.NewInstancer(client, logger, "addsvc", tags, passingOnly)
 		)
 		{
-			factory := addsvcFactory(addsvc.MakeSumEndpoint, tracer, logger)
-			subscriber := consulsd.NewSubscriber(client, factory, logger, "addsvc", tags, passingOnly)
-			balancer := lb.NewRoundRobin(subscriber)
+			factory := addsvcFactory(addendpoint.MakeSumEndpoint, tracer, zipkinTracer, logger)
+			endpointer := sd.NewEndpointer(instancer, factory, logger)
+			balancer := lb.NewRoundRobin(endpointer)
 			retry := lb.Retry(*retryMax, *retryTimeout, balancer)
 			endpoints.SumEndpoint = retry
 		}
 		{
-			factory := addsvcFactory(addsvc.MakeConcatEndpoint, tracer, logger)
-			subscriber := consulsd.NewSubscriber(client, factory, logger, "addsvc", tags, passingOnly)
-			balancer := lb.NewRoundRobin(subscriber)
+			factory := addsvcFactory(addendpoint.MakeConcatEndpoint, tracer, zipkinTracer, logger)
+			endpointer := sd.NewEndpointer(instancer, factory, logger)
+			balancer := lb.NewRoundRobin(endpointer)
 			retry := lb.Retry(*retryMax, *retryTimeout, balancer)
 			endpoints.ConcatEndpoint = retry
 		}
@@ -104,7 +108,7 @@ func main() {
 		// HTTP handler, and just install it under a particular path prefix in
 		// our router.
 
-		r.PathPrefix("addsvc/").Handler(addsvc.MakeHTTPHandler(ctx, endpoints, tracer, logger))
+		r.PathPrefix("/addsvc").Handler(http.StripPrefix("/addsvc", addtransport.NewHTTPHandler(endpoints, tracer, zipkinTracer, logger)))
 	}
 
 	// stringsvc routes.
@@ -120,18 +124,19 @@ func main() {
 			passingOnly = true
 			uppercase   endpoint.Endpoint
 			count       endpoint.Endpoint
+			instancer   = consulsd.NewInstancer(client, logger, "stringsvc", tags, passingOnly)
 		)
 		{
 			factory := stringsvcFactory(ctx, "GET", "/uppercase")
-			subscriber := consulsd.NewSubscriber(client, factory, logger, "stringsvc", tags, passingOnly)
-			balancer := lb.NewRoundRobin(subscriber)
+			endpointer := sd.NewEndpointer(instancer, factory, logger)
+			balancer := lb.NewRoundRobin(endpointer)
 			retry := lb.Retry(*retryMax, *retryTimeout, balancer)
 			uppercase = retry
 		}
 		{
 			factory := stringsvcFactory(ctx, "GET", "/count")
-			subscriber := consulsd.NewSubscriber(client, factory, logger, "stringsvc", tags, passingOnly)
-			balancer := lb.NewRoundRobin(subscriber)
+			endpointer := sd.NewEndpointer(instancer, factory, logger)
+			balancer := lb.NewRoundRobin(endpointer)
 			retry := lb.Retry(*retryMax, *retryTimeout, balancer)
 			count = retry
 		}
@@ -140,8 +145,8 @@ func main() {
 		// have to do provide it with the encode and decode functions for our
 		// stringsvc methods.
 
-		r.Handle("/stringsvc/uppercase", httptransport.NewServer(ctx, uppercase, decodeUppercaseRequest, encodeJSONResponse))
-		r.Handle("/stringsvc/count", httptransport.NewServer(ctx, count, decodeCountRequest, encodeJSONResponse))
+		r.Handle("/stringsvc/uppercase", httptransport.NewServer(uppercase, decodeUppercaseRequest, encodeJSONResponse))
+		r.Handle("/stringsvc/count", httptransport.NewServer(count, decodeCountRequest, encodeJSONResponse))
 	}
 
 	// Interrupt handler.
@@ -162,7 +167,7 @@ func main() {
 	logger.Log("exit", <-errc)
 }
 
-func addsvcFactory(makeEndpoint func(addsvc.Service) endpoint.Endpoint, tracer stdopentracing.Tracer, logger log.Logger) sd.Factory {
+func addsvcFactory(makeEndpoint func(addservice.Service) endpoint.Endpoint, tracer stdopentracing.Tracer, zipkinTracer *stdzipkin.Tracer, logger log.Logger) sd.Factory {
 	return func(instance string) (endpoint.Endpoint, io.Closer, error) {
 		// We could just as easily use the HTTP or Thrift client package to make
 		// the connection to addsvc. We've chosen gRPC arbitrarily. Note that
@@ -173,7 +178,7 @@ func addsvcFactory(makeEndpoint func(addsvc.Service) endpoint.Endpoint, tracer s
 		if err != nil {
 			return nil, nil, err
 		}
-		service := addsvcgrpcclient.New(conn, tracer, logger)
+		service := addtransport.NewGRPCClient(conn, tracer, zipkinTracer, logger)
 		endpoint := makeEndpoint(service)
 
 		// Notice that the addsvc gRPC client converts the connection to a

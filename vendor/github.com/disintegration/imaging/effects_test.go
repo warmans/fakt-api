@@ -6,8 +6,8 @@ import (
 )
 
 func TestBlur(t *testing.T) {
-	td := []struct {
-		desc  string
+	testCases := []struct {
+		name  string
 		src   image.Image
 		sigma float64
 		want  *image.NRGBA
@@ -79,18 +79,42 @@ func TestBlur(t *testing.T) {
 			},
 		},
 	}
-	for _, d := range td {
-		got := Blur(d.src, d.sigma)
-		want := d.want
-		if !compareNRGBA(got, want, 0) {
-			t.Errorf("test [%s] failed: %#v", d.desc, got)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := Blur(tc.src, tc.sigma)
+			if !compareNRGBA(got, tc.want, 0) {
+				t.Fatalf("got result %#v want %#v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestBlurGolden(t *testing.T) {
+	for name, sigma := range map[string]float64{
+		"out_blur_0.5.png": 0.5,
+		"out_blur_1.5.png": 1.5,
+	} {
+		got := Blur(testdataFlowersSmallPNG, sigma)
+		want, err := Open("testdata/" + name)
+		if err != nil {
+			t.Fatalf("failed to open image: %v", err)
+		}
+		if !compareNRGBA(got, toNRGBA(want), 0) {
+			t.Fatalf("resulting image differs from golden: %s", name)
 		}
 	}
 }
 
+func BenchmarkBlur(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		Blur(testdataBranchesJPG, 3)
+	}
+}
+
 func TestSharpen(t *testing.T) {
-	td := []struct {
-		desc  string
+	testCases := []struct {
+		name  string
 		src   image.Image
 		sigma float64
 		want  *image.NRGBA
@@ -180,11 +204,35 @@ func TestSharpen(t *testing.T) {
 			},
 		},
 	}
-	for _, d := range td {
-		got := Sharpen(d.src, d.sigma)
-		want := d.want
-		if !compareNRGBA(got, want, 0) {
-			t.Errorf("test [%s] failed: %#v", d.desc, got)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := Sharpen(tc.src, tc.sigma)
+			if !compareNRGBA(got, tc.want, 0) {
+				t.Fatalf("got result %#v want %#v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestSharpenGolden(t *testing.T) {
+	for name, sigma := range map[string]float64{
+		"out_sharpen_0.5.png": 0.5,
+		"out_sharpen_1.5.png": 1.5,
+	} {
+		got := Sharpen(testdataFlowersSmallPNG, sigma)
+		want, err := Open("testdata/" + name)
+		if err != nil {
+			t.Fatalf("failed to open image: %v", err)
 		}
+		if !compareNRGBA(got, toNRGBA(want), 0) {
+			t.Fatalf("resulting image differs from golden: %s", name)
+		}
+	}
+}
+
+func BenchmarkSharpen(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		Sharpen(testdataBranchesJPG, 3)
 	}
 }

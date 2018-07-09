@@ -2,147 +2,271 @@ package imaging
 
 import (
 	"bytes"
+	"errors"
 	"image"
 	"image/color"
+	"image/color/palette"
+	"image/draw"
+	"image/png"
+	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
-func compareNRGBA(img1, img2 *image.NRGBA, delta int) bool {
-	if !img1.Rect.Eq(img2.Rect) {
-		return false
-	}
+var (
+	errCreate = errors.New("failed to create file")
+	errClose  = errors.New("failed to close file")
+	errOpen   = errors.New("failed to open file")
+)
 
-	if len(img1.Pix) != len(img2.Pix) {
-		return false
-	}
+type badFS struct{}
 
-	for i := 0; i < len(img1.Pix); i++ {
-		if absint(int(img1.Pix[i])-int(img2.Pix[i])) > delta {
-			return false
-		}
+func (badFS) Create(name string) (io.WriteCloser, error) {
+	if name == "badFile.jpg" {
+		return badFile{ioutil.Discard}, nil
 	}
-
-	return true
+	return nil, errCreate
 }
 
-func TestEncodeDecode(t *testing.T) {
-	imgWithAlpha := image.NewNRGBA(image.Rect(0, 0, 3, 3))
-	imgWithAlpha.Pix = []uint8{
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
-		127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138,
-		244, 245, 246, 247, 248, 249, 250, 252, 252, 253, 254, 255,
-	}
+func (badFS) Open(name string) (io.ReadCloser, error) {
+	return nil, errOpen
+}
 
-	imgWithoutAlpha := image.NewNRGBA(image.Rect(0, 0, 3, 3))
+type badFile struct {
+	io.Writer
+}
+
+func (badFile) Close() error {
+	return errClose
+}
+
+type quantizer struct {
+	palette []color.Color
+}
+
+func (q quantizer) Quantize(p color.Palette, m image.Image) color.Palette {
+	pal := make([]color.Color, len(p), cap(p))
+	copy(pal, p)
+	n := cap(p) - len(p)
+	if n > len(q.palette) {
+		n = len(q.palette)
+	}
+	for i := 0; i < n; i++ {
+		pal = append(pal, q.palette[i])
+	}
+	return pal
+}
+
+func TestOpenSave(t *testing.T) {
+	imgWithoutAlpha := image.NewNRGBA(image.Rect(0, 0, 4, 6))
 	imgWithoutAlpha.Pix = []uint8{
-		0, 1, 2, 255, 4, 5, 6, 255, 8, 9, 10, 255,
-		127, 128, 129, 255, 131, 132, 133, 255, 135, 136, 137, 255,
-		244, 245, 246, 255, 248, 249, 250, 255, 252, 253, 254, 255,
+		0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+		0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+		0xff, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
+		0xff, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
+		0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0xff, 0xff, 0x88, 0x88, 0x88, 0xff, 0x88, 0x88, 0x88, 0xff,
+		0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0xff, 0xff, 0x88, 0x88, 0x88, 0xff, 0x88, 0x88, 0x88, 0xff,
+	}
+	imgWithAlpha := image.NewNRGBA(image.Rect(0, 0, 4, 6))
+	imgWithAlpha.Pix = []uint8{
+		0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+		0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+		0xff, 0x00, 0x00, 0x80, 0xff, 0x00, 0x00, 0x80, 0x00, 0xff, 0x00, 0x80, 0x00, 0xff, 0x00, 0x80,
+		0xff, 0x00, 0x00, 0x80, 0xff, 0x00, 0x00, 0x80, 0x00, 0xff, 0x00, 0x80, 0x00, 0xff, 0x00, 0x80,
+		0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x88, 0x88, 0x88, 0x00, 0x88, 0x88, 0x88, 0x00,
+		0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x88, 0x88, 0x88, 0x00, 0x88, 0x88, 0x88, 0x00,
 	}
 
-	for _, format := range []Format{JPEG, PNG, GIF, BMP, TIFF} {
+	options := [][]EncodeOption{
+		{
+			JPEGQuality(100),
+		},
+		{
+			JPEGQuality(99),
+			GIFDrawer(draw.FloydSteinberg),
+			GIFNumColors(256),
+			GIFQuantizer(quantizer{palette.Plan9}),
+			PNGCompressionLevel(png.BestSpeed),
+		},
+	}
+
+	dir, err := ioutil.TempDir("", "imaging")
+	if err != nil {
+		t.Fatalf("failed to create temporary directory: %v", err)
+	}
+	defer os.RemoveAll(dir)
+
+	for _, ext := range []string{"jpg", "jpeg", "png", "gif", "bmp", "tif", "tiff"} {
+		filename := filepath.Join(dir, "test."+ext)
+
 		img := imgWithoutAlpha
-		if format == PNG {
+		if ext == "png" {
 			img = imgWithAlpha
 		}
 
-		buf := &bytes.Buffer{}
-		err := Encode(buf, img, format)
-		if err != nil {
-			t.Errorf("fail encoding format %s", format)
-			continue
-		}
+		for _, opts := range options {
+			err := Save(img, filename, opts...)
+			if err != nil {
+				t.Fatalf("failed to save image (%q): %v", filename, err)
+			}
 
-		img2, err := Decode(buf)
-		if err != nil {
-			t.Errorf("fail decoding format %s", format)
-			continue
-		}
-		img2cloned := Clone(img2)
+			img2, err := Open(filename)
+			if err != nil {
+				t.Fatalf("failed to open image (%q): %v", filename, err)
+			}
+			got := Clone(img2)
 
-		delta := 0
-		if format == JPEG {
-			delta = 3
-		} else if format == GIF {
-			delta = 16
-		}
+			delta := 0
+			if ext == "jpg" || ext == "jpeg" || ext == "gif" {
+				delta = 3
+			}
 
-		if !compareNRGBA(img, img2cloned, delta) {
-			t.Errorf("test [DecodeEncode %s] failed: %#v %#v", format, img, img2cloned)
-			continue
+			if !compareNRGBA(got, img, delta) {
+				t.Fatalf("bad encode-decode result (ext=%q): got %#v want %#v", ext, got, img)
+			}
 		}
 	}
 
 	buf := &bytes.Buffer{}
-	err := Encode(buf, imgWithAlpha, JPEG)
+	err = Encode(buf, imgWithAlpha, JPEG)
 	if err != nil {
-		t.Errorf("failed encoding alpha to JPEG format %s", err)
+		t.Fatalf("failed to encode alpha to JPEG: %v", err)
 	}
 
 	buf = &bytes.Buffer{}
 	err = Encode(buf, imgWithAlpha, Format(100))
 	if err != ErrUnsupportedFormat {
-		t.Errorf("expected ErrUnsupportedFormat")
+		t.Fatalf("got %v want ErrUnsupportedFormat", err)
 	}
 
 	buf = bytes.NewBuffer([]byte("bad data"))
 	_, err = Decode(buf)
 	if err == nil {
-		t.Errorf("decoding bad data, expected error")
+		t.Fatalf("decoding bad data: expected error got nil")
+	}
+
+	err = Save(imgWithAlpha, filepath.Join(dir, "test.unknown"))
+	if err != ErrUnsupportedFormat {
+		t.Fatalf("got %v want ErrUnsupportedFormat", err)
+	}
+
+	prevFS := fs
+	fs = badFS{}
+	defer func() { fs = prevFS }()
+
+	err = Save(imgWithAlpha, "test.jpg")
+	if err != errCreate {
+		t.Fatalf("got error %v want errCreate", err)
+	}
+
+	err = Save(imgWithAlpha, "badFile.jpg")
+	if err != errClose {
+		t.Fatalf("got error %v want errClose", err)
+	}
+
+	_, err = Open("test.jpg")
+	if err != errOpen {
+		t.Fatalf("got error %v want errOpen", err)
 	}
 }
 
 func TestNew(t *testing.T) {
-	td := []struct {
-		desc      string
+	testCases := []struct {
+		name      string
 		w, h      int
 		c         color.Color
 		dstBounds image.Rectangle
 		dstPix    []uint8
 	}{
 		{
-			"New 1x1 black",
+			"New 1x1 transparent",
 			1, 1,
-			color.NRGBA{0, 0, 0, 0},
+			color.Transparent,
 			image.Rect(0, 0, 1, 1),
 			[]uint8{0x00, 0x00, 0x00, 0x00},
 		},
 		{
 			"New 1x2 red",
 			1, 2,
-			color.NRGBA{255, 0, 0, 255},
+			color.RGBA{255, 0, 0, 255},
 			image.Rect(0, 0, 1, 2),
 			[]uint8{0xff, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0xff},
 		},
 		{
 			"New 2x1 white",
 			2, 1,
-			color.NRGBA{255, 255, 255, 255},
+			color.White,
 			image.Rect(0, 0, 2, 1),
 			[]uint8{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
 		},
 		{
+			"New 3x3 with alpha",
+			3, 3,
+			color.NRGBA{0x01, 0x23, 0x45, 0x67},
+			image.Rect(0, 0, 3, 3),
+			[]uint8{
+				0x01, 0x23, 0x45, 0x67, 0x01, 0x23, 0x45, 0x67, 0x01, 0x23, 0x45, 0x67,
+				0x01, 0x23, 0x45, 0x67, 0x01, 0x23, 0x45, 0x67, 0x01, 0x23, 0x45, 0x67,
+				0x01, 0x23, 0x45, 0x67, 0x01, 0x23, 0x45, 0x67, 0x01, 0x23, 0x45, 0x67,
+			},
+		},
+		{
 			"New 0x0 white",
 			0, 0,
-			color.NRGBA{255, 255, 255, 255},
+			color.White,
 			image.Rect(0, 0, 0, 0),
 			nil,
 		},
+		{
+			"New 800x600 custom",
+			800, 600,
+			color.NRGBA{1, 2, 3, 4},
+			image.Rect(0, 0, 800, 600),
+			bytes.Repeat([]byte{1, 2, 3, 4}, 800*600),
+		},
 	}
 
-	for _, d := range td {
-		got := New(d.w, d.h, d.c)
-		want := image.NewNRGBA(d.dstBounds)
-		want.Pix = d.dstPix
-		if !compareNRGBA(got, want, 0) {
-			t.Errorf("test [%s] failed: %#v", d.desc, got)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := New(tc.w, tc.h, tc.c)
+			want := image.NewNRGBA(tc.dstBounds)
+			want.Pix = tc.dstPix
+			if !compareNRGBA(got, want, 0) {
+				t.Fatalf("got result %#v want %#v", got, want)
+			}
+		})
+	}
+}
+
+func BenchmarkNew(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		New(1024, 1024, color.White)
+	}
+}
+
+func TestFormats(t *testing.T) {
+	formatNames := map[Format]string{
+		JPEG:       "JPEG",
+		PNG:        "PNG",
+		GIF:        "GIF",
+		BMP:        "BMP",
+		TIFF:       "TIFF",
+		Format(-1): "Unsupported",
+	}
+	for format, name := range formatNames {
+		got := format.String()
+		if got != name {
+			t.Fatalf("got format name %q want %q", got, name)
 		}
 	}
 }
 
 func TestClone(t *testing.T) {
-	td := []struct {
-		desc string
+	testCases := []struct {
+		name string
 		src  image.Image
 		want *image.NRGBA
 	}{
@@ -365,35 +489,16 @@ func TestClone(t *testing.T) {
 		},
 	}
 
-	for _, d := range td {
-		got := Clone(d.src)
-		want := d.want
-
-		delta := 0
-		if _, ok := d.src.(*image.YCbCr); ok {
-			delta = 1
-		}
-
-		if !compareNRGBA(got, want, delta) {
-			t.Errorf("test [%s] failed: %#v", d.desc, got)
-		}
-	}
-}
-
-func TestFormats(t *testing.T) {
-	formatNames := map[Format]string{
-		JPEG:       "JPEG",
-		PNG:        "PNG",
-		GIF:        "GIF",
-		BMP:        "BMP",
-		TIFF:       "TIFF",
-		Format(-1): "Unsupported",
-	}
-	for format, name := range formatNames {
-		got := format.String()
-		if got != name {
-			t.Errorf("test [Format names] failed: got %#v want %#v", got, name)
-			continue
-		}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := Clone(tc.src)
+			delta := 0
+			if _, ok := tc.src.(*image.YCbCr); ok {
+				delta = 1
+			}
+			if !compareNRGBA(got, tc.want, delta) {
+				t.Fatalf("got result %#v want %#v", got, tc.want)
+			}
+		})
 	}
 }

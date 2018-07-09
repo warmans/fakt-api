@@ -8,17 +8,15 @@ DOCKER_NAME=$(PROJECT_OWNER)/$(PROJECT_NAME)
 
 .PHONY: test
 test:
-	go test ./server/...
+	go test ./pkg/server/...
 
 .PHONY: build
 build:
-	GO15VENDOREXPERIMENT=1 \
-	GOOS=linux \
-	go build -ldflags "-X github.com/warmans/fakt-api/server.Version=$(PROJECT_VERSION)" -o .build/$(PROJECT_NAME)
-
-.PHONY: build-cli
-build-cli:
-	go build -o .build/fakt-maint github.com/warmans/fakt-api/cmd/maint
+	GO15VENDOREXPERIMENT=1 GOOS=linux \
+	go build \
+	-ldflags "-X github.com/warmans/fakt-api/pkg/server.Version=$(PROJECT_VERSION)" \
+	-o .build/$(PROJECT_NAME) \
+	`go list ./cmd/server`
 
 # Packaging
 #-----------------------------------------------------------------------

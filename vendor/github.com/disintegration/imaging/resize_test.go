@@ -1,13 +1,14 @@
 package imaging
 
 import (
+	"fmt"
 	"image"
 	"testing"
 )
 
 func TestResize(t *testing.T) {
-	td := []struct {
-		desc string
+	testCases := []struct {
+		name string
 		src  image.Image
 		w, h int
 		f    ResampleFilter
@@ -29,6 +30,47 @@ func TestResize(t *testing.T) {
 				Rect:   image.Rect(0, 0, 1, 1),
 				Stride: 1 * 4,
 				Pix:    []uint8{0x55, 0x55, 0x55, 0xc0},
+			},
+		},
+		{
+			"Resize 2x2 1x2 box",
+			&image.NRGBA{
+				Rect:   image.Rect(-1, -1, 1, 1),
+				Stride: 2 * 4,
+				Pix: []uint8{
+					0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0xff,
+					0x00, 0xff, 0x00, 0xff, 0x00, 0x00, 0xff, 0xff,
+				},
+			},
+			1, 2,
+			Box,
+			&image.NRGBA{
+				Rect:   image.Rect(0, 0, 1, 2),
+				Stride: 1 * 4,
+				Pix: []uint8{
+					0xff, 0x00, 0x00, 0x80,
+					0x00, 0x80, 0x80, 0xff,
+				},
+			},
+		},
+		{
+			"Resize 2x2 2x1 box",
+			&image.NRGBA{
+				Rect:   image.Rect(-1, -1, 1, 1),
+				Stride: 2 * 4,
+				Pix: []uint8{
+					0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0xff,
+					0x00, 0xff, 0x00, 0xff, 0x00, 0x00, 0xff, 0xff,
+				},
+			},
+			2, 1,
+			Box,
+			&image.NRGBA{
+				Rect:   image.Rect(0, 0, 2, 1),
+				Stride: 2 * 4,
+				Pix: []uint8{
+					0x00, 0xff, 0x00, 0x80, 0x80, 0x00, 0x80, 0xff,
+				},
 			},
 		},
 		{
@@ -108,10 +150,10 @@ func TestResize(t *testing.T) {
 				Rect:   image.Rect(0, 0, 4, 4),
 				Stride: 4 * 4,
 				Pix: []uint8{
-					0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x3f, 0xff, 0x00, 0x00, 0xc0, 0xff, 0x00, 0x00, 0xff,
-					0x00, 0xff, 0x00, 0x3f, 0x6d, 0x6e, 0x24, 0x6f, 0xb1, 0x13, 0x3a, 0xd0, 0xc0, 0x00, 0x3f, 0xff,
-					0x00, 0xff, 0x00, 0xc0, 0x13, 0xb2, 0x3a, 0xcf, 0x33, 0x32, 0x9a, 0xef, 0x3f, 0x00, 0xc0, 0xff,
-					0x00, 0xff, 0x00, 0xff, 0x00, 0xc0, 0x3f, 0xff, 0x00, 0x3f, 0xc0, 0xff, 0x00, 0x00, 0xff, 0xff,
+					0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x40, 0xff, 0x00, 0x00, 0xbf, 0xff, 0x00, 0x00, 0xff,
+					0x00, 0xff, 0x00, 0x40, 0x6e, 0x6d, 0x25, 0x70, 0xb0, 0x14, 0x3b, 0xcf, 0xbf, 0x00, 0x40, 0xff,
+					0x00, 0xff, 0x00, 0xbf, 0x14, 0xb0, 0x3b, 0xcf, 0x33, 0x33, 0x99, 0xef, 0x40, 0x00, 0xbf, 0xff,
+					0x00, 0xff, 0x00, 0xff, 0x00, 0xbf, 0x40, 0xff, 0x00, 0x40, 0xbf, 0xff, 0x00, 0x00, 0xff, 0xff,
 				},
 			},
 		},
@@ -155,15 +197,18 @@ func TestResize(t *testing.T) {
 			&image.NRGBA{},
 		},
 	}
-	for _, d := range td {
-		got := Resize(d.src, d.w, d.h, d.f)
-		want := d.want
-		if !compareNRGBA(got, want, 1) {
-			t.Errorf("test [%s] failed: %#v", d.desc, got)
-		}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := Resize(tc.src, tc.w, tc.h, tc.f)
+			if !compareNRGBA(got, tc.want, 0) {
+				t.Fatalf("got result %#v want %#v", got, tc.want)
+			}
+		})
 	}
+}
 
-	for i, filter := range []ResampleFilter{
+func TestResampleFilters(t *testing.T) {
+	for _, filter := range []ResampleFilter{
 		NearestNeighbor,
 		Box,
 		Linear,
@@ -180,30 +225,43 @@ func TestResize(t *testing.T) {
 		Welch,
 		Cosine,
 	} {
-		src := image.NewNRGBA(image.Rect(-1, -1, 2, 3))
-		got := Resize(src, 5, 6, filter)
-		want := image.NewNRGBA(image.Rect(0, 0, 5, 6))
-		if !compareNRGBA(got, want, 0) {
-			t.Errorf("test [Resize all filters #%d] failed: %#v", i, got)
-		}
-
-		if filter.Kernel != nil {
-			x := filter.Kernel(filter.Support + 0.0001)
-			if x != 0 {
-				t.Errorf("test [ResampleFilter edge cases #%d] failed: %f", i, x)
+		t.Run("", func(t *testing.T) {
+			src := image.NewNRGBA(image.Rect(-1, -1, 2, 3))
+			got := Resize(src, 5, 6, filter)
+			want := image.NewNRGBA(image.Rect(0, 0, 5, 6))
+			if !compareNRGBA(got, want, 0) {
+				t.Fatalf("got result %#v want %#v", got, want)
 			}
-		}
+			if filter.Kernel != nil {
+				if x := filter.Kernel(filter.Support + 0.0001); x != 0 {
+					t.Fatalf("got kernel value %f want 0", x)
+				}
+			}
+		})
 	}
+}
 
-	bcs2 := bcspline(2, 1, 0)
-	if bcs2 != 0 {
-		t.Errorf("test [bcspline 2] failed: %f", bcs2)
+func TestResizeGolden(t *testing.T) {
+	for name, filter := range map[string]ResampleFilter{
+		"out_resize_nearest.png": NearestNeighbor,
+		"out_resize_linear.png":  Linear,
+		"out_resize_catrom.png":  CatmullRom,
+		"out_resize_lanczos.png": Lanczos,
+	} {
+		got := Resize(testdataBranchesPNG, 150, 0, filter)
+		want, err := Open("testdata/" + name)
+		if err != nil {
+			t.Fatalf("failed to open image: %v", err)
+		}
+		if !compareNRGBA(got, toNRGBA(want), 0) {
+			t.Fatalf("resulting image differs from golden: %s", name)
+		}
 	}
 }
 
 func TestFit(t *testing.T) {
-	td := []struct {
-		desc string
+	testCases := []struct {
+		name string
 		src  image.Image
 		w, h int
 		f    ResampleFilter
@@ -306,18 +364,19 @@ func TestFit(t *testing.T) {
 			&image.NRGBA{},
 		},
 	}
-	for _, d := range td {
-		got := Fit(d.src, d.w, d.h, d.f)
-		want := d.want
-		if !compareNRGBA(got, want, 0) {
-			t.Errorf("test [%s] failed: %#v", d.desc, got)
-		}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := Fit(tc.src, tc.w, tc.h, tc.f)
+			if !compareNRGBA(got, tc.want, 0) {
+				t.Fatalf("got result %#v want %#v", got, tc.want)
+			}
+		})
 	}
 }
 
 func TestFill(t *testing.T) {
-	td := []struct {
-		desc string
+	testCases := []struct {
+		name string
 		src  image.Image
 		w, h int
 		a    Anchor
@@ -480,18 +539,19 @@ func TestFill(t *testing.T) {
 			&image.NRGBA{},
 		},
 	}
-	for _, d := range td {
-		got := Fill(d.src, d.w, d.h, d.a, d.f)
-		want := d.want
-		if !compareNRGBA(got, want, 0) {
-			t.Errorf("test [%s] failed: %#v", d.desc, got)
-		}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := Fill(tc.src, tc.w, tc.h, tc.a, tc.f)
+			if !compareNRGBA(got, tc.want, 0) {
+				t.Fatalf("got result %#v want %#v", got, tc.want)
+			}
+		})
 	}
 }
 
 func TestThumbnail(t *testing.T) {
-	td := []struct {
-		desc string
+	testCases := []struct {
+		name string
 		src  image.Image
 		w, h int
 		f    ResampleFilter
@@ -560,11 +620,55 @@ func TestThumbnail(t *testing.T) {
 			},
 		},
 	}
-	for _, d := range td {
-		got := Thumbnail(d.src, d.w, d.h, d.f)
-		want := d.want
-		if !compareNRGBA(got, want, 0) {
-			t.Errorf("test [%s] failed: %#v", d.desc, got)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := Thumbnail(tc.src, tc.w, tc.h, tc.f)
+			if !compareNRGBA(got, tc.want, 0) {
+				t.Fatalf("got result %#v want %#v", got, tc.want)
+			}
+		})
+	}
+}
+
+func BenchmarkResize(b *testing.B) {
+	for _, dir := range []string{"Down", "Up"} {
+		for _, filter := range []string{"NearestNeighbor", "Linear", "CatmullRom", "Lanczos"} {
+			for _, format := range []string{"JPEG", "PNG"} {
+				var size int
+				switch dir {
+				case "Down":
+					size = 100
+				case "Up":
+					size = 1000
+				}
+
+				var f ResampleFilter
+				switch filter {
+				case "NearestNeighbor":
+					f = NearestNeighbor
+				case "Linear":
+					f = Linear
+				case "CatmullRom":
+					f = CatmullRom
+				case "Lanczos":
+					f = Lanczos
+				}
+
+				var img image.Image
+				switch format {
+				case "JPEG":
+					img = testdataBranchesJPG
+				case "PNG":
+					img = testdataBranchesPNG
+				}
+
+				b.Run(fmt.Sprintf("%s %s %s", dir, filter, format), func(b *testing.B) {
+					b.ReportAllocs()
+					for i := 0; i < b.N; i++ {
+						Resize(img, size, size, f)
+					}
+				})
+			}
 		}
 	}
 }

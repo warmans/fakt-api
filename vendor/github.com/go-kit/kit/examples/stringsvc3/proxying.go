@@ -1,15 +1,16 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/url"
 	"strings"
 	"time"
 
-	jujuratelimit "github.com/juju/ratelimit"
+	"golang.org/x/time/rate"
+
 	"github.com/sony/gobreaker"
-	"golang.org/x/net/context"
 
 	"github.com/go-kit/kit/circuitbreaker"
 	"github.com/go-kit/kit/endpoint"
@@ -20,7 +21,7 @@ import (
 	httptransport "github.com/go-kit/kit/transport/http"
 )
 
-func proxyingMiddleware(instances string, ctx context.Context, logger log.Logger) ServiceMiddleware {
+func proxyingMiddleware(ctx context.Context, instances string, logger log.Logger) ServiceMiddleware {
 	// If instances is empty, don't proxy.
 	if instances == "" {
 		logger.Log("proxy_to", "none")
@@ -40,20 +41,20 @@ func proxyingMiddleware(instances string, ctx context.Context, logger log.Logger
 	// discovery system.
 	var (
 		instanceList = split(instances)
-		subscriber   sd.FixedSubscriber
+		endpointer   sd.FixedEndpointer
 	)
 	logger.Log("proxy_to", fmt.Sprint(instanceList))
 	for _, instance := range instanceList {
 		var e endpoint.Endpoint
 		e = makeUppercaseProxy(ctx, instance)
 		e = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(e)
-		e = ratelimit.NewTokenBucketLimiter(jujuratelimit.NewBucketWithRate(float64(qps), int64(qps)))(e)
-		subscriber = append(subscriber, e)
+		e = ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Every(time.Second), qps))(e)
+		endpointer = append(endpointer, e)
 	}
 
 	// Now, build a single, retrying, load-balancing endpoint out of all of
 	// those individual endpoints.
-	balancer := lb.NewRoundRobin(subscriber)
+	balancer := lb.NewRoundRobin(endpointer)
 	retry := lb.Retry(maxAttempts, maxTime, balancer)
 
 	// And finally, return the ServiceMiddleware, implemented by proxymw.

@@ -6,13 +6,28 @@ import (
 	"fmt"
 
 	"github.com/gorilla/mux"
+	"net/http"
 )
+
+type Middleware func (next http.HandlerFunc) http.HandlerFunc
+
+func addNoopMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(rw, r)
+	}
+}
 
 type Route struct {
 	Name      string
 	IDPattern string
 	Handler   RESTHandler
 	Sub       []*Route
+	Mw        Middleware
+}
+
+func (r *Route) Middleware(mw Middleware) *Route {
+	r.Mw = mw
+	return r
 }
 
 func NewRoute(name string, idPattern string, handler RESTHandler, sub []*Route) *Route {
@@ -29,6 +44,17 @@ func ApplyRoutes(router *mux.Router, routes []*Route, parentURI []string) {
 
 	for _, route := range routes {
 
+		//this is a bit weird. To apply middleware a function must be passed that implements Middleware. this function
+		//takes a handler func (which will be the method on the RESTHandler) and wraps it in another handler func.
+		//multiple middlewares can be nested in this way.
+		//if none is used a null middleware is used that just passes through.
+		var mw Middleware
+		if route.Mw != nil {
+			mw = route.Mw
+		} else {
+			mw = addNoopMiddleware
+		}
+
 		uriHandlers := make([]*mux.Route, 0)
 
 		//route without ID
@@ -39,39 +65,39 @@ func ApplyRoutes(router *mux.Router, routes []*Route, parentURI []string) {
 
 		uriHandlers = append(
 			uriHandlers,
-			router.HandleFunc(strings.Join(cget, "/"), route.Handler.HandleGetList).Methods("GET").Name(fmt.Sprintf("%s:%s", route.Name, "cget")),
+			router.HandleFunc(strings.Join(cget, "/"), mw(route.Handler.HandleGetList).ServeHTTP).Methods("GET").Name(fmt.Sprintf("%s:%s", route.Name, "cget")),
 		)
 		uriHandlers = append(
 			uriHandlers,
-			router.HandleFunc(strings.Join(get, "/"), route.Handler.HandleGet).Methods("GET").Name(fmt.Sprintf("%s:%s", route.Name, "get")),
+			router.HandleFunc(strings.Join(get, "/"), mw(route.Handler.HandleGet).ServeHTTP).Methods("GET").Name(fmt.Sprintf("%s:%s", route.Name, "get")),
 		)
 		uriHandlers = append(
 			uriHandlers,
-			router.HandleFunc(strings.Join(cget, "/"), route.Handler.HandlePost).Methods("POST").Name(fmt.Sprintf("%s:%s", route.Name, "post")),
+			router.HandleFunc(strings.Join(cget, "/"), mw(route.Handler.HandlePost).ServeHTTP).Methods("POST").Name(fmt.Sprintf("%s:%s", route.Name, "post")),
 		)
 		uriHandlers = append(
 			uriHandlers,
-			router.HandleFunc(strings.Join(get, "/"), route.Handler.HandlePut).Methods("PUT").Name(fmt.Sprintf("%s:%s", route.Name, "put")),
+			router.HandleFunc(strings.Join(get, "/"), mw(route.Handler.HandlePut).ServeHTTP).Methods("PUT").Name(fmt.Sprintf("%s:%s", route.Name, "put")),
 		)
 		uriHandlers = append(
 			uriHandlers,
-			router.HandleFunc(strings.Join(get, "/"), route.Handler.HandleDelete).Methods("DELETE").Name(fmt.Sprintf("%s:%s", route.Name, "delete")),
+			router.HandleFunc(strings.Join(get, "/"), mw(route.Handler.HandleDelete).ServeHTTP).Methods("DELETE").Name(fmt.Sprintf("%s:%s", route.Name, "delete")),
 		)
 		uriHandlers = append(
 			uriHandlers,
-			router.HandleFunc(strings.Join(get, "/"), route.Handler.HandlePatch).Methods("PATCH").Name(fmt.Sprintf("%s:%s", route.Name, "patch")),
+			router.HandleFunc(strings.Join(get, "/"), mw(route.Handler.HandlePatch).ServeHTTP).Methods("PATCH").Name(fmt.Sprintf("%s:%s", route.Name, "patch")),
 		)
 		uriHandlers = append(
 			uriHandlers,
-			router.HandleFunc(strings.Join(get, "/"), route.Handler.HandleCopy).Methods("COPY").Name(fmt.Sprintf("%s:%s", route.Name, "copy")),
+			router.HandleFunc(strings.Join(get, "/"), mw(route.Handler.HandleCopy).ServeHTTP).Methods("COPY").Name(fmt.Sprintf("%s:%s", route.Name, "copy")),
 		)
 		uriHandlers = append(
 			uriHandlers,
-			router.HandleFunc(strings.Join(cget, "/"), route.Handler.HandleHead).Methods("HEAD").Name(fmt.Sprintf("%s:%s", route.Name, "head")),
+			router.HandleFunc(strings.Join(cget, "/"), mw(route.Handler.HandleHead).ServeHTTP).Methods("HEAD").Name(fmt.Sprintf("%s:%s", route.Name, "head")),
 		)
 		uriHandlers = append(
 			uriHandlers,
-			router.HandleFunc(strings.Join(cget, "/"), route.Handler.HandleOptions).Methods("OPTIONS").Name(fmt.Sprintf("%s:%s", route.Name, "options")),
+			router.HandleFunc(strings.Join(cget, "/"), mw(route.Handler.HandleOptions).ServeHTTP).Methods("OPTIONS").Name(fmt.Sprintf("%s:%s", route.Name, "options")),
 		)
 
 		if route.Sub != nil {

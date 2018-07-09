@@ -10,36 +10,46 @@ import (
 	"net/http/httptest"
 
 	"log"
+	"context"
 )
 
 type EmptyHandler struct{ DefaultRESTHandler }
 
 func (h *EmptyHandler) HandleGet(rw http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(rw, "%s", "GET")
+	cv := r.Context().Value("contextual")
+	fmt.Fprintf(rw, "%s%v", "GET", cv)
 }
 func (h *EmptyHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(rw, "%s", "GET LIST")
+	cv := r.Context().Value("contextual")
+	fmt.Fprintf(rw, "%s%v", "GET LIST", cv)
 }
 func (h *EmptyHandler) HandlePost(rw http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(rw, "%s", "POST")
+	cv := r.Context().Value("contextual")
+	fmt.Fprintf(rw, "%s%v", "POST", cv)
 }
 func (h *EmptyHandler) HandlePut(rw http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(rw, "%s", "PUT")
+	cv := r.Context().Value("contextual")
+	fmt.Fprintf(rw, "%s%v", "PUT", cv)
 }
 func (h *EmptyHandler) HandlePatch(rw http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(rw, "%s", "PATCH")
+	cv := r.Context().Value("contextual")
+	fmt.Fprintf(rw, "%s%v", "PATCH", cv)
 }
 func (h *EmptyHandler) HandleDelete(rw http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(rw, "%s", "DELETE")
+	cv := r.Context().Value("contextual")
+	fmt.Fprintf(rw, "%s%v", "DELETE", cv)
 }
 func (h *EmptyHandler) HandleCopy(rw http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(rw, "%s", "COPY")
+	cv := r.Context().Value("contextual")
+	fmt.Fprintf(rw, "%s%v", "COPY", cv)
 }
 func (h *EmptyHandler) HandleHead(rw http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(rw, "%s", "HEAD")
+	cv := r.Context().Value("contextual")
+	fmt.Fprintf(rw, "%s%v", "HEAD", cv)
 }
 func (h *EmptyHandler) HandleOptions(rw http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(rw, "%s", "OPTIONS")
+	cv := r.Context().Value("contextual")
+	fmt.Fprintf(rw, "%s%v", "OPTIONS", cv)
 }
 
 func eh() RESTHandler {
@@ -139,6 +149,12 @@ func TestGetRoutesIntegration(t *testing.T) {
 								"{baz_id:[0-9]}",
 								eh(),
 								nil,
+							).Middleware(
+								func(next http.HandlerFunc) http.HandlerFunc {
+									return func(rw http.ResponseWriter, r *http.Request) {
+										next.ServeHTTP(rw, r.WithContext(context.WithValue(r.Context(), "contextual", true)))
+									}
+								},
 							),
 						},
 					),
@@ -156,13 +172,14 @@ func TestGetRoutesIntegration(t *testing.T) {
 		expectStatusCode int
 		expectResponse   string
 	}{
-		{request: MustNewRequest("GET", fmt.Sprintf("%s%s", srv.URL, "/foo")), expectResponse: "GET LIST", expectStatusCode: http.StatusOK},
-		{request: MustNewRequest("GET", fmt.Sprintf("%s%s", srv.URL, "/foo/1")), expectResponse: "GET", expectStatusCode: http.StatusOK},
-		{request: MustNewRequest("POST", fmt.Sprintf("%s%s", srv.URL, "/foo")), expectResponse: "POST", expectStatusCode: http.StatusOK},
-		{request: MustNewRequest("PUT", fmt.Sprintf("%s%s", srv.URL, "/foo/1")), expectResponse: "PUT", expectStatusCode: http.StatusOK},
-		{request: MustNewRequest("PATCH", fmt.Sprintf("%s%s", srv.URL, "/foo/1")), expectResponse: "PATCH", expectStatusCode: http.StatusOK},
-		{request: MustNewRequest("DELETE", fmt.Sprintf("%s%s", srv.URL, "/foo/1")), expectResponse: "DELETE", expectStatusCode: http.StatusOK},
+		{request: MustNewRequest("GET", fmt.Sprintf("%s%s", srv.URL, "/foo")), expectResponse: "GET LIST<nil>", expectStatusCode: http.StatusOK},
+		{request: MustNewRequest("GET", fmt.Sprintf("%s%s", srv.URL, "/foo/1")), expectResponse: "GET<nil>", expectStatusCode: http.StatusOK},
+		{request: MustNewRequest("POST", fmt.Sprintf("%s%s", srv.URL, "/foo")), expectResponse: "POST<nil>", expectStatusCode: http.StatusOK},
+		{request: MustNewRequest("PUT", fmt.Sprintf("%s%s", srv.URL, "/foo/1")), expectResponse: "PUT<nil>", expectStatusCode: http.StatusOK},
+		{request: MustNewRequest("PATCH", fmt.Sprintf("%s%s", srv.URL, "/foo/1")), expectResponse: "PATCH<nil>", expectStatusCode: http.StatusOK},
+		{request: MustNewRequest("DELETE", fmt.Sprintf("%s%s", srv.URL, "/foo/1")), expectResponse: "DELETE<nil>", expectStatusCode: http.StatusOK},
 		{request: MustNewRequest("POST", fmt.Sprintf("%s%s", srv.URL, "/foo/1")), expectResponse: "", expectStatusCode: http.StatusNotFound},
+		{request: MustNewRequest("GET", fmt.Sprintf("%s%s", srv.URL, "/foo/1/bar/2/baz")), expectResponse: "GET LISTtrue", expectStatusCode: http.StatusOK},
 	}
 
 	for _, test := range testRequests {
