@@ -64,7 +64,6 @@ func (s *Store) FindTags(filter *Filter) ([]*common.Tag, error) {
 	}
 
 	tags := []*common.Tag{}
-
 	if _, err := q.Load(&tags); err != nil && err != dbr.ErrNotFound {
 		return tags, err
 	}

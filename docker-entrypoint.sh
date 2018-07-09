@@ -7,6 +7,8 @@ set -e
 : ${CRAWLER_LOCATION:="Europe/Berlin"}
 : ${DB_PATH:="/opt/fakt-api/db/db.sqlite3"}
 : ${LOG_VERBOSE:=false}
+: ${MIGRATIONS_PATH:="/opt/fakt-api/migrations"}
+: ${MIGRATIONS_DISABLED:="false"}
 
 if [ "$1" = 'fakt-api' ]; then
 
@@ -18,8 +20,9 @@ if [ "$1" = 'fakt-api' ]; then
 		-crawler.stressfaktor.uri=${CRAWLER_STRESSFAKTOR_URI} \
 		-crawler.location=${CRAWLER_LOCATION} \
 		-db.path=${DB_PATH} \
-		-log.verbose=${LOG_VERBOSE} | tee /var/log/fakt-api/out.log 2>&1
-
+		-log.verbose=${LOG_VERBOSE} \
+		-migrations.path=${MIGRATIONS_PATH} \
+		-migrations.disabled=${MIGRATIONS_DISABLED} | tee /var/log/fakt-api/out.log 2>&1
 fi
 
 exec "$@"

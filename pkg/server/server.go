@@ -7,7 +7,6 @@ import (
 
 	"github.com/NYTimes/gziphandler"
 	"github.com/gorilla/sessions"
-	"github.com/pkg/errors"
 	"github.com/warmans/dbr"
 	v1 "github.com/warmans/fakt-api/pkg/server/api.v1"
 	"github.com/warmans/fakt-api/pkg/server/data"
@@ -39,13 +38,14 @@ type Config struct {
 	VerboseLogging         bool
 }
 
-func NewServer(conf *Config, logger *zap.Logger) *Server {
-	return &Server{conf: conf, logger: logger}
+func NewServer(conf *Config, logger *zap.Logger, db *dbr.Connection) *Server {
+	return &Server{conf: conf, logger: logger, db: db}
 }
 
 type Server struct {
 	conf   *Config
 	logger *zap.Logger
+	db     *dbr.Connection
 }
 
 func (s *Server) Start() error {
@@ -53,21 +53,10 @@ func (s *Server) Start() error {
 	//localize time
 	time.LoadLocation(s.conf.ServerLocation)
 
-	db, err := dbr.Open("sqlite3", s.conf.DbPath, nil)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	//setup database (if required)
-	if err := data.InitializeSchema(db.NewSession(nil)); err != nil {
-		return errors.Wrap(err, "Failed to initialize local DB")
-	}
-
-	performerService := &performer.Store{DB: db.NewSession(nil), Logger: s.logger}
-	eventService := &event.Store{DB: db.NewSession(nil), PerformerService: performerService}
-	venueService := &venue.Store{DB: db.NewSession(nil)}
-	tagService := &tag.Store{DB: db.NewSession(nil)}
+	performerService := &performer.Store{DB: s.db.NewSession(nil), Logger: s.logger}
+	eventService := &event.Store{DB: s.db.NewSession(nil), PerformerService: performerService}
+	venueService := &venue.Store{DB: s.db.NewSession(nil)}
+	tagService := &tag.Store{DB: s.db.NewSession(nil)}
 
 	imageMirror := media.NewImageMirror(s.conf.StaticFilesPath)
 
@@ -78,22 +67,22 @@ func (s *Server) Start() error {
 		}
 
 		dataIngest := data.Ingest{
-			DB:              db.NewSession(nil),
+			DB:              s.db.NewSession(nil),
 			UpdateFrequency: time.Duration(1) * time.Hour,
 			Crawlers: []source.Crawler{
 				&sfaktor.Crawler{
 					TermineURI: s.conf.CrawlerStressfaktorURI,
-					Timezone: tz,
-					Logger: s.logger.With(zap.String("component", "sfaktor crawler")),
+					Timezone:   tz,
+					Logger:     s.logger.With(zap.String("component", "sfaktor crawler")),
 				},
 				&k9.Crawler{
 					Timezone: tz,
-					Logger: s.logger.With(zap.String("component", "k9crawler")),
+					Logger:   s.logger.With(zap.String("component", "k9crawler")),
 				},
 			},
 			EventVisitors: []common.EventVisitor{
 				&data.PerformerServiceVisitor{PerformerService: performerService, Logger: s.logger},
-				&data.BandcampVisitor{Bandcamp: &bcamp.Bandcamp{HTTP: http.DefaultClient},Logger: s.logger, ImageMirror: imageMirror},
+				&data.BandcampVisitor{Bandcamp: &bcamp.Bandcamp{HTTP: http.DefaultClient}, Logger: s.logger, ImageMirror: imageMirror},
 			},
 			EventService:     eventService,
 			PerformerService: performerService,
@@ -106,7 +95,7 @@ func (s *Server) Start() error {
 
 		//performer activity
 		activityRunner := process.GetActivityRunner(time.Minute*10, s.logger)
-		go activityRunner.Run(db.NewSession(nil))
+		go activityRunner.Run(s.db.NewSession(nil))
 	}
 
 	//sessions

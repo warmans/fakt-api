@@ -6,7 +6,8 @@ import (
 	"os"
 
 	_ "github.com/mattn/go-sqlite3"
-
+	"github.com/rubenv/sql-migrate"
+	"github.com/warmans/dbr"
 	"github.com/warmans/fakt-api/pkg/server"
 	"go.uber.org/zap"
 )
@@ -20,6 +21,8 @@ var (
 	dbPath                 = flag.String("db.path", "./db.sqlite3", "Location of DB file")
 	verbose                = flag.Bool("log.verbose", false, "Verbose logging")
 	staticFilesPath        = flag.String("static.path", "static", "Location to store static files")
+	migrationsPath         = flag.String("migrations.path", "migrations", "Location of migrations")
+	migrationsDisabled     = flag.Bool("migrations.disabled", false, "Skip applying migrations")
 	ver                    = flag.Bool("v", false, "Print version and exit")
 )
 
@@ -36,7 +39,6 @@ func main() {
 		ServerBind:             *serverBind,
 		ServerLocation:         *crawlerLocation,
 		CrawlerStressfaktorURI: *crawlerStressfaktorURI,
-		DbPath:                 *dbPath,
 		CrawlerRun:             *crawlerRun,
 		EncryptionKey:          *serverEncryptionKey,
 		VerboseLogging:         *verbose,
@@ -50,5 +52,20 @@ func main() {
 	}
 	defer logger.Sync()
 
-	logger.Fatal("Server Exited", zap.Error(server.NewServer(config, logger).Start()))
+	db, err := dbr.Open("sqlite3", *dbPath, nil)
+	if err != nil {
+		logger.Fatal("Failed to open DB", zap.Error(err))
+	}
+	defer db.Close()
+
+	// apply migrations on startup
+	if !*migrationsDisabled {
+		n, err := migrate.Exec(db.DB, "sqlite3", &migrate.FileMigrationSource{Dir: *migrationsPath}, migrate.Up)
+		if err != nil {
+			logger.Fatal("Migrations failed", zap.Error(err))
+		}
+		logger.Info("Applied  migrations", zap.Int("num", n))
+	}
+
+	logger.Fatal("Server Exited", zap.Error(server.NewServer(config, logger, db).Start()))
 }

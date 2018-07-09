@@ -14,8 +14,6 @@ import (
 	"github.com/warmans/fakt-api/pkg/server/data/store/performer"
 )
 
-const DefaultPageSize = 50
-
 func FilterFromRequest(r *http.Request) *Filter {
 	f := &Filter{}
 	f.Populate(r)

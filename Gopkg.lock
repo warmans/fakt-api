@@ -84,6 +84,15 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/rubenv/sql-migrate"
+  packages = [
+    ".",
+    "sqlparse"
+  ]
+  revision = "3f452fc0ebebbb784fdab91f7bc79a31dcacab5c"
+
+[[projects]]
+  branch = "master"
   name = "github.com/texttheater/golang-levenshtein"
   packages = ["levenshtein"]
   revision = "d188e65d659ef53fcdb0691c12f1bba64928b649"
@@ -148,15 +157,6 @@
 
 [[projects]]
   branch = "master"
-  name = "golang.org/x/crypto"
-  packages = [
-    "bcrypt",
-    "blowfish"
-  ]
-  revision = "a49355c7e3f8fe157a85be2f77e6e269a0f89602"
-
-[[projects]]
-  branch = "master"
   name = "golang.org/x/image"
   packages = [
     "bmp",
@@ -179,9 +179,15 @@
   packages = ["."]
   revision = "27c40922c40b43fe04554d8223a402af3ea333f3"
 
+[[projects]]
+  name = "gopkg.in/gorp.v1"
+  packages = ["."]
+  revision = "c87af80f3cc5036b55b83d77171e156791085e2e"
+  version = "v1.7.1"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2864755a23e82b5c112813bcb4f50b73634019874ef93ad1f4b2d1064c43ad52"
+  inputs-digest = "49fa4232e76195e028391f4e899456d1ad5d0e4d2a3a495209999914be802918"
   solver-name = "gps-cdcl"
   solver-version = 1
