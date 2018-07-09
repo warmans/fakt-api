@@ -399,7 +399,7 @@ func (s *EventService) FindEvents(filter *EventFilter) ([]*common.Event, error) 
 
 			//append the performers
 			if performerIDs := common.SplitConcatIDs(pIDs, ","); len(performerIDs) > 0 {
-				pf := &performer.PerformerFilter{}
+				pf := &performer.Filter{}
 				pf.IDs = performerIDs
 				if curEvent.Performers, err = s.PerformerService.FindPerformers(pf); err != nil {
 					return nil, err

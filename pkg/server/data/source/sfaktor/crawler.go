@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/go-kit/kit/log"
 	"github.com/warmans/fakt-api/pkg/server/data/service/common"
+	"go.uber.org/zap"
 )
 
 var validDate = regexp.MustCompile(`^[A-Za-z]+, [0-9]{2}\. [\p{L}]+ [0-9]{4}$`)
@@ -21,7 +21,7 @@ var validTime = regexp.MustCompile(`^[0-9]{2}:[0-9]{2}$`)
 type Crawler struct {
 	TermineURI string
 	Timezone   *time.Location
-	Logger     log.Logger
+	Logger     *zap.Logger
 }
 
 func (c *Crawler) Name() string {
@@ -68,7 +68,7 @@ func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection, localTime *time
 		if dateStr == "" || row.HasClass("termin_tag_titel") {
 			dateStr = strings.TrimSpace(row.Text())
 			if !validDate.MatchString(dateStr) {
-				c.Logger.Log("msg", fmt.Sprintf("Invalid date string: %s", dateStr))
+				c.Logger.Error(fmt.Sprintf("Invalid date string: %s", dateStr))
 				failed = true
 			}
 			return //move on
@@ -77,20 +77,20 @@ func (c *Crawler) HandleDateTable(i int, sel *goquery.Selection, localTime *time
 		//each row has a time
 		timeStr := strings.TrimSpace(row.Find(".spalte_uhrzeit > .uhrzeit2").First().Text())
 		if !validTime.MatchString(timeStr) {
-			c.Logger.Log("msg", fmt.Sprintf("Invalid time string: %s (text: %s)", timeStr, row.Text()))
+			c.Logger.Error(fmt.Sprintf("Invalid time string: %s (text: %s)", timeStr, row.Text()))
 			return //don't fail
 		}
 
 		var err error
 		dateTime, err = ParseTime(dateStr, timeStr, localTime)
 		if err != nil {
-			c.Logger.Log("msg", fmt.Sprintf("Failed to parse date: %s %s (%s)", dateStr, timeStr, err.Error()))
+			c.Logger.Error(fmt.Sprintf("Failed to parse date: %s %s (%s)", dateStr, timeStr, err.Error()))
 			return
 		}
 
 		event, err := c.CreateEvent(dateTime, row)
 		if err != nil {
-			c.Logger.Log("msg", fmt.Sprintf("Failed to create event: %s", err.Error()))
+			c.Logger.Error(fmt.Sprintf("Failed to create event: %s", err.Error()))
 			return
 		}
 

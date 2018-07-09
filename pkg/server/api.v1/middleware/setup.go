@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/warmans/fakt-api/pkg/server/api.v1/common"
-	"github.com/go-kit/kit/log"
+	"go.uber.org/zap"
 )
 
 func AddSetup(nextHandler http.Handler) http.Handler {
@@ -14,11 +14,10 @@ func AddSetup(nextHandler http.Handler) http.Handler {
 type SetupMiddleware struct {
 	next    http.Handler
 	headers map[string]string
-	logger log.Logger
+	logger  *zap.Logger
 }
 
 func (m *SetupMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-
 
 	//always parse the form
 	if err := r.ParseForm(); err != nil {
@@ -29,7 +28,7 @@ func (m *SetupMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if err := r.Body.Close(); err != nil {
 			//can't really do much once the headers have already been sent. Meh!
-			m.logger.Log("msg", "Failed to close HTTP response body:", err)
+			m.logger.Error("Failed to close HTTP response body", zap.Error(err))
 		}
 	}()
 	m.next.ServeHTTP(rw, r)

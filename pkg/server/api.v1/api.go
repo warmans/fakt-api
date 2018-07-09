@@ -3,7 +3,6 @@ package api
 import (
 	"net/http"
 
-	"github.com/go-kit/kit/log"
 	"github.com/gorilla/context"
 	"github.com/gorilla/sessions"
 	"github.com/warmans/fakt-api/pkg/server/api.v1/handler"
@@ -15,6 +14,7 @@ import (
 	"github.com/warmans/fakt-api/pkg/server/data/service/utag"
 	"github.com/warmans/fakt-api/pkg/server/data/service/venue"
 	"github.com/warmans/route-rest/routes"
+	"go.uber.org/zap"
 )
 
 type API struct {
@@ -27,7 +27,7 @@ type API struct {
 	TagService       *tag.TagService
 
 	SessionStore sessions.Store
-	Logger       log.Logger
+	Logger       *zap.Logger
 }
 
 func (a *API) NewServeMux() http.Handler {

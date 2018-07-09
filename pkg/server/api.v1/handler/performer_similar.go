@@ -42,7 +42,7 @@ func (h *PerformerSimilarHandler) HandleGetList(rw http.ResponseWriter, r *http.
 		return
 	}
 
-	f := performer.PerformerFilterFromRequest(r)
+	f := performer.FilterFromRequest(r)
 	f.IDs = similarPerformers
 
 	performers, err := h.ds.FindPerformers(f)

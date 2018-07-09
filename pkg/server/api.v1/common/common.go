@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/go-kit/kit/log"
+	"go.uber.org/zap"
 )
 
 type Response struct {
@@ -32,10 +32,10 @@ func (e HTTPError) Error() string {
 	return fmt.Sprintf("%s (caused by: %s)", e.Msg, e.LastErr.Error())
 }
 
-func SendError(rw http.ResponseWriter, err error, logger log.Logger) {
+func SendError(rw http.ResponseWriter, err error, logger *zap.Logger) {
 
 	if logger != nil {
-		logger.Log("msg", err)
+		logger.Error("HTTP request failed", zap.Error(err))
 	}
 
 	code := 500

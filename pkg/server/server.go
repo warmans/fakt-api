@@ -1,16 +1,13 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
-	"fmt"
-
-	"os"
-
 	"github.com/NYTimes/gziphandler"
-	"github.com/go-kit/kit/log"
 	"github.com/gorilla/sessions"
+	"github.com/pkg/errors"
 	"github.com/warmans/dbr"
 	v1 "github.com/warmans/fakt-api/pkg/server/api.v1"
 	"github.com/warmans/fakt-api/pkg/server/data"
@@ -27,6 +24,7 @@ import (
 	"github.com/warmans/fakt-api/pkg/server/data/source/k9"
 	"github.com/warmans/fakt-api/pkg/server/data/source/sfaktor"
 	"github.com/warmans/go-bandcamp-search/bcamp"
+	"go.uber.org/zap"
 )
 
 // VERSION is used in packaging
@@ -43,13 +41,13 @@ type Config struct {
 	VerboseLogging         bool
 }
 
-func NewServer(conf *Config, logger log.Logger) *Server {
+func NewServer(conf *Config, logger *zap.Logger) *Server {
 	return &Server{conf: conf, logger: logger}
 }
 
 type Server struct {
 	conf   *Config
-	logger log.Logger
+	logger *zap.Logger
 }
 
 func (s *Server) Start() error {
@@ -59,15 +57,13 @@ func (s *Server) Start() error {
 
 	db, err := dbr.Open("sqlite3", s.conf.DbPath, nil)
 	if err != nil {
-		s.logger.Log("msg", fmt.Sprintf("Failed to open DB: %s", err.Error()))
-		os.Exit(1)
+		return err
 	}
 	defer db.Close()
 
 	//setup database (if required)
 	if err := data.InitializeSchema(db.NewSession(nil)); err != nil {
-		s.logger.Log("msg", fmt.Sprintf("Failed to initialize local DB: %s", err.Error()))
-		os.Exit(1)
+		return errors.Wrap(err, "Failed to initialize local DB")
 	}
 
 	utagService := &utag.UTagService{DB: db.NewSession(nil)}
@@ -89,17 +85,24 @@ func (s *Server) Start() error {
 			DB:              db.NewSession(nil),
 			UpdateFrequency: time.Duration(1) * time.Hour,
 			Crawlers: []source.Crawler{
-				&sfaktor.Crawler{TermineURI: s.conf.CrawlerStressfaktorURI, Timezone: tz, Logger: log.NewContext(s.logger).With("component", "sfaktor crawler")},
-				&k9.Crawler{Timezone: tz, Logger: log.NewContext(s.logger).With("component", "k9crawler")},
+				&sfaktor.Crawler{
+					TermineURI: s.conf.CrawlerStressfaktorURI,
+					Timezone: tz,
+					Logger: s.logger.With(zap.String("component", "sfaktor crawler")),
+				},
+				&k9.Crawler{
+					Timezone: tz,
+					Logger: s.logger.With(zap.String("component", "k9crawler")),
+				},
 			},
 			EventVisitors: []common.EventVisitor{
 				&data.PerformerServiceVisitor{PerformerService: performerService, Logger: s.logger},
-				&data.BandcampVisitor{Bandcamp: &bcamp.Bandcamp{HTTP: http.DefaultClient}, VerboseLogging: s.conf.VerboseLogging, Logger: s.logger, ImageMirror: imageMirror},
+				&data.BandcampVisitor{Bandcamp: &bcamp.Bandcamp{HTTP: http.DefaultClient},Logger: s.logger, ImageMirror: imageMirror},
 			},
 			EventService:     eventService,
 			PerformerService: performerService,
 			VenueService:     venueService,
-			Logger:           log.NewContext(s.logger).With("component", "ingest"),
+			Logger:           s.logger.With(zap.String("component", "ingest")),
 		}
 		go dataIngest.Run()
 
@@ -112,7 +115,7 @@ func (s *Server) Start() error {
 
 	//sessions
 	if s.conf.EncryptionKey == "" {
-		return fmt.Errorf("You must specify an auth.key")
+		return fmt.Errorf("you must specify an auth.key")
 	}
 
 	API := v1.API{
@@ -133,6 +136,6 @@ func (s *Server) Start() error {
 	staticFileServer := http.FileServer(http.Dir("static"))
 	mux.Handle("/static/", http.StripPrefix("/static", gziphandler.GzipHandler(staticFileServer)))
 
-	s.logger.Log("msg", fmt.Sprintf("API listening on %s", s.conf.ServerBind))
+	s.logger.Info(fmt.Sprintf("API listening on %s", s.conf.ServerBind))
 	return http.ListenAndServe(s.conf.ServerBind, mux)
 }

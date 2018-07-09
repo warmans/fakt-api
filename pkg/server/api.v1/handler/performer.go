@@ -24,7 +24,7 @@ func (h *PerformerHandler) HandleGetList(rw http.ResponseWriter, r *http.Request
 
 	logger := middleware.MustGetLogger(r)
 
-	performers, err := h.ds.FindPerformers(performer.PerformerFilterFromRequest(r))
+	performers, err := h.ds.FindPerformers(performer.FilterFromRequest(r))
 	if err != nil {
 		common.SendError(rw, err, logger)
 		return
@@ -48,7 +48,7 @@ func (h *PerformerHandler) HandleGet(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	f := &performer.PerformerFilter{}
+	f := &performer.Filter{}
 	f.IDs = []int64{int64(performerID)}
 	f.PageSize = 1
 	f.Page = 1

@@ -2,24 +2,23 @@ package performer
 
 import (
 	"database/sql"
-	"net/http"
-
 	"fmt"
+	"net/http"
 	"strings"
 
-	"github.com/go-kit/kit/log"
 	"github.com/warmans/dbr"
 	"github.com/warmans/fakt-api/pkg/server/data/service/common"
 	"github.com/warmans/fakt-api/pkg/server/data/service/utag"
+	"go.uber.org/zap"
 )
 
-func PerformerFilterFromRequest(r *http.Request) *PerformerFilter {
-	f := &PerformerFilter{}
+func FilterFromRequest(r *http.Request) *Filter {
+	f := &Filter{}
 	f.Populate(r)
 	return f
 }
 
-type PerformerFilter struct {
+type Filter struct {
 	common.CommonFilter
 
 	Name  string `json:"name"`
@@ -27,7 +26,7 @@ type PerformerFilter struct {
 	Home  string `json:"name"`
 }
 
-func (f *PerformerFilter) Populate(r *http.Request) {
+func (f *Filter) Populate(r *http.Request) {
 
 	f.CommonFilter.Populate(r)
 
@@ -39,10 +38,10 @@ func (f *PerformerFilter) Populate(r *http.Request) {
 type PerformerService struct {
 	DB          *dbr.Session
 	UTagService *utag.UTagService
-	Logger      log.Logger
+	Logger      *zap.Logger
 }
 
-func (s *PerformerService) FindPerformers(filter *PerformerFilter) ([]*common.Performer, error) {
+func (s *PerformerService) FindPerformers(filter *Filter) ([]*common.Performer, error) {
 
 	//if no page is specified assume the first page
 	page := filter.Page
@@ -127,7 +126,7 @@ func (s *PerformerService) FindPerformerTags(performerID int64) ([]string, error
 		if err == sql.ErrNoRows {
 			return tags, nil
 		}
-		return tags, fmt.Errorf("Failed to fetch tags at query because %s", err.Error())
+		return tags, fmt.Errorf("failed to fetch tags at query because %s", err.Error())
 	}
 
 	for res.Next() {
@@ -150,13 +149,13 @@ func (s *PerformerService) FindPerformerImages(performerID int64) (map[string]st
 		if err == sql.ErrNoRows {
 			return images, nil
 		}
-		return images, fmt.Errorf("Failed performer images query: %s", err.Error())
+		return images, fmt.Errorf("failed performer images query: %s", err.Error())
 	}
 
 	for res.Next() {
 		var usage, src string
 		if err := res.Scan(&usage, &src); err != nil {
-			return images, fmt.Errorf("Failed performer image scan: %s", err.Error())
+			return images, fmt.Errorf("failed performer image scan: %s", err.Error())
 		}
 		images[usage] = src
 	}
@@ -173,13 +172,13 @@ func (s *PerformerService) FindPerformerEventIDs(performerID int64) ([]int64, er
 		if err == sql.ErrNoRows {
 			return eventIDs, nil
 		}
-		return eventIDs, fmt.Errorf("Failed to fetch performer events because of SQL error %s", err.Error())
+		return eventIDs, fmt.Errorf("failed to fetch performer events because of SQL error %s", err.Error())
 	}
 
 	for res.Next() {
 		var eventID int64
 		if err := res.Scan(&eventID); err != nil {
-			return eventIDs, fmt.Errorf("Failed to fetch performer events because of scan error %s", err.Error())
+			return eventIDs, fmt.Errorf("failed to fetch performer events because of scan error %s", err.Error())
 		}
 		eventIDs = append(eventIDs, eventID)
 	}
@@ -202,13 +201,13 @@ func (s *PerformerService) FindSimilarPerformerIDs(performerID int64) ([]int64, 
 		if err == sql.ErrNoRows {
 			return performerIDs, nil
 		}
-		return performerIDs, fmt.Errorf("Failed to fetch similar performer because of SQL error %s", err.Error())
+		return performerIDs, fmt.Errorf("failed to fetch similar performer because of SQL error %s", err.Error())
 	}
 
 	for res.Next() {
 		var perfID int64
 		if err := res.Scan(&perfID); err != nil {
-			return performerIDs, fmt.Errorf("Failed to fetch similar performers because of scan error %s", err.Error())
+			return performerIDs, fmt.Errorf("failed to fetch similar performers because of scan error %s", err.Error())
 		}
 		performerIDs = append(performerIDs, perfID)
 	}
@@ -273,26 +272,25 @@ func (ps *PerformerService) PerformerMustExist(tr *dbr.Tx, performer *common.Per
 			link.Text,
 		)
 		if err != nil {
-			ps.Logger.Log("msg", fmt.Sprintf("Failed to insert performer_extra: %s", err.Error()))
+			ps.Logger.Error("Failed to insert performer_extra", zap.Error(err))
 			continue
 		}
 	}
 
 	//try and store additional entities but just log errors instead of failing for now
 	if err := ps.StorePerformerTags(tr, performer.ID, performer.Tags); err != nil {
-		ps.Logger.Log(err.Error())
+		ps.Logger.Error("Failed to store performer tags", zap.Error(err))
 	}
 	if err := ps.StorePerformerImages(tr, performer.ID, performer.Images); err != nil {
-		ps.Logger.Log(err.Error())
+		ps.Logger.Error("Failed to store performer images", zap.Error(err))
 	}
-
 	return nil
 }
 
 func (s *PerformerService) StorePerformerTags(tr *dbr.Tx, performerID int64, tags []string) error {
 	//handle tags
 	if _, err := tr.Exec("DELETE FROM performer_tag WHERE performer_id = ?", performerID); err != nil {
-		s.Logger.Log("msg", fmt.Sprintf("Failed to delete existing performer_tag relationships (perfomer: %d) because %s", performerID, err.Error()))
+		s.Logger.Error(fmt.Sprintf("failed to delete existing performer_tag relationships (perfomer: %d)", performerID),zap.Error(err))
 	}
 
 	//todo: move this into new tag service
@@ -303,22 +301,22 @@ func (s *PerformerService) StorePerformerTags(tr *dbr.Tx, performerID int64, tag
 
 		err := s.DB.QueryRow("SELECT id FROM tag WHERE tag = ?", tag).Scan(&tagId)
 		if err != nil && err != sql.ErrNoRows {
-			return fmt.Errorf("Failed to find tag id for %s because %s", tag, err.Error())
+			return fmt.Errorf("failed to find tag id for %s because %s", tag, err.Error())
 		}
 		if tagId == 0 {
 			res, err := tr.Exec("INSERT OR IGNORE INTO tag (tag) VALUES (?)", tag)
 			if err != nil {
-				return fmt.Errorf("Failed to insert tag %s because %s", tag, err.Error())
+				return fmt.Errorf("failed to insert tag %s because %s", tag, err.Error())
 			}
 			//todo: does this work with OR IGNORE?
 			tagId, err = res.LastInsertId()
 			if err != nil {
-				return fmt.Errorf("Failed to get inserted tag id because %s", err.Error())
+				return fmt.Errorf("failed to get inserted tag id because %s", err.Error())
 			}
 		}
 
 		if _, err := tr.Exec("INSERT OR IGNORE INTO performer_tag (performer_id, tag_id) VALUES (?, ?)", performerID, tagId); err != nil {
-			return fmt.Errorf("Failed to insert performer_tag relationship (perfomer: %d, tag: %s, tagId: %d) because %s", performerID, tag, tagId, err.Error())
+			return fmt.Errorf("failed to insert performer_tag relationship (perfomer: %d, tag: %s, tagId: %d) because %s", performerID, tag, tagId, err.Error())
 		}
 	}
 	return nil
@@ -327,7 +325,7 @@ func (s *PerformerService) StorePerformerTags(tr *dbr.Tx, performerID int64, tag
 func (s *PerformerService) StorePerformerImages(tr *dbr.Tx, performerID int64, images map[string]string) error {
 	for imageUseage, imageSrc := range images {
 		if _, err := tr.Exec("INSERT OR IGNORE INTO performer_image (performer_id, usage, src) VALUES (?, ?, ?)", performerID, imageUseage, imageSrc); err != nil {
-			return fmt.Errorf("Failed to add performer image (perfomer: %d, usage: %s, src: %s) because %s", performerID, imageUseage, imageSrc, err.Error())
+			return fmt.Errorf("failed to add performer image (perfomer: %d, usage: %s, src: %s) because %s", performerID, imageUseage, imageSrc, err.Error())
 		}
 	}
 	return nil

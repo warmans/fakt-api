@@ -7,8 +7,8 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 
-	"github.com/go-kit/kit/log"
 	"github.com/warmans/fakt-api/pkg/server"
+	"go.uber.org/zap"
 )
 
 var (
@@ -43,7 +43,12 @@ func main() {
 		StaticFilesPath:        *staticFilesPath,
 	}
 
-	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout))
-	logger = log.NewContext(logger).With("ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
-	logger.Log("msg", server.NewServer(config, logger).Start())
+	logger, err := zap.NewProduction()
+	if err != nil {
+		fmt.Println("Failed to create logger")
+		os.Exit(1)
+	}
+	defer logger.Sync()
+
+	logger.Fatal("Server Exited", zap.Error(server.NewServer(config, logger).Start()))
 }

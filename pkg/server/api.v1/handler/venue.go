@@ -4,12 +4,12 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
 	"github.com/warmans/fakt-api/pkg/server/api.v1/common"
+	"github.com/warmans/fakt-api/pkg/server/api.v1/middleware"
 	"github.com/warmans/fakt-api/pkg/server/data/service/venue"
 	"github.com/warmans/route-rest/routes"
-	"github.com/warmans/fakt-api/pkg/server/api.v1/middleware"
+	"go.uber.org/zap"
 )
 
 func NewVenueHandler(ds *venue.VenueService) routes.RESTHandler {
@@ -36,7 +36,7 @@ func (h *VenueHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
 
 func (h *VenueHandler) HandleGet(rw http.ResponseWriter, r *http.Request) {
 
-	logger, ok := r.Context().Value("logger").(log.Logger)
+	logger, ok := r.Context().Value("logger").(*zap.Logger)
 	if !ok {
 		panic("Context must contain a logger")
 	}

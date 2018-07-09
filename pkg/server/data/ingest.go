@@ -6,13 +6,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-kit/kit/log"
 	"github.com/warmans/dbr"
 	"github.com/warmans/fakt-api/pkg/server/data/service/common"
 	"github.com/warmans/fakt-api/pkg/server/data/service/event"
 	"github.com/warmans/fakt-api/pkg/server/data/service/performer"
 	"github.com/warmans/fakt-api/pkg/server/data/service/venue"
 	"github.com/warmans/fakt-api/pkg/server/data/source"
+	"go.uber.org/zap"
 )
 
 type Ingest struct {
@@ -26,7 +26,7 @@ type Ingest struct {
 	VenueService     *venue.VenueService
 	PerformerService *performer.PerformerService
 
-	Logger           log.Logger
+	Logger           *zap.Logger
 }
 
 func (i *Ingest) Run() {
@@ -37,21 +37,21 @@ func (i *Ingest) Run() {
 			go func(c source.Crawler) {
 
 				defer wg.Done()
-				logger := log.NewContext(i.Logger).With("crawler", fmt.Sprintf("%T", c))
+				logger := i.Logger.With(zap.String("crawler", fmt.Sprintf("%T", c)))
 
-				logger.Log("msg", "crawling")
+				logger.Info("crawling...")
 				events, err := c.Crawl()
 				if err != nil {
-					logger.Log("msg", fmt.Sprintf("Failed failed crawling: %s", err.Error()))
+					logger.Error("Failed failed crawling", zap.Error(err))
 					return
 				}
 
-				logger.Log("msg", fmt.Sprintf("Discovered %d events", len(events)))
-				for _, event := range events {
+				logger.Info(fmt.Sprintf("Discovered %d events", len(events)))
+				for _, ev := range events {
 					//append the source to all events
-					event.Source = c.Name()
-					if err := i.Ingest(event); err != nil {
-						logger.Log("msg", fmt.Sprintf("Failed to ingest event: %s", err.Error()))
+					ev.Source = c.Name()
+					if err := i.Ingest(ev); err != nil {
+						logger.Error("Failed to ingest event", zap.Error(err))
 					}
 				}
 			}(c)
@@ -82,8 +82,8 @@ func (i *Ingest) Ingest(event *common.Event) error {
 		}
 
 		//performers should also exist before event is created
-		for _, performer := range event.Performers {
-			err = i.PerformerService.PerformerMustExist(tr, performer)
+		for _, perf := range event.Performers {
+			err = i.PerformerService.PerformerMustExist(tr, perf)
 			if err != nil {
 				return err
 			}
@@ -106,13 +106,13 @@ func (i *Ingest) Ingest(event *common.Event) error {
 	return nil
 }
 
-func (s *Ingest) Cleanup() {
-	res, err := s.DB.Exec(`UPDATE event SET deleted=1 WHERE date(date) < date('now') AND deleted=0`)
+func (i *Ingest) Cleanup() {
+	res, err := i.DB.Exec(`UPDATE event SET deleted=1 WHERE date(date) < date('now') AND deleted=0`)
 	if err != nil {
-		s.Logger.Log("msg", "Cleaned failed "+err.Error())
+		i.Logger.Error("Cleaned failed", zap.Error(err))
 		return
 	}
 
 	affected, _ := res.RowsAffected()
-	s.Logger.Log(fmt.Sprintf("Cleaned up %d rows", affected))
+	i.Logger.Info(fmt.Sprintf("Cleaned up %d rows", affected))
 }
