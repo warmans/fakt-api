@@ -97,8 +97,8 @@ func (f *Filter) Populate(r *http.Request) {
 }
 
 type Store struct {
-	DB               *dbr.Session
-	PerformerService *performer.Store
+	DB             *dbr.Session
+	PerformerStore *performer.Store
 }
 
 func (s *Store) EventMustExist(tr *dbr.Tx, event *common.Event) error {
@@ -396,7 +396,7 @@ func (s *Store) FindEvents(filter *Filter) ([]*common.Event, error) {
 			if performerIDs := common.SplitConcatIDs(pIDs, ","); len(performerIDs) > 0 {
 				pf := &performer.Filter{}
 				pf.IDs = performerIDs
-				if curEvent.Performers, err = s.PerformerService.FindPerformers(pf); err != nil {
+				if curEvent.Performers, err = s.PerformerStore.FindPerformers(pf); err != nil {
 					return nil, err
 				}
 			}

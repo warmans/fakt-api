@@ -4,20 +4,18 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/gorilla/sessions"
 	"go.uber.org/zap"
 )
 
 type commonContextKey string
 
-func AddCommonCtx(nextHandler http.Handler, sess sessions.Store, logger *zap.Logger) http.Handler {
-	return &CommonCtxMiddleware{next: nextHandler, sessions: sess, logger: logger}
+func AddCommonCtx(nextHandler http.Handler, logger *zap.Logger) http.Handler {
+	return &CommonCtxMiddleware{next: nextHandler, logger: logger}
 }
 
 type CommonCtxMiddleware struct {
-	next     http.Handler
-	sessions sessions.Store
-	logger   *zap.Logger
+	next   http.Handler
+	logger *zap.Logger
 }
 
 func (m *CommonCtxMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request) {

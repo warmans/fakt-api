@@ -16,17 +16,16 @@ import (
 )
 
 type Ingest struct {
-	DB               *dbr.Session
-	UpdateFrequency  time.Duration
-	EventVisitors    []common.EventVisitor
-	Crawlers         []source.Crawler
-	timezone         *time.Location
+	Logger          *zap.Logger
+	DB              *dbr.Session
+	UpdateFrequency time.Duration
+	EventVisitors   []common.EventVisitor
+	Crawlers        []source.Crawler
+	timezone        *time.Location
 
-	EventService     *event.Store
-	VenueService     *venue.Store
-	PerformerService *performer.Store
-
-	Logger           *zap.Logger
+	EventStore     *event.Store
+	VenueStore     *venue.Store
+	PerformerStore *performer.Store
 }
 
 func (i *Ingest) Run() {
@@ -77,19 +76,19 @@ func (i *Ingest) Ingest(event *common.Event) error {
 	err = func(tr *dbr.Tx) error {
 
 		//event must have an existing venue
-		if err := i.VenueService.VenueMustExist(tr, event.Venue); err != nil {
+		if err := i.VenueStore.VenueMustExist(tr, event.Venue); err != nil {
 			return err
 		}
 
 		//performers should also exist before event is created
 		for _, perf := range event.Performers {
-			err = i.PerformerService.PerformerMustExist(tr, perf)
+			err = i.PerformerStore.PerformerMustExist(tr, perf)
 			if err != nil {
 				return err
 			}
 		}
 
-		return i.EventService.EventMustExist(tr, event)
+		return i.EventStore.EventMustExist(tr, event)
 	}(tx)
 
 	if err == nil {

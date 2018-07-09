@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/context"
-	"github.com/gorilla/sessions"
 	"github.com/warmans/fakt-api/pkg/server/api.v1/handler"
 	mw "github.com/warmans/fakt-api/pkg/server/api.v1/middleware"
 	"github.com/warmans/fakt-api/pkg/server/data/store/event"
@@ -16,13 +15,12 @@ import (
 )
 
 type API struct {
-	AppVersion       string
-	EventService     *event.Store
-	VenueService     *venue.Store
-	PerformerService *performer.Store
-	TagService       *tag.Store
+	AppVersion     string
+	EventStore     *event.Store
+	VenueStore     *venue.Store
+	PerformerStore *performer.Store
+	TagStore       *tag.Store
 
-	SessionStore sessions.Store
 	Logger       *zap.Logger
 }
 
@@ -34,12 +32,12 @@ func (a *API) NewServeMux() http.Handler {
 			routes.NewRoute(
 				"event",
 				"{event_id:[0-9]+}",
-				handler.NewEventHandler(a.EventService),
+				handler.NewEventHandler(a.EventStore),
 				[]*routes.Route{
 					routes.NewRoute(
 						"similar",
 						"{similar_id:[0-9]+}",
-						handler.NewEventSimilarHandler(a.EventService),
+						handler.NewEventSimilarHandler(a.EventStore),
 						[]*routes.Route{},
 					),
 				},
@@ -47,18 +45,18 @@ func (a *API) NewServeMux() http.Handler {
 			routes.NewRoute(
 				"event_type",
 				"{event_type_id:[0-9]+}",
-				handler.NewEventTypeHandler(a.EventService),
+				handler.NewEventTypeHandler(a.EventStore),
 				[]*routes.Route{},
 			),
 			routes.NewRoute(
 				"venue",
 				"{venue_id:[0-9]+}",
-				handler.NewVenueHandler(a.VenueService),
+				handler.NewVenueHandler(a.VenueStore),
 				[]*routes.Route{
 					routes.NewRoute(
 						"event",
 						"{event_id:[0-9]+}",
-						handler.NewVenueEventHandler(a.EventService, a.VenueService),
+						handler.NewVenueEventHandler(a.EventStore, a.VenueStore),
 						[]*routes.Route{},
 					),
 				},
@@ -66,18 +64,18 @@ func (a *API) NewServeMux() http.Handler {
 			routes.NewRoute(
 				"performer",
 				"{performer_id:[0-9]+}",
-				handler.NewPerformerHandler(a.PerformerService),
+				handler.NewPerformerHandler(a.PerformerStore),
 				[]*routes.Route{
 					routes.NewRoute(
 						"event",
 						"{event_id:[0-9]+}",
-						handler.NewPerformerEventHandler(a.EventService, a.PerformerService),
+						handler.NewPerformerEventHandler(a.EventStore, a.PerformerStore),
 						[]*routes.Route{},
 					),
 					routes.NewRoute(
 						"similar",
 						"{similar_id:[0-9]+}",
-						handler.NewPerformerSimilarHandler(a.PerformerService),
+						handler.NewPerformerSimilarHandler(a.PerformerStore),
 						[]*routes.Route{},
 					),
 				},
@@ -85,7 +83,7 @@ func (a *API) NewServeMux() http.Handler {
 			routes.NewRoute(
 				"tag",
 				"{tag_id:[0-9]+}",
-				handler.NewTagHandler(a.TagService),
+				handler.NewTagHandler(a.TagStore),
 				[]*routes.Route{},
 			),
 		},
@@ -109,5 +107,5 @@ func (a *API) NewServeMux() http.Handler {
 		},
 	)
 
-	return mw.AddSetup(mw.AddCommonCtx(finalHandler, a.SessionStore, a.Logger))
+	return mw.AddSetup(mw.AddCommonCtx(finalHandler, a.Logger))
 }

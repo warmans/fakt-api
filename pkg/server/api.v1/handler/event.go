@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/warmans/fakt-api/pkg/server/api.v1/common"
-
 	"github.com/gorilla/mux"
 	"github.com/warmans/fakt-api/pkg/server/api.v1/middleware"
 	"github.com/warmans/fakt-api/pkg/server/data/store/event"

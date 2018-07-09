@@ -2,13 +2,13 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
+	"github.com/gorilla/mux"
 	"github.com/warmans/fakt-api/pkg/server/api.v1/common"
+	"github.com/warmans/fakt-api/pkg/server/api.v1/middleware"
 	"github.com/warmans/fakt-api/pkg/server/data/store/event"
 	"github.com/warmans/route-rest/routes"
-	"github.com/gorilla/mux"
-	"strconv"
-	"github.com/warmans/fakt-api/pkg/server/api.v1/middleware"
 )
 
 func NewEventSimilarHandler(ds *event.Store) routes.RESTHandler {

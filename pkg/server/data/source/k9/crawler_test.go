@@ -2,6 +2,7 @@ package k9
 
 import (
 	"testing"
+
 	"github.com/warmans/fakt-api/pkg/server/data/source"
 )
 
@@ -21,7 +22,7 @@ func TestDateFromTitle(t *testing.T) {
 
 	tz, err := source.MustMakeTimeLocation("Europe/Berlin")
 	if err != nil {
-		t.Fatal("Unexpected error creating timzone: %s", err.Error())
+		t.Fatalf("Unexpected error creating timzone: %s", err.Error())
 	}
 	for _, ex := range examples {
 		date, err := dateFromTitle(ex.RawDateString, tz)

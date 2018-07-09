@@ -4,10 +4,9 @@ import (
 	"net/http"
 
 	"github.com/warmans/fakt-api/pkg/server/api.v1/common"
-
+	"github.com/warmans/fakt-api/pkg/server/api.v1/middleware"
 	"github.com/warmans/fakt-api/pkg/server/data/store/tag"
 	"github.com/warmans/route-rest/routes"
-	"github.com/warmans/fakt-api/pkg/server/api.v1/middleware"
 )
 
 func NewTagHandler(ts *tag.Store) routes.RESTHandler {

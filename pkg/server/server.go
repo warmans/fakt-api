@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/NYTimes/gziphandler"
-	"github.com/gorilla/sessions"
 	"github.com/warmans/dbr"
 	v1 "github.com/warmans/fakt-api/pkg/server/api.v1"
 	"github.com/warmans/fakt-api/pkg/server/data"
@@ -53,10 +52,10 @@ func (s *Server) Start() error {
 	//localize time
 	time.LoadLocation(s.conf.ServerLocation)
 
-	performerService := &performer.Store{DB: s.db.NewSession(nil), Logger: s.logger}
-	eventService := &event.Store{DB: s.db.NewSession(nil), PerformerService: performerService}
-	venueService := &venue.Store{DB: s.db.NewSession(nil)}
-	tagService := &tag.Store{DB: s.db.NewSession(nil)}
+	performerStore := &performer.Store{DB: s.db.NewSession(nil), Logger: s.logger}
+	eventStore := &event.Store{DB: s.db.NewSession(nil), PerformerStore: performerStore}
+	venueStore := &venue.Store{DB: s.db.NewSession(nil)}
+	tagStore := &tag.Store{DB: s.db.NewSession(nil)}
 
 	imageMirror := media.NewImageMirror(s.conf.StaticFilesPath)
 
@@ -81,13 +80,13 @@ func (s *Server) Start() error {
 				},
 			},
 			EventVisitors: []common.EventVisitor{
-				&data.PerformerServiceVisitor{PerformerService: performerService, Logger: s.logger},
+				&data.PerformerStoreVisitor{PerformerStore: performerStore, Logger: s.logger},
 				&data.BandcampVisitor{Bandcamp: &bcamp.Bandcamp{HTTP: http.DefaultClient}, Logger: s.logger, ImageMirror: imageMirror},
 			},
-			EventService:     eventService,
-			PerformerService: performerService,
-			VenueService:     venueService,
-			Logger:           s.logger.With(zap.String("component", "ingest")),
+			EventStore:     eventStore,
+			PerformerStore: performerStore,
+			VenueStore:     venueStore,
+			Logger:         s.logger.With(zap.String("component", "ingest")),
 		}
 		go dataIngest.Run()
 
@@ -104,13 +103,12 @@ func (s *Server) Start() error {
 	}
 
 	API := v1.API{
-		AppVersion:       Version,
-		EventService:     eventService,
-		VenueService:     venueService,
-		PerformerService: performerService,
-		TagService:       tagService,
-		SessionStore:     sessions.NewCookieStore([]byte(s.conf.EncryptionKey)),
-		Logger:           s.logger,
+		AppVersion:     Version,
+		EventStore:     eventStore,
+		VenueStore:     venueStore,
+		PerformerStore: performerStore,
+		TagStore:       tagStore,
+		Logger:         s.logger,
 	}
 
 	mux := http.NewServeMux()

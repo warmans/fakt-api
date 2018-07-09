@@ -73,18 +73,18 @@ func (v *BandcampVisitor) Visit(e *common.Event) {
 	}
 }
 
-// EventStoreVisitor embellishes event with data from local event store
+// PerformerStoreVisitor embellishes event with data from local event store
 // this essentially just adds data we have already found in a previous
 // update to the incoming record so we can avoid re-fetching stuff.
-type PerformerServiceVisitor struct {
-	PerformerService *performer.Store
-	Logger           *zap.Logger
+type PerformerStoreVisitor struct {
+	PerformerStore *performer.Store
+	Logger         *zap.Logger
 }
 
-func (v *PerformerServiceVisitor) Visit(e *common.Event) {
+func (v *PerformerStoreVisitor) Visit(e *common.Event) {
 	//just replace whole performer if an existing one is found
 	for k, perf := range e.Performers {
-		existing, err := v.PerformerService.FindPerformers(&performer.Filter{Name: perf.Name, Genre: perf.Genre})
+		existing, err := v.PerformerStore.FindPerformers(&performer.Filter{Name: perf.Name, Genre: perf.Genre})
 		if err != nil {
 			v.Logger.Error("Failed to find performer visiting event", zap.Error(err))
 			return

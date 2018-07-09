@@ -1,9 +1,8 @@
 package source
 
 import (
-	"time"
-
 	"fmt"
+	"time"
 
 	"github.com/warmans/fakt-api/pkg/server/data/store/common"
 )

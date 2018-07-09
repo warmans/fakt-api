@@ -284,7 +284,7 @@ func (s *Store) StorePerformerTags(tr *dbr.Tx, performerID int64, tags []string)
 		s.Logger.Error(fmt.Sprintf("failed to delete existing performer_tag relationships (perfomer: %d)", performerID),zap.Error(err))
 	}
 
-	//todo: move this into new tag service
+	//todo: move this into new tag store
 	for _, tag := range tags {
 
 		var tagId int64
