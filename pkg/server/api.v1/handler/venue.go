@@ -7,25 +7,25 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/warmans/fakt-api/pkg/server/api.v1/common"
 	"github.com/warmans/fakt-api/pkg/server/api.v1/middleware"
-	"github.com/warmans/fakt-api/pkg/server/data/service/venue"
+	"github.com/warmans/fakt-api/pkg/server/data/store/venue"
 	"github.com/warmans/route-rest/routes"
 	"go.uber.org/zap"
 )
 
-func NewVenueHandler(ds *venue.VenueService) routes.RESTHandler {
+func NewVenueHandler(ds *venue.Store) routes.RESTHandler {
 	return &VenueHandler{ds: ds}
 }
 
 type VenueHandler struct {
 	routes.DefaultRESTHandler
-	ds *venue.VenueService
+	ds *venue.Store
 }
 
 func (h *VenueHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
 
 	logger := middleware.MustGetLogger(r)
 
-	venues, err := h.ds.FindVenues(venue.VenueFilterFromRequest(r))
+	venues, err := h.ds.FindVenues(venue.FilterFromRequest(r))
 	if err != nil {
 		common.SendError(rw, err, logger)
 		return
@@ -48,7 +48,7 @@ func (h *VenueHandler) HandleGet(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	f := &venue.VenueFilter{}
+	f := &venue.Filter{}
 	f.IDs = []int64{int64(venueID)}
 	f.PageSize = 1
 	f.Page = 1

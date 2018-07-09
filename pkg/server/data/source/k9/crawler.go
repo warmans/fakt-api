@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/ungerik/go-rss"
-	"github.com/warmans/fakt-api/pkg/server/data/service/common"
+	"github.com/warmans/fakt-api/pkg/server/data/store/common"
 	"go.uber.org/zap"
 )
 

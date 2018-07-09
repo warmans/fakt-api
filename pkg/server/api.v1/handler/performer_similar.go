@@ -7,18 +7,18 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/warmans/fakt-api/pkg/server/api.v1/common"
-	"github.com/warmans/fakt-api/pkg/server/data/service/performer"
+	"github.com/warmans/fakt-api/pkg/server/data/store/performer"
 	"github.com/warmans/route-rest/routes"
 	"github.com/warmans/fakt-api/pkg/server/api.v1/middleware"
 )
 
-func NewPerformerSimilarHandler(ds *performer.PerformerService) routes.RESTHandler {
+func NewPerformerSimilarHandler(ds *performer.Store) routes.RESTHandler {
 	return &PerformerSimilarHandler{ds: ds}
 }
 
 type PerformerSimilarHandler struct {
 	routes.DefaultRESTHandler
-	ds *performer.PerformerService
+	ds *performer.Store
 }
 
 func (h *PerformerSimilarHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {

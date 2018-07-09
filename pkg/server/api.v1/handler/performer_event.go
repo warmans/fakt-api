@@ -6,20 +6,20 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/warmans/fakt-api/pkg/server/api.v1/common"
-	"github.com/warmans/fakt-api/pkg/server/data/service/event"
-	"github.com/warmans/fakt-api/pkg/server/data/service/performer"
+	"github.com/warmans/fakt-api/pkg/server/data/store/event"
+	"github.com/warmans/fakt-api/pkg/server/data/store/performer"
 	"github.com/warmans/route-rest/routes"
 	"github.com/warmans/fakt-api/pkg/server/api.v1/middleware"
 )
 
-func NewPerformerEventHandler(es *event.EventService, ps *performer.PerformerService) routes.RESTHandler {
+func NewPerformerEventHandler(es *event.Store, ps *performer.Store) routes.RESTHandler {
 	return &PerformerEventHandler{events: es, performers: ps}
 }
 
 type PerformerEventHandler struct {
 	routes.DefaultRESTHandler
-	events     *event.EventService
-	performers *performer.PerformerService
+	events     *event.Store
+	performers *performer.Store
 }
 
 func (h *PerformerEventHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
@@ -50,7 +50,7 @@ func (h *PerformerEventHandler) HandleGetList(rw http.ResponseWriter, r *http.Re
 		return
 	}
 
-	filter := event.EventFilterFromRequest(r)
+	filter := event.FilterFromRequest(r)
 	filter.IDs = eventIDs
 
 	events, err := h.events.FindEvents(filter)

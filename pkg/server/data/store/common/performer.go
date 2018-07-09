@@ -17,7 +17,6 @@ type Performer struct {
 	Events     []*Event          `json:"event,omitempty"`
 	Links      []*Link           `json:"link,omitempty"`
 	Tags       []string          `json:"tag"`
-	UTags      []UTags           `json:"utag,omitempty"`
 	Images     map[string]string `json:"images"`
 	EmbedURL   string            `json:"embed_url"`
 }

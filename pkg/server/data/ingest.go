@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/warmans/dbr"
-	"github.com/warmans/fakt-api/pkg/server/data/service/common"
-	"github.com/warmans/fakt-api/pkg/server/data/service/event"
-	"github.com/warmans/fakt-api/pkg/server/data/service/performer"
-	"github.com/warmans/fakt-api/pkg/server/data/service/venue"
 	"github.com/warmans/fakt-api/pkg/server/data/source"
+	"github.com/warmans/fakt-api/pkg/server/data/store/common"
+	"github.com/warmans/fakt-api/pkg/server/data/store/event"
+	"github.com/warmans/fakt-api/pkg/server/data/store/performer"
+	"github.com/warmans/fakt-api/pkg/server/data/store/venue"
 	"go.uber.org/zap"
 )
 
@@ -22,9 +22,9 @@ type Ingest struct {
 	Crawlers         []source.Crawler
 	timezone         *time.Location
 
-	EventService     *event.EventService
-	VenueService     *venue.VenueService
-	PerformerService *performer.PerformerService
+	EventService     *event.Store
+	VenueService     *venue.Store
+	PerformerService *performer.Store
 
 	Logger           *zap.Logger
 }

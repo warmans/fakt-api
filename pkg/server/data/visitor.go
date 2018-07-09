@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/warmans/fakt-api/pkg/server/data/media"
-	"github.com/warmans/fakt-api/pkg/server/data/service/common"
-	"github.com/warmans/fakt-api/pkg/server/data/service/performer"
+	"github.com/warmans/fakt-api/pkg/server/data/store/common"
+	"github.com/warmans/fakt-api/pkg/server/data/store/performer"
 	"github.com/warmans/go-bandcamp-search/bcamp"
 	"go.uber.org/zap"
 )
@@ -20,20 +20,20 @@ type BandcampVisitor struct {
 
 func (v *BandcampVisitor) Visit(e *common.Event) {
 
-	for k, performer := range e.Performers {
+	for k, perf := range e.Performers {
 
-		if performer.ID > 0 || performer.ListenURL != "" {
+		if perf.ID > 0 || perf.ListenURL != "" {
 			continue //don't re-fetch data for existing performer or performer with existing listen URL
 		}
 		//update listen URLs with bandcamp
-		results, err := v.Bandcamp.Search(performer.Name, performer.Home, 1)
+		results, err := v.Bandcamp.Search(perf.Name, perf.Home, 1)
 		if err != nil {
 			v.Logger.Error("Failed to query bandcamp", zap.Error(err))
 			return
 		}
 		if len(results) > 0 {
 
-			imageName := performer.GetNameHash()
+			imageName := perf.GetNameHash()
 			if imageName == "" {
 				//name was blank store images with some other hopefully unique enough number
 				imageName = fmt.Sprintf("%d%d", k, time.Now().UnixNano())
@@ -45,8 +45,8 @@ func (v *BandcampVisitor) Visit(e *common.Event) {
 			} else {
 				e.Performers[k].Images = images
 			}
-			performer.ListenURL = results[0].URL
-			performer.Tags = results[0].Tags
+			perf.ListenURL = results[0].URL
+			perf.Tags = results[0].Tags
 
 			//get some more data
 			artistInfo, err := v.Bandcamp.GetArtistPageInfo(results[0].URL)
@@ -62,9 +62,9 @@ func (v *BandcampVisitor) Visit(e *common.Event) {
 
 			for _, link := range artistInfo.Links {
 				if e.Performers[k].Links == nil {
-					performer.Links = make([]*common.Link, 0)
+					perf.Links = make([]*common.Link, 0)
 				}
-				performer.Links = append(performer.Links, &common.Link{URI: link.URI, Text: link.Text})
+				perf.Links = append(perf.Links, &common.Link{URI: link.URI, Text: link.Text})
 			}
 
 			v.Logger.Debug(fmt.Sprintf("Search Result: %+v", results[0]))
@@ -77,7 +77,7 @@ func (v *BandcampVisitor) Visit(e *common.Event) {
 // this essentially just adds data we have already found in a previous
 // update to the incoming record so we can avoid re-fetching stuff.
 type PerformerServiceVisitor struct {
-	PerformerService *performer.PerformerService
+	PerformerService *performer.Store
 	Logger           *zap.Logger
 }
 
@@ -86,7 +86,7 @@ func (v *PerformerServiceVisitor) Visit(e *common.Event) {
 	for k, perf := range e.Performers {
 		existing, err := v.PerformerService.FindPerformers(&performer.Filter{Name: perf.Name, Genre: perf.Genre})
 		if err != nil {
-			v.Logger.Error("Failed to find perfomer visiting event", zap.Error(err))
+			v.Logger.Error("Failed to find performer visiting event", zap.Error(err))
 			return
 		}
 		if len(existing) > 0 {

@@ -5,7 +5,7 @@ import (
 
 	"fmt"
 
-	"github.com/warmans/fakt-api/pkg/server/data/service/common"
+	"github.com/warmans/fakt-api/pkg/server/data/store/common"
 )
 
 type Crawler interface {

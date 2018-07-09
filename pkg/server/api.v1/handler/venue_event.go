@@ -6,20 +6,20 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/warmans/fakt-api/pkg/server/api.v1/common"
-	"github.com/warmans/fakt-api/pkg/server/data/service/event"
-	"github.com/warmans/fakt-api/pkg/server/data/service/venue"
+	"github.com/warmans/fakt-api/pkg/server/data/store/event"
+	"github.com/warmans/fakt-api/pkg/server/data/store/venue"
 	"github.com/warmans/route-rest/routes"
 	"github.com/warmans/fakt-api/pkg/server/api.v1/middleware"
 )
 
-func NewVenueEventHandler(es *event.EventService, vs *venue.VenueService) routes.RESTHandler {
+func NewVenueEventHandler(es *event.Store, vs *venue.Store) routes.RESTHandler {
 	return &VenueEventHandler{events: es, venues: vs}
 }
 
 type VenueEventHandler struct {
 	routes.DefaultRESTHandler
-	events *event.EventService
-	venues *venue.VenueService
+	events *event.Store
+	venues *venue.Store
 }
 
 func (h *VenueEventHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
@@ -33,7 +33,7 @@ func (h *VenueEventHandler) HandleGetList(rw http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	filter := event.EventFilterFromRequest(r)
+	filter := event.FilterFromRequest(r)
 	filter.VenueIDs = []int64{int64(venueID)}
 
 	events, err := h.events.FindEvents(filter)

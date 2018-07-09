@@ -4,20 +4,20 @@ import (
 	"net/http"
 
 	"github.com/warmans/fakt-api/pkg/server/api.v1/common"
-	"github.com/warmans/fakt-api/pkg/server/data/service/event"
+	"github.com/warmans/fakt-api/pkg/server/data/store/event"
 	"github.com/warmans/route-rest/routes"
 	"github.com/gorilla/mux"
 	"strconv"
 	"github.com/warmans/fakt-api/pkg/server/api.v1/middleware"
 )
 
-func NewEventSimilarHandler(ds *event.EventService) routes.RESTHandler {
+func NewEventSimilarHandler(ds *event.Store) routes.RESTHandler {
 	return &EventSimilarHandler{ds: ds}
 }
 
 type EventSimilarHandler struct {
 	routes.DefaultRESTHandler
-	ds *event.EventService
+	ds *event.Store
 }
 
 func (h *EventSimilarHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
@@ -41,7 +41,7 @@ func (h *EventSimilarHandler) HandleGetList(rw http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	f := event.EventFilterFromRequest(r)
+	f := event.FilterFromRequest(r)
 	f.IDs = similarEvents
 
 	events, err := h.ds.FindEvents(f)

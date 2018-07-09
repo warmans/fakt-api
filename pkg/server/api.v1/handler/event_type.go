@@ -4,18 +4,18 @@ import (
 	"net/http"
 
 	"github.com/warmans/fakt-api/pkg/server/api.v1/common"
-	"github.com/warmans/fakt-api/pkg/server/data/service/event"
+	"github.com/warmans/fakt-api/pkg/server/data/store/event"
 	"github.com/warmans/route-rest/routes"
 	"github.com/warmans/fakt-api/pkg/server/api.v1/middleware"
 )
 
-func NewEventTypeHandler(ds *event.EventService) routes.RESTHandler {
+func NewEventTypeHandler(ds *event.Store) routes.RESTHandler {
 	return &EventTypeHandler{ds: ds}
 }
 
 type EventTypeHandler struct {
 	routes.DefaultRESTHandler
-	ds *event.EventService
+	ds *event.Store
 }
 
 func (h *EventTypeHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {

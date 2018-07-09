@@ -7,17 +7,17 @@ import (
 	"github.com/warmans/fakt-api/pkg/server/api.v1/common"
 
 	"github.com/gorilla/mux"
-	"github.com/warmans/fakt-api/pkg/server/data/service/event"
-	"github.com/warmans/route-rest/routes"
 	"github.com/warmans/fakt-api/pkg/server/api.v1/middleware"
+	"github.com/warmans/fakt-api/pkg/server/data/store/event"
+	"github.com/warmans/route-rest/routes"
 )
 
-func NewEventHandler(ds *event.EventService) routes.RESTHandler {
+func NewEventHandler(ds *event.Store) routes.RESTHandler {
 	return &EventHandler{es: ds}
 }
 
 type EventHandler struct {
-	es *event.EventService
+	es *event.Store
 	routes.DefaultRESTHandler
 }
 
@@ -32,7 +32,7 @@ func (h *EventHandler) HandleGet(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	f := &event.EventFilter{}
+	f := &event.Filter{}
 	f.IDs = []int64{int64(eventId)}
 	f.PageSize = 1
 	f.Page = 1
@@ -55,7 +55,7 @@ func (h *EventHandler) HandleGetList(rw http.ResponseWriter, r *http.Request) {
 
 	logger := middleware.MustGetLogger(r)
 
-	events, err := h.es.FindEvents(event.EventFilterFromRequest(r))
+	events, err := h.es.FindEvents(event.FilterFromRequest(r))
 	if err != nil {
 		common.SendError(rw, err, logger)
 		return

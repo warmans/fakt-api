@@ -2,30 +2,29 @@ package venue
 
 import (
 	"database/sql"
-
 	"net/http"
 
 	"github.com/warmans/dbr"
-	"github.com/warmans/fakt-api/pkg/server/data/service/common"
+	"github.com/warmans/fakt-api/pkg/server/data/store/common"
 )
 
-func VenueFilterFromRequest(r *http.Request) *VenueFilter {
-	f := &VenueFilter{}
+func FilterFromRequest(r *http.Request) *Filter {
+	f := &Filter{}
 	f.Populate(r)
 	return f
 }
 
-type VenueFilter struct {
-	common.CommonFilter
+type Filter struct {
+	common.Filter
 
 	Name    string `json:"name"`
 	SortCol string `json:"sort_col"`
 	SortAsc bool   `json:"sort_asc"`
 }
 
-func (f *VenueFilter) Populate(r *http.Request) {
+func (f *Filter) Populate(r *http.Request) {
 
-	f.CommonFilter.Populate(r)
+	f.Filter.Populate(r)
 
 	//query to filter
 	f.Name = r.Form.Get("name")
@@ -43,11 +42,11 @@ func (f *VenueFilter) Populate(r *http.Request) {
 	}
 }
 
-type VenueService struct {
+type Store struct {
 	DB *dbr.Session
 }
 
-func (vs *VenueService) VenueMustExist(tr *dbr.Tx, venue *common.Venue) error {
+func (s *Store) VenueMustExist(tr *dbr.Tx, venue *common.Venue) error {
 
 	//get the venue ID if it exists
 	if venue.ID == 0 {
@@ -83,7 +82,7 @@ func (vs *VenueService) VenueMustExist(tr *dbr.Tx, venue *common.Venue) error {
 	return nil
 }
 
-func (s *VenueService) FindVenues(filter *VenueFilter) ([]*common.Venue, error) {
+func (s *Store) FindVenues(filter *Filter) ([]*common.Venue, error) {
 
 	//if no page is specified assume the first page
 	page := filter.Page

@@ -13,16 +13,14 @@ import (
 	"github.com/warmans/fakt-api/pkg/server/data"
 	"github.com/warmans/fakt-api/pkg/server/data/media"
 	"github.com/warmans/fakt-api/pkg/server/data/process"
-	"github.com/warmans/fakt-api/pkg/server/data/service/common"
-	"github.com/warmans/fakt-api/pkg/server/data/service/event"
-	"github.com/warmans/fakt-api/pkg/server/data/service/performer"
-	"github.com/warmans/fakt-api/pkg/server/data/service/tag"
-	"github.com/warmans/fakt-api/pkg/server/data/service/user"
-	"github.com/warmans/fakt-api/pkg/server/data/service/utag"
-	"github.com/warmans/fakt-api/pkg/server/data/service/venue"
 	"github.com/warmans/fakt-api/pkg/server/data/source"
 	"github.com/warmans/fakt-api/pkg/server/data/source/k9"
 	"github.com/warmans/fakt-api/pkg/server/data/source/sfaktor"
+	"github.com/warmans/fakt-api/pkg/server/data/store/common"
+	"github.com/warmans/fakt-api/pkg/server/data/store/event"
+	"github.com/warmans/fakt-api/pkg/server/data/store/performer"
+	"github.com/warmans/fakt-api/pkg/server/data/store/tag"
+	"github.com/warmans/fakt-api/pkg/server/data/store/venue"
 	"github.com/warmans/go-bandcamp-search/bcamp"
 	"go.uber.org/zap"
 )
@@ -66,12 +64,10 @@ func (s *Server) Start() error {
 		return errors.Wrap(err, "Failed to initialize local DB")
 	}
 
-	utagService := &utag.UTagService{DB: db.NewSession(nil)}
-	performerService := &performer.PerformerService{DB: db.NewSession(nil), UTagService: utagService, Logger: s.logger}
-	eventService := &event.EventService{DB: db.NewSession(nil), UTagService: utagService, PerformerService: performerService}
-	venueService := &venue.VenueService{DB: db.NewSession(nil)}
-	userService := &user.UserStore{DB: db.NewSession(nil)}
-	tagService := &tag.TagService{DB: db.NewSession(nil)}
+	performerService := &performer.Store{DB: db.NewSession(nil), Logger: s.logger}
+	eventService := &event.Store{DB: db.NewSession(nil), PerformerService: performerService}
+	venueService := &venue.Store{DB: db.NewSession(nil)}
+	tagService := &tag.Store{DB: db.NewSession(nil)}
 
 	imageMirror := media.NewImageMirror(s.conf.StaticFilesPath)
 
@@ -106,7 +102,7 @@ func (s *Server) Start() error {
 		}
 		go dataIngest.Run()
 
-		//pre-calculate some stats when the ingestor is running
+		//pre-calculate some stats when ingest is running
 
 		//performer activity
 		activityRunner := process.GetActivityRunner(time.Minute*10, s.logger)
@@ -120,11 +116,9 @@ func (s *Server) Start() error {
 
 	API := v1.API{
 		AppVersion:       Version,
-		UserService:      userService,
 		EventService:     eventService,
 		VenueService:     venueService,
 		PerformerService: performerService,
-		UTagService:      utagService,
 		TagService:       tagService,
 		SessionStore:     sessions.NewCookieStore([]byte(s.conf.EncryptionKey)),
 		Logger:           s.logger,

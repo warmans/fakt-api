@@ -17,7 +17,6 @@ type Event struct {
 	Type        string       `json:"type"`
 	Description string       `json:"description"`
 	Performers  []*Performer `json:"performer,omitempty"`
-	UTags       []UTags      `json:"utag"`
 	Tags        []string     `json:"tag"`
 	Source      string       `json:"source"`
 }
@@ -72,23 +71,6 @@ func (e *Event) IsValid() bool {
 
 func (e *Event) Accept(visitor EventVisitor) {
 	visitor.Visit(e)
-}
-
-func (e *Event) HasUTag(tags []string, username string) bool {
-	if len(tags) == 0 {
-		return true
-	}
-	for _, utag := range e.UTags {
-		for _, t := range tags {
-			if utag.HasValue(t) {
-				if username != "" && utag.Username != username {
-					continue
-				}
-				return true
-			}
-		}
-	}
-	return false
 }
 
 func (e *Event) HasTag(tags []string) bool {

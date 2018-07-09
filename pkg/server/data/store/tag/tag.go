@@ -4,11 +4,11 @@ import (
 	"net/http"
 
 	"github.com/warmans/dbr"
-	"github.com/warmans/fakt-api/pkg/server/data/service/common"
+	"github.com/warmans/fakt-api/pkg/server/data/store/common"
 )
 
-func TagFilterFromRequest(r *http.Request) *TagFilter {
-	f := &TagFilter{
+func FilterFromRequest(r *http.Request) *Filter {
+	f := &Filter{
 		WithEvents:  common.StringToBool(r.Form.Get("with_events")),
 		WithPerformers: common.StringToBool(r.Form.Get("with_performers")),
 	}
@@ -16,17 +16,17 @@ func TagFilterFromRequest(r *http.Request) *TagFilter {
 	return f
 }
 
-type TagFilter struct {
-	common.CommonFilter
+type Filter struct {
+	common.Filter
 	WithEvents     bool `json:"with_events"`
 	WithPerformers bool `json:"with_performers"`
 }
 
-type TagService struct {
+type Store struct {
 	DB *dbr.Session
 }
 
-func (s *TagService) FindTags(filter *TagFilter) ([]*common.Tag, error) {
+func (s *Store) FindTags(filter *Filter) ([]*common.Tag, error) {
 
 	page := filter.Page
 	if page == 0 {

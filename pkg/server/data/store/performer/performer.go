@@ -7,8 +7,7 @@ import (
 	"strings"
 
 	"github.com/warmans/dbr"
-	"github.com/warmans/fakt-api/pkg/server/data/service/common"
-	"github.com/warmans/fakt-api/pkg/server/data/service/utag"
+	"github.com/warmans/fakt-api/pkg/server/data/store/common"
 	"go.uber.org/zap"
 )
 
@@ -19,7 +18,7 @@ func FilterFromRequest(r *http.Request) *Filter {
 }
 
 type Filter struct {
-	common.CommonFilter
+	common.Filter
 
 	Name  string `json:"name"`
 	Genre string `json:"name"`
@@ -28,20 +27,19 @@ type Filter struct {
 
 func (f *Filter) Populate(r *http.Request) {
 
-	f.CommonFilter.Populate(r)
+	f.Filter.Populate(r)
 
 	f.Name = r.Form.Get("name")
 	f.Genre = r.Form.Get("genre")
 	f.Home = r.Form.Get("home")
 }
 
-type PerformerService struct {
+type Store struct {
 	DB          *dbr.Session
-	UTagService *utag.UTagService
 	Logger      *zap.Logger
 }
 
-func (s *PerformerService) FindPerformers(filter *Filter) ([]*common.Performer, error) {
+func (s *Store) FindPerformers(filter *Filter) ([]*common.Performer, error) {
 
 	//if no page is specified assume the first page
 	page := filter.Page
@@ -83,13 +81,6 @@ func (s *PerformerService) FindPerformers(filter *Filter) ([]*common.Performer, 
 		}
 		found[k].Links = links
 
-		//append the utags
-		tags, err := s.UTagService.FindPerformerUTags(performer.ID, &common.UTagsFilter{})
-		if err != nil {
-			return nil, err
-		}
-		found[k].UTags = tags
-
 		//append normal tags
 		if found[k].Tags, err = s.FindPerformerTags(performer.ID); err != nil {
 			return nil, err
@@ -104,7 +95,7 @@ func (s *PerformerService) FindPerformers(filter *Filter) ([]*common.Performer, 
 	return found, nil
 }
 
-func (s *PerformerService) FindPerformerLinks(performerId int64) ([]*common.Link, error) {
+func (s *Store) FindPerformerLinks(performerId int64) ([]*common.Link, error) {
 	q := s.DB.
 		Select("link", "link_type", "link_description").
 		From("performer_extra").
@@ -117,7 +108,7 @@ func (s *PerformerService) FindPerformerLinks(performerId int64) ([]*common.Link
 	return links, nil
 }
 
-func (s *PerformerService) FindPerformerTags(performerID int64) ([]string, error) {
+func (s *Store) FindPerformerTags(performerID int64) ([]string, error) {
 
 	tags := []string{}
 
@@ -140,7 +131,7 @@ func (s *PerformerService) FindPerformerTags(performerID int64) ([]string, error
 	return tags, nil
 }
 
-func (s *PerformerService) FindPerformerImages(performerID int64) (map[string]string, error) {
+func (s *Store) FindPerformerImages(performerID int64) (map[string]string, error) {
 
 	images := make(map[string]string)
 
@@ -163,7 +154,7 @@ func (s *PerformerService) FindPerformerImages(performerID int64) (map[string]st
 	return images, nil
 }
 
-func (s *PerformerService) FindPerformerEventIDs(performerID int64) ([]int64, error) {
+func (s *Store) FindPerformerEventIDs(performerID int64) ([]int64, error) {
 
 	eventIDs := make([]int64, 0)
 
@@ -186,7 +177,7 @@ func (s *PerformerService) FindPerformerEventIDs(performerID int64) ([]int64, er
 	return eventIDs, nil
 }
 
-func (s *PerformerService) FindSimilarPerformerIDs(performerID int64) ([]int64, error) {
+func (s *Store) FindSimilarPerformerIDs(performerID int64) ([]int64, error) {
 	performerIDs := make([]int64, 0)
 
 	res, err := s.DB.Query(`
@@ -215,7 +206,7 @@ func (s *PerformerService) FindSimilarPerformerIDs(performerID int64) ([]int64, 
 	return performerIDs, nil
 }
 
-func (ps *PerformerService) PerformerMustExist(tr *dbr.Tx, performer *common.Performer) error {
+func (s *Store) PerformerMustExist(tr *dbr.Tx, performer *common.Performer) error {
 
 	if !performer.IsValid() {
 		return nil
@@ -272,22 +263,22 @@ func (ps *PerformerService) PerformerMustExist(tr *dbr.Tx, performer *common.Per
 			link.Text,
 		)
 		if err != nil {
-			ps.Logger.Error("Failed to insert performer_extra", zap.Error(err))
+			s.Logger.Error("Failed to insert performer_extra", zap.Error(err))
 			continue
 		}
 	}
 
 	//try and store additional entities but just log errors instead of failing for now
-	if err := ps.StorePerformerTags(tr, performer.ID, performer.Tags); err != nil {
-		ps.Logger.Error("Failed to store performer tags", zap.Error(err))
+	if err := s.StorePerformerTags(tr, performer.ID, performer.Tags); err != nil {
+		s.Logger.Error("Failed to store performer tags", zap.Error(err))
 	}
-	if err := ps.StorePerformerImages(tr, performer.ID, performer.Images); err != nil {
-		ps.Logger.Error("Failed to store performer images", zap.Error(err))
+	if err := s.StorePerformerImages(tr, performer.ID, performer.Images); err != nil {
+		s.Logger.Error("Failed to store performer images", zap.Error(err))
 	}
 	return nil
 }
 
-func (s *PerformerService) StorePerformerTags(tr *dbr.Tx, performerID int64, tags []string) error {
+func (s *Store) StorePerformerTags(tr *dbr.Tx, performerID int64, tags []string) error {
 	//handle tags
 	if _, err := tr.Exec("DELETE FROM performer_tag WHERE performer_id = ?", performerID); err != nil {
 		s.Logger.Error(fmt.Sprintf("failed to delete existing performer_tag relationships (perfomer: %d)", performerID),zap.Error(err))
@@ -322,7 +313,7 @@ func (s *PerformerService) StorePerformerTags(tr *dbr.Tx, performerID int64, tag
 	return nil
 }
 
-func (s *PerformerService) StorePerformerImages(tr *dbr.Tx, performerID int64, images map[string]string) error {
+func (s *Store) StorePerformerImages(tr *dbr.Tx, performerID int64, images map[string]string) error {
 	for imageUseage, imageSrc := range images {
 		if _, err := tr.Exec("INSERT OR IGNORE INTO performer_image (performer_id, usage, src) VALUES (?, ?, ?)", performerID, imageUseage, imageSrc); err != nil {
 			return fmt.Errorf("failed to add performer image (perfomer: %d, usage: %s, src: %s) because %s", performerID, imageUseage, imageSrc, err.Error())

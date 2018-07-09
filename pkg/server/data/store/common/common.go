@@ -54,13 +54,13 @@ func GetRelativeDateRange(name string) (time.Time, time.Time) {
 	}
 }
 
-type CommonFilter struct {
+type Filter struct {
 	Page     int64 `json:"page"`
 	PageSize int64 `json:"page_size"`
 	IDs      []int64 `json:"ids"`
 }
 
-func (f *CommonFilter) Populate(r *http.Request) {
+func (f *Filter) Populate(r *http.Request) {
 	if page := r.Form.Get("page"); page != "" {
 		if pageInt, err := strconv.Atoi(page); err == nil {
 			f.Page = int64(pageInt)

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/warmans/fakt-api/pkg/server/data/service/common"
+	"github.com/warmans/fakt-api/pkg/server/data/store/common"
 	"go.uber.org/zap"
 )
 
